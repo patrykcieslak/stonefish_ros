@@ -33,5 +33,14 @@ include_directories(
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(${Stonefish_CFLAGS})
 
-#add_executable(g500_auv_dynamics include/StonefishROSInterface.hpp src/g500_auv_dynamics.cpp src/G500AUVDynamicsManager.cpp)
-#target_link_libraries(g500_auv_dynamics ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+add_executable(girona500_auv_dynamics include/StonefishROSInterface.hpp src/girona500_auv_dynamics.cpp src/G500AUVDynamicsManager.cpp)
+add_dependencies(girona500_auv_dynamics cola2_msgs_gencpp)
+target_link_libraries(girona500_auv_dynamics ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+
+add_executable(girona500_auv_simulator include/StonefishROSInterface.hpp src/girona500_auv_simulator.cpp src/G500AUVSimulationManager.cpp)
+add_dependencies(girona500_auv_simulator cola2_msgs_gencpp)
+target_link_libraries(girona500_auv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+
+add_executable(girona500_iauv_simulator include/StonefishROSInterface.hpp src/girona500_iauv_simulator.cpp src/G500IAUVSimulationManager.cpp)
+add_dependencies(girona500_iauv_simulator cola2_msgs_gencpp)
+target_link_libraries(girona500_iauv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
