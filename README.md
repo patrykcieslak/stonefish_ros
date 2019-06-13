@@ -9,7 +9,7 @@ Depends on the following open-source ROS packages:
 - [cola2_msgs](https://bitbucket.org/iquarobotics/cola2_msgs) 
 - [cola2_girona500](https://bitbucket.org/iquarobotics/cola2_girona500)
 - [girona500_description](https://bitbucket.org/iquarobotics/girona500_description)
-- [eca_5emicro_manipulator_description](https://bitbucket.org/)
+- [eca_5emicro_manipulator_description](https://bitbucket.org/udg_cirs/eca_5emicro_manipulator_description)
 
 Depends on the following open-source libraries:
 
