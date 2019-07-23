@@ -37,6 +37,7 @@
 #include <Stonefish/utils/SystemUtil.hpp>
 #include <Stonefish/utils/UnitSystem.h>
 #include <Stonefish/sensors/Sample.h>
+#include <Stonefish/core/NED.h>
 #include "StonefishROSInterface.hpp"
 
 G500AUVDynamicsManager::G500AUVDynamicsManager(sf::Scalar stepsPerSecond) 
@@ -81,50 +82,50 @@ void G500AUVDynamicsManager::BuildScenario()
     std::string ns = cola2::rosutils::getNamespace();
 
     ///////MATERIALS////////
-    getMaterialManager()->CreateMaterial("Dummy", sf::UnitSystem::Density(sf::CGS, sf::MKS, 1.0), 0.5);
-    getMaterialManager()->CreateMaterial("Rock", sf::UnitSystem::Density(sf::CGS, sf::MKS, 3.0), 0.1);
-    getMaterialManager()->CreateMaterial("Fiberglass", sf::UnitSystem::Density(sf::CGS, sf::MKS, 1.5), 0.3);
-    getMaterialManager()->CreateMaterial("Aluminium", sf::UnitSystem::Density(sf::CGS, sf::MKS, 2.71), 0.7);
+    CreateMaterial("Dummy", sf::UnitSystem::Density(sf::CGS, sf::MKS, 1.0), 0.5);
+    CreateMaterial("Rock", sf::UnitSystem::Density(sf::CGS, sf::MKS, 3.0), 0.1);
+    CreateMaterial("Fiberglass", sf::UnitSystem::Density(sf::CGS, sf::MKS, 1.5), 0.3);
+    CreateMaterial("Aluminium", sf::UnitSystem::Density(sf::CGS, sf::MKS, 2.71), 0.7);
     
-    getMaterialManager()->SetMaterialsInteraction("Dummy", "Dummy", 0.5, 0.2);
-    getMaterialManager()->SetMaterialsInteraction("Dummy", "Rock", 0.02, 0.01); //0.25, 0.1
-    getMaterialManager()->SetMaterialsInteraction("Dummy", "Fiberglass", 0.5, 0.2);
-    getMaterialManager()->SetMaterialsInteraction("Dummy", "Aluminium", 0.5, 0.2);
+    SetMaterialsInteraction("Dummy", "Dummy", 0.5, 0.2);
+    SetMaterialsInteraction("Dummy", "Rock", 0.02, 0.01); //0.25, 0.1
+    SetMaterialsInteraction("Dummy", "Fiberglass", 0.5, 0.2);
+    SetMaterialsInteraction("Dummy", "Aluminium", 0.5, 0.2);
     
-    getMaterialManager()->SetMaterialsInteraction("Rock", "Rock", 0.9, 0.7);
-    getMaterialManager()->SetMaterialsInteraction("Rock", "Fiberglass", 0.6, 0.4);
-    getMaterialManager()->SetMaterialsInteraction("Rock", "Aluminium", 0.6, 0.3);
+    SetMaterialsInteraction("Rock", "Rock", 0.9, 0.7);
+    SetMaterialsInteraction("Rock", "Fiberglass", 0.6, 0.4);
+    SetMaterialsInteraction("Rock", "Aluminium", 0.6, 0.3);
 
-    getMaterialManager()->SetMaterialsInteraction("Fiberglass", "Fiberglass", 0.5, 0.2);
-    getMaterialManager()->SetMaterialsInteraction("Fiberglass", "Aluminium", 0.5, 0.2);
+    SetMaterialsInteraction("Fiberglass", "Fiberglass", 0.5, 0.2);
+    SetMaterialsInteraction("Fiberglass", "Aluminium", 0.5, 0.2);
     
-    getMaterialManager()->SetMaterialsInteraction("Aluminium", "Aluminium", 0.5, 0.2);
+    SetMaterialsInteraction("Aluminium", "Aluminium", 0.5, 0.2);
  
     ////////OBJECTS    
-    EnableOcean(false);
+    EnableOcean(0.0);
 
     //Create environment
-    sf::Plane* plane = new sf::Plane("Bottom", 10000.0, getMaterialManager()->getMaterial("Rock"));
+    sf::Plane* plane = new sf::Plane("Bottom", 10000.0, "Rock");
     AddStaticEntity(plane, sf::Transform(sf::IQ(), sf::Vector3(0,0,5.0)));    
      
     //Create underwater vehicle body
     //Externals
-    sf::Polyhedron* hullB = new sf::Polyhedron("HullBottom", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Fiberglass"), sf::BodyPhysicsType::SUBMERGED_BODY, -1, false, 0.003, false);
-    sf::Polyhedron* hullP = new sf::Polyhedron("HullPort", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Fiberglass"), sf::BodyPhysicsType::SUBMERGED_BODY, -1, false, 0.003, false);
-    sf::Polyhedron* hullS = new sf::Polyhedron("HullStarboard", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Fiberglass"), sf::BodyPhysicsType::SUBMERGED_BODY, -1, false, 0.003, false);
-    sf::Polyhedron* vBarStern = new sf::Polyhedron("VBarStern", sf::GetDataPath() + "vbar_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Aluminium"), sf::BodyPhysicsType::SUBMERGED_BODY, -1, false, 0.003, false);
-    sf::Polyhedron* vBarBow = new sf::Polyhedron("VBarBow", sf::GetDataPath() + "vbar_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Aluminium"), sf::BodyPhysicsType::SUBMERGED_BODY, -1, false, 0.003, false);
-    sf::Polyhedron* ductSway = new sf::Polyhedron("DuctSway", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductSurgeP = new sf::Polyhedron("DuctSurgePort", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductSurgeS = new sf::Polyhedron("DuctSurgeStarboard", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductHeaveS = new sf::Polyhedron("DuctHeaveStern", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductHeaveB = new sf::Polyhedron("DuctHeaveBow", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* hullB = new sf::Polyhedron("HullBottom", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* hullP = new sf::Polyhedron("HullPort", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* hullS = new sf::Polyhedron("HullStarboard", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* vBarStern = new sf::Polyhedron("VBarStern", sf::GetDataPath() + "vbar_hydro.obj", 1.0, sf::I4(), "Aluminium", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* vBarBow = new sf::Polyhedron("VBarBow", sf::GetDataPath() + "vbar_hydro.obj", 1.0, sf::I4(), "Aluminium", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* ductSway = new sf::Polyhedron("DuctSway", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductSurgeP = new sf::Polyhedron("DuctSurgePort", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductSurgeS = new sf::Polyhedron("DuctSurgeStarboard", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductHeaveS = new sf::Polyhedron("DuctHeaveStern", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductHeaveB = new sf::Polyhedron("DuctHeaveBow", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     //Internals
-    sf::Cylinder* batteryCyl = new sf::Cylinder("BatteryCylinder", 0.13, 0.6, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Cylinder* batteryCyl = new sf::Cylinder("BatteryCylinder", 0.13, 0.6, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     batteryCyl->ScalePhysicalPropertiesToArbitraryMass(70);
-    sf::Cylinder* portCyl = new sf::Cylinder("PortCylinder", 0.13, 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Cylinder* portCyl = new sf::Cylinder("PortCylinder", 0.13, 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     portCyl->ScalePhysicalPropertiesToArbitraryMass(20);
-    sf::Cylinder* starboardCyl = new sf::Cylinder("StarboardCylinder", 0.13, 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Cylinder* starboardCyl = new sf::Cylinder("StarboardCylinder", 0.13, 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     starboardCyl->ScalePhysicalPropertiesToArbitraryMass(20);
     
     //Build whole body
@@ -143,11 +144,11 @@ void G500AUVDynamicsManager::BuildScenario()
     vehicle->AddInternalPart(starboardCyl, sf::Transform(sf::Quaternion(0,M_PI_2,0), sf::Vector3(0.0,0.35,-0.7)));
     
     //Create thrusters
-    sf::Polyhedron* prop1 = new sf::Polyhedron("Propeller1", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop2 = new sf::Polyhedron("Propeller2", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop3 = new sf::Polyhedron("Propeller3", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop4 = new sf::Polyhedron("Propeller4", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop5 = new sf::Polyhedron("Propeller5", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), getMaterialManager()->getMaterial("Neutral"), sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop1 = new sf::Polyhedron("Propeller1", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop2 = new sf::Polyhedron("Propeller2", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop3 = new sf::Polyhedron("Propeller3", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop4 = new sf::Polyhedron("Propeller4", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop5 = new sf::Polyhedron("Propeller5", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     sf::Thruster* thSway = new sf::Thruster("ThrusterSway", prop1, 0.18, 0.48, 0.05, 1000.0, true);
     sf::Thruster* thSurgeP = new sf::Thruster("ThrusterSurgePort", prop2, 0.18, 0.48, 0.05, 1000.0, true);
     sf::Thruster* thSurgeS = new sf::Thruster("ThrusterSurgeStarboard", prop3, 0.18, 0.48, 0.05, 1000.0, true);
@@ -170,7 +171,8 @@ void G500AUVDynamicsManager::BuildScenario()
     sf::Scalar latitude, longitude;
     nh.getParam(ns + "/navigator/ned_latitude", latitude);
     nh.getParam(ns + "/navigator/ned_longitude", longitude);
-    gps = new sf::GPS("gps", latitude, longitude, 1);
+    getNED()->Init(latitude, longitude, 0.0);
+    gps = new sf::GPS("gps", 1);
     gps->setNoise(0.5);
 
     /////////////////////// ROBOT ////////////////////////
