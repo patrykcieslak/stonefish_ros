@@ -58,11 +58,11 @@
 class G500AUVDynamicsManager : public sf::SimulationManager
 {
 public:
-    G500AUVDynamicsManager(btScalar stepsPerSecond);
+    G500AUVDynamicsManager(sf::Scalar stepsPerSecond);
     
     //Overriden methods
     void BuildScenario();
-    void SimulationStepCompleted();
+    void SimulationStepCompleted(sf::Scalar timeStep);
     void DestroyScenario();
     
     //ROS callbacks & services

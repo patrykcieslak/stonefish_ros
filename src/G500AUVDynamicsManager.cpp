@@ -156,23 +156,23 @@ void G500AUVDynamicsManager::BuildScenario()
     sf::Thruster* thHeaveB = new sf::Thruster("ThrusterHeaveBow", prop5, 0.18, 0.48, 0.05, 1000.0, true);
 
     //Create sensors
-    odom = new sf::Odometry("dynamics", 30);
+    odom = new sf::Odometry(ns + "/dynamics", 30);
 
-    pressure = new sf::Pressure("pressure", 5);
+    pressure = new sf::Pressure(ns + "/pressure", 5);
     pressure->setNoise(5.0);
     
-    dvl = new sf::DVL("dvl", 30.0, 5);
+    dvl = new sf::DVL(ns + "/dvl", 30.0, 5);
     dvl->setRange(sf::Vector3(9.0, 9.0, 9.0), 0.5, 81.0);
     dvl->setNoise(0.0015, 0.001);
     
-    imu = new sf::IMU("imu_filter", 20);
+    imu = new sf::IMU(ns + "/imu_filter", 20);
     imu->setNoise(sf::UnitSystem::Angle(true, 0.0001), sf::UnitSystem::Angle(true, 0.001));
     
     sf::Scalar latitude, longitude;
     nh.getParam(ns + "/navigator/ned_latitude", latitude);
     nh.getParam(ns + "/navigator/ned_longitude", longitude);
     getNED()->Init(latitude, longitude, 0.0);
-    gps = new sf::GPS("gps", 1);
+    gps = new sf::GPS(ns + "/gps", 1);
     gps->setNoise(0.5);
 
     /////////////////////// ROBOT ////////////////////////
@@ -199,7 +199,7 @@ void G500AUVDynamicsManager::BuildScenario()
     AddRobot(auv, sf::Transform(sf::IQ(), sf::Vector3(0,0,1)));
 }
 
-void G500AUVDynamicsManager::SimulationStepCompleted()
+void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
 {
 	/////////////////////////////////////////SENSORS//////////////////////////////////////////////
     std::string ns = cola2::rosutils::getNamespace();

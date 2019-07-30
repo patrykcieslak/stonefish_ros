@@ -65,7 +65,7 @@ public:
     
     //Overriden methods
     void BuildScenario();
-    void SimulationStepCompleted();
+    void SimulationStepCompleted(sf::Scalar timeStep);
     void DestroyScenario();
     
     //ROS callbacks & services

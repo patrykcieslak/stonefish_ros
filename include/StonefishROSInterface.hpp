@@ -17,7 +17,6 @@
 #include <tf/transform_broadcaster.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Float32Stamped.h>
-#include <cola2_lib/rosutils/this_node.h>
 #include <Stonefish/sensors/Sample.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
@@ -54,7 +53,7 @@ void publishIMU(ros::Publisher& pub, sf::IMU* imu)
 
     sensor_msgs::Imu msg;
     msg.header.stamp = ros::Time::now();    
-    msg.header.frame_id = cola2::rosutils::getNamespace() + "/" + imu->getName();
+    msg.header.frame_id = imu->getName();
     msg.orientation.x = quat.x();
     msg.orientation.y = quat.y();
     msg.orientation.z = quat.z();
@@ -78,7 +77,7 @@ void publishPressure(ros::Publisher& pub, sf::Pressure* press)
 
     sensor_msgs::FluidPressure msg;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = cola2::rosutils::getNamespace() + "/" + press->getName();
+    msg.header.frame_id = press->getName();
     msg.fluid_pressure = s.getValue(0);
     msg.variance = press->getSensorChannelDescription(0).stdDev;
     msg.variance *= msg.variance; //Variance is square of standard deviation
@@ -94,7 +93,7 @@ void publishDVL(ros::Publisher& pub, sf::DVL* dvl)
 
     cola2_msgs::DVL msg;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = cola2::rosutils::getNamespace() + "/" + dvl->getName();
+    msg.header.frame_id = dvl->getName();
     msg.velocity.x = s.getValue(0);
     msg.velocity.y = s.getValue(1);
     msg.velocity.z = s.getValue(2);
@@ -112,7 +111,7 @@ void publishGPS(ros::Publisher& pub, sf::GPS* gps)
 
     sensor_msgs::NavSatFix msg;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = cola2::rosutils::getNamespace() + "/" + gps->getName();
+    msg.header.frame_id = gps->getName();
     msg.status.service = msg.status.SERVICE_GPS;
 
     if(s.getValue(1) < sf::Scalar(0)) //Underwater
@@ -144,7 +143,7 @@ void publishOdometry(ros::Publisher& pub, sf::Odometry* odom)
     nav_msgs::Odometry msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = "world_ned";
-    msg.child_frame_id = cola2::rosutils::getNamespace() + "/" + odom->getName();
+    msg.child_frame_id = odom->getName();
     msg.pose.pose.position.x = s.getValue(0);
     msg.pose.pose.position.y = s.getValue(1);
     msg.pose.pose.position.z = s.getValue(2);
@@ -167,7 +166,7 @@ void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::
 	//Publish image message
     sensor_msgs::Image img;
     img.header.stamp = ros::Time::now();
-    img.header.frame_id = cola2::rosutils::getNamespace() + "/" + frameId;
+    img.header.frame_id = frameId;
 	cam->getResolution(img.width, img.height);
 	img.encoding = "rgb8";
 	img.is_bigendian = 0;
@@ -186,7 +185,7 @@ void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::
 	//Publish camera info message
 	sensor_msgs::CameraInfo info;
 	info.header.stamp = img.header.stamp;
-	info.header.frame_id = cola2::rosutils::getNamespace() + "/" + frameId;
+	info.header.frame_id = frameId;
     info.width = img.width;
     info.height = img.height;
     info.binning_x = 0;
@@ -242,7 +241,7 @@ void publishPointCloud(ros::Publisher& pointCloudPub, sf::DepthCamera* cam, std:
 
     sensor_msgs::PointCloud2 msg;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = cola2::rosutils::getNamespace() + "/" + frameId;
+    msg.header.frame_id = frameId;
     msg.height = 1;
     
     sensor_msgs::PointCloud2Modifier modifier(msg);

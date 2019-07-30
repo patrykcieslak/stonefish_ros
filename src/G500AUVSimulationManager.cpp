@@ -171,26 +171,26 @@ void G500AUVSimulationManager::BuildScenario()
     sf::Thruster* thHeaveB = new sf::Thruster("ThrusterHeaveBow", prop5, 0.18, 0.48, 0.05, 1000.0, true);
 
     //Create sensors
-    odom = new sf::Odometry("dynamics", 30);
+    odom = new sf::Odometry(ns + "/dynamics", 30);
 
-    pressure = new sf::Pressure("pressure", 5);
+    pressure = new sf::Pressure(ns + "/pressure", 5);
     pressure->setNoise(5.0);
     
-    dvl = new sf::DVL("dvl", 30, 5);
+    dvl = new sf::DVL(ns + "/dvl", 30, 5);
     dvl->setRange(sf::Vector3(9.0, 9.0, 9.0), 0.5, 81.0);
     dvl->setNoise(0.0015, 0.001);
     
-    imu = new sf::IMU("imu_filter", 20);
+    imu = new sf::IMU(ns + "/imu_filter", 20);
     imu->setNoise(sf::UnitSystem::Angle(true, 0.0001), sf::UnitSystem::Angle(true, 0.001));
      
     sf::Scalar latitude, longitude;
     nh.getParam(ns + "/navigator/ned_latitude", latitude);
     nh.getParam(ns + "/navigator/ned_longitude", longitude);
     getNED()->Init(latitude, longitude, 0.0);
-    gps = new sf::GPS("gps", 1);
+    gps = new sf::GPS(ns + "/gps", 1);
     gps->setNoise(0.5);
 
-    cam = new sf::ColorCamera("proscilica", 1360, 1024, 55.0, 1, 10);
+    cam = new sf::ColorCamera(ns + "/proscilica", 1360, 1024, 55.0, 1, 10);
     cam->InstallNewDataHandler(std::bind(&G500AUVSimulationManager::CameraImageReady, this, std::placeholders::_1));
     cam->setDisplayOnScreen(false);
 
@@ -221,7 +221,7 @@ void G500AUVSimulationManager::BuildScenario()
     AddRobot(auv, sf::Transform(sf::IQ(), sf::Vector3(0,0,1)));
 }
 
-void G500AUVSimulationManager::SimulationStepCompleted()
+void G500AUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 {
 	/////////////////////////////////////////SENSORS//////////////////////////////////////////////
 	std::string ns = cola2::rosutils::getNamespace();
