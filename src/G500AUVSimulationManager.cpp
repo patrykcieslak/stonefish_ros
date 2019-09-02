@@ -328,5 +328,5 @@ void G500AUVSimulationManager::ThrustCallback(const cola2_msgs::Setpoints& msg)
 
 void G500AUVSimulationManager::CameraImageReady(sf::ColorCamera* c)
 {
-    publishCamera(cameraPub, cameraInfoPub, c, "proscilica"); 
+    publishCamera(cameraPub, cameraInfoPub, c); 
 }

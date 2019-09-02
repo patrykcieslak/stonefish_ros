@@ -161,12 +161,12 @@ void publishOdometry(ros::Publisher& pub, sf::Odometry* odom)
     pub.publish(msg);
 }
 
-void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::ColorCamera* cam, std::string frameId)
+void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::ColorCamera* cam)
 {
 	//Publish image message
     sensor_msgs::Image img;
     img.header.stamp = ros::Time::now();
-    img.header.frame_id = frameId;
+    img.header.frame_id = cam->getName();
 	cam->getResolution(img.width, img.height);
 	img.encoding = "rgb8";
 	img.is_bigendian = 0;
@@ -185,7 +185,7 @@ void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::
 	//Publish camera info message
 	sensor_msgs::CameraInfo info;
 	info.header.stamp = img.header.stamp;
-	info.header.frame_id = frameId;
+	info.header.frame_id = cam->getName();
     info.width = img.width;
     info.height = img.height;
     info.binning_x = 0;
@@ -222,7 +222,7 @@ void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::
 	cameraInfoPub.publish(info);
 }
 
-void publishPointCloud(ros::Publisher& pointCloudPub, sf::DepthCamera* cam, std::string frameId)
+void publishPointCloud(ros::Publisher& pointCloudPub, sf::DepthCamera* cam)
 {
 	uint32_t width, height, nPoints;
 	cam->getResolution(width, height);
@@ -241,7 +241,7 @@ void publishPointCloud(ros::Publisher& pointCloudPub, sf::DepthCamera* cam, std:
 
     sensor_msgs::PointCloud2 msg;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = frameId;
+    msg.header.frame_id = cam->getName();
     msg.height = 1;
     
     sensor_msgs::PointCloud2Modifier modifier(msg);

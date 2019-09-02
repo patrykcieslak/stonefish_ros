@@ -252,7 +252,7 @@ void G500IAUVSimulationManager::BuildScenario()
     iauv->AddJointActuator(srv4, "joint4");
 
     //Sensors
-    ft = new sf::ForceTorque("force_torque", sf::I4(), 100);
+    ft = new sf::ForceTorque(ns + "/force_torque", sf::I4(), 100);
     ft->setRange(sf::Vector3(2000.0, 2000.0, 2000.0), sf::Vector3(40.0, 40.0, 30.0));
     ft->setNoise(0.25, 0.005);
     iauv->AddJointSensor(ft, "ForceTorqueJoint");
@@ -478,5 +478,5 @@ void G500IAUVSimulationManager::ArmCallback(const sensor_msgs::JointState& msg)
 
 void G500IAUVSimulationManager::CameraImageReady(sf::ColorCamera* c)
 {
-	publishCamera(cameraPub, cameraInfoPub, c, c->getName());
+	publishCamera(cameraPub, cameraInfoPub, c);
 }
