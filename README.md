@@ -12,8 +12,9 @@ This package uses _Stonefish_ library (developed by Patryk Cieślak) to simulate
 - [cola2_girona500](https://bitbucket.org/iquarobotics/cola2_girona500)
 - [girona500_description](https://bitbucket.org/iquarobotics/girona500_description)
 - [eca_5emicro_manipulator_description](https://bitbucket.org/udg_cirs/eca_5emicro_manipulator_description)
-3. Compile the workspace.
-4. Launch one of the examples.
+3. Clone the `stonefish_ros` package to your catkin workspace.
+4. Compile the workspace.
+5. Launch one of the examples.
 
 ### Launching
 
