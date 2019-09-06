@@ -82,13 +82,13 @@ void G500AUVDynamicsManager::BuildScenario()
     std::string ns = cola2::rosutils::getNamespace();
 
     ///////MATERIALS////////
-    CreateMaterial("Dummy", sf::UnitSystem::Density(sf::CGS, sf::MKS, 1.0), 0.5);
-    CreateMaterial("Rock", sf::UnitSystem::Density(sf::CGS, sf::MKS, 3.0), 0.1);
-    CreateMaterial("Fiberglass", sf::UnitSystem::Density(sf::CGS, sf::MKS, 1.5), 0.3);
-    CreateMaterial("Aluminium", sf::UnitSystem::Density(sf::CGS, sf::MKS, 2.71), 0.7);
+    CreateMaterial("Dummy", 1000.0, 0.5);
+    CreateMaterial("Rock", 3000.0, 0.1);
+    CreateMaterial("Fiberglass", 1500.0, 0.3);
+    CreateMaterial("Aluminium", 2710.0, 0.7);
     
     SetMaterialsInteraction("Dummy", "Dummy", 0.5, 0.2);
-    SetMaterialsInteraction("Dummy", "Rock", 0.02, 0.01); //0.25, 0.1
+    SetMaterialsInteraction("Dummy", "Rock", 0.02, 0.01);
     SetMaterialsInteraction("Dummy", "Fiberglass", 0.5, 0.2);
     SetMaterialsInteraction("Dummy", "Aluminium", 0.5, 0.2);
     
@@ -110,26 +110,26 @@ void G500AUVDynamicsManager::BuildScenario()
      
     //Create underwater vehicle body
     //Externals
-    sf::Polyhedron* hullB = new sf::Polyhedron("HullBottom", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
-    sf::Polyhedron* hullP = new sf::Polyhedron("HullPort", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
-    sf::Polyhedron* hullS = new sf::Polyhedron("HullStarboard", sf::GetDataPath() + "hull_hydro.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
-    sf::Polyhedron* vBarStern = new sf::Polyhedron("VBarStern", sf::GetDataPath() + "vbar_hydro.obj", 1.0, sf::I4(), "Aluminium", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
-    sf::Polyhedron* vBarBow = new sf::Polyhedron("VBarBow", sf::GetDataPath() + "vbar_hydro.obj", 1.0, sf::I4(), "Aluminium", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
-    sf::Polyhedron* ductSway = new sf::Polyhedron("DuctSway", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductSurgeP = new sf::Polyhedron("DuctSurgePort", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductSurgeS = new sf::Polyhedron("DuctSurgeStarboard", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductHeaveS = new sf::Polyhedron("DuctHeaveStern", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* ductHeaveB = new sf::Polyhedron("DuctHeaveBow", sf::GetDataPath() + "duct_hydro.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* hullB = new sf::Polyhedron(ns + "/HullBottom", sf::GetDataPath() + "girona500/hull_phy.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* hullP = new sf::Polyhedron(ns + "/HullPort", sf::GetDataPath() + "girona500/hull_phy.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* hullS = new sf::Polyhedron(ns + "/HullStarboard", sf::GetDataPath() + "girona500/hull_phy.obj", 1.0, sf::I4(), "Fiberglass", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* vBarStern = new sf::Polyhedron(ns + "/TBarStern", sf::GetDataPath() + "girona500/tbar_phy.obj", 1.0, sf::I4(), "Aluminium", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* vBarBow = new sf::Polyhedron(ns + "/TBarBow", sf::GetDataPath() + "girona500/tbar_phy.obj", 1.0, sf::I4(), "Aluminium", sf::BodyPhysicsType::SUBMERGED_BODY, "", 0.003, false);
+    sf::Polyhedron* ductSway = new sf::Polyhedron(ns + "/DuctSway", sf::GetDataPath() + "girona500/duct_phy.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductSurgeP = new sf::Polyhedron(ns + "/DuctSurgePort", sf::GetDataPath() + "girona500/duct_phy.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductSurgeS = new sf::Polyhedron(ns + "/DuctSurgeStarboard", sf::GetDataPath() + "girona500/duct_phy.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductHeaveS = new sf::Polyhedron(ns + "/DuctHeaveStern", sf::GetDataPath() + "girona500/duct_phy.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* ductHeaveB = new sf::Polyhedron(ns + "/DuctHeaveBow", sf::GetDataPath() + "girona500/duct_phy.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     //Internals
-    sf::Cylinder* batteryCyl = new sf::Cylinder("BatteryCylinder", 0.13, 0.6, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Cylinder* batteryCyl = new sf::Cylinder(ns + "/BatteryCylinder", 0.13, 0.6, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     batteryCyl->ScalePhysicalPropertiesToArbitraryMass(70);
-    sf::Cylinder* portCyl = new sf::Cylinder("PortCylinder", 0.13, 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Cylinder* portCyl = new sf::Cylinder(ns + "/PortCylinder", 0.13, 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     portCyl->ScalePhysicalPropertiesToArbitraryMass(20);
-    sf::Cylinder* starboardCyl = new sf::Cylinder("StarboardCylinder", 0.13, 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Cylinder* starboardCyl = new sf::Cylinder(ns + "/StarboardCylinder", 0.13, 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     starboardCyl->ScalePhysicalPropertiesToArbitraryMass(20);
     
     //Build whole body
-    sf::Compound* vehicle = new sf::Compound("Vehicle", hullB, sf::I4(), sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Compound* vehicle = new sf::Compound(ns +"/Vehicle", hullB, sf::I4(), sf::BodyPhysicsType::SUBMERGED_BODY);
     vehicle->AddExternalPart(hullP, sf::Transform(sf::IQ(), sf::Vector3(0,-0.35,-0.7)));
     vehicle->AddExternalPart(hullS, sf::Transform(sf::IQ(), sf::Vector3(0,0.35,-0.7)));
     vehicle->AddExternalPart(vBarStern, sf::Transform(sf::IQ(), sf::Vector3(-0.25,0.0,-0.15)));
@@ -144,16 +144,16 @@ void G500AUVDynamicsManager::BuildScenario()
     vehicle->AddInternalPart(starboardCyl, sf::Transform(sf::Quaternion(0,M_PI_2,0), sf::Vector3(0.0,0.35,-0.7)));
     
     //Create thrusters
-    sf::Polyhedron* prop1 = new sf::Polyhedron("Propeller1", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop2 = new sf::Polyhedron("Propeller2", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop3 = new sf::Polyhedron("Propeller3", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop4 = new sf::Polyhedron("Propeller4", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Polyhedron* prop5 = new sf::Polyhedron("Propeller5", sf::GetDataPath() + "propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Thruster* thSway = new sf::Thruster("ThrusterSway", prop1, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thSurgeP = new sf::Thruster("ThrusterSurgePort", prop2, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thSurgeS = new sf::Thruster("ThrusterSurgeStarboard", prop3, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thHeaveS = new sf::Thruster("ThrusterHeaveStern", prop4, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thHeaveB = new sf::Thruster("ThrusterHeaveBow", prop5, 0.18, 0.48, 0.05, 1000.0, true);
+    sf::Polyhedron* prop1 = new sf::Polyhedron(ns + "/Propeller1", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop2 = new sf::Polyhedron(ns + "/Propeller2", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop3 = new sf::Polyhedron(ns + "/Propeller3", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop4 = new sf::Polyhedron(ns + "/Propeller4", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Polyhedron* prop5 = new sf::Polyhedron(ns + "/Propeller5", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
+    sf::Thruster* thSway = new sf::Thruster(ns + "/ThrusterSway", prop1, 0.18, 0.48, 0.05, 1000.0, true);
+    sf::Thruster* thSurgeP = new sf::Thruster(ns + "/ThrusterSurgePort", prop2, 0.18, 0.48, 0.05, 1000.0, true);
+    sf::Thruster* thSurgeS = new sf::Thruster(ns + "/ThrusterSurgeStarboard", prop3, 0.18, 0.48, 0.05, 1000.0, true);
+    sf::Thruster* thHeaveS = new sf::Thruster(ns + "/ThrusterHeaveStern", prop4, 0.18, 0.48, 0.05, 1000.0, true);
+    sf::Thruster* thHeaveB = new sf::Thruster(ns + "/ThrusterHeaveBow", prop5, 0.18, 0.48, 0.05, 1000.0, true);
 
     //Create sensors
     odom = new sf::Odometry(ns + "/dynamics", 30);
@@ -176,25 +176,25 @@ void G500AUVDynamicsManager::BuildScenario()
     gps->setNoise(0.5);
 
     /////////////////////// ROBOT ////////////////////////
-    auv = new sf::Robot("GIRONA500");
+    auv = new sf::Robot(ns);
     
     //Mechanical structure
     auv->DefineLinks(vehicle);
     
     //Thrusters
-    auv->AddLinkActuator(thSway, "Vehicle", sf::Transform(sf::Quaternion(M_PI_2,M_PI,0), sf::Vector3(-0.0137, 0.0307, -0.38)));
-    auv->AddLinkActuator(thSurgeP, "Vehicle", sf::Transform(sf::IQ(), sf::Vector3(-0.2807,-0.2587,-0.38)));
-    auv->AddLinkActuator(thSurgeS, "Vehicle", sf::Transform(sf::IQ(), sf::Vector3(-0.2807,0.2587,-0.38)));
-    auv->AddLinkActuator(thHeaveS, "Vehicle", sf::Transform(sf::Quaternion(0,-M_PI_2,0), sf::Vector3(-0.5337,0.0,-0.6747)));
-    auv->AddLinkActuator(thHeaveB, "Vehicle", sf::Transform(sf::Quaternion(0,-M_PI_2,0), sf::Vector3(0.5837,0.0,-0.6747)));
+    auv->AddLinkActuator(thSway, ns + "/Vehicle", sf::Transform(sf::Quaternion(M_PI_2,M_PI,0), sf::Vector3(-0.0137, 0.0307, -0.38)));
+    auv->AddLinkActuator(thSurgeP, ns + "/Vehicle", sf::Transform(sf::IQ(), sf::Vector3(-0.2807,-0.2587,-0.38)));
+    auv->AddLinkActuator(thSurgeS, ns + "/Vehicle", sf::Transform(sf::IQ(), sf::Vector3(-0.2807,0.2587,-0.38)));
+    auv->AddLinkActuator(thHeaveS, ns + "/Vehicle", sf::Transform(sf::Quaternion(0,-M_PI_2,0), sf::Vector3(-0.5337,0.0,-0.6747)));
+    auv->AddLinkActuator(thHeaveB, ns + "/Vehicle", sf::Transform(sf::Quaternion(0,-M_PI_2,0), sf::Vector3(0.5837,0.0,-0.6747)));
   
     //Sensors
     sf::Vector3 vehicleCenter(0.049, 0.0, -0.361);
-    auv->AddLinkSensor(odom, "Vehicle", sf::Transform(sf::IQ(), vehicleCenter));
-    auv->AddLinkSensor(pressure, "Vehicle", sf::Transform(sf::IQ(), vehicleCenter + sf::Vector3(-0.48,0.35,-0.4)));
-    auv->AddLinkSensor(dvl, "Vehicle", sf::Transform(sf::Quaternion(-M_PI/4.0,0,M_PI), vehicleCenter + sf::Vector3(-0.75,0.0,0.4)));
-    auv->AddLinkSensor(imu, "Vehicle", sf::Transform(sf::IQ(), vehicleCenter));
-    auv->AddLinkSensor(gps, "Vehicle", sf::Transform(sf::IQ(), vehicleCenter + sf::Vector3(0,0,-0.7)));
+    auv->AddLinkSensor(odom, ns + "/Vehicle", sf::Transform(sf::IQ(), vehicleCenter));
+    auv->AddLinkSensor(pressure, ns + "/Vehicle", sf::Transform(sf::IQ(), vehicleCenter + sf::Vector3(-0.48,0.35,-0.4)));
+    auv->AddLinkSensor(dvl, ns + "/Vehicle", sf::Transform(sf::Quaternion(-M_PI/4.0,0,M_PI), vehicleCenter + sf::Vector3(-0.75,0.0,0.4)));
+    auv->AddLinkSensor(imu, ns + "/Vehicle", sf::Transform(sf::IQ(), vehicleCenter));
+    auv->AddLinkSensor(gps, ns + "/Vehicle", sf::Transform(sf::IQ(), vehicleCenter + sf::Vector3(-0.54, -0.35, -0.74)));
     
     AddRobot(auv, sf::Transform(sf::IQ(), sf::Vector3(0,0,1)));
 }
@@ -229,7 +229,7 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     
         sensor_msgs::Range msg;
         msg.header.stamp = ros::Time::now();
-        msg.header.frame_id = ns + "/" + dvl->getName() + "_altitude";
+        msg.header.frame_id = dvl->getName() + "_altitude";
         msg.radiation_type = msg.ULTRASOUND;
         msg.field_of_view = 0.2;
         msg.min_range = 0.5;
@@ -256,7 +256,7 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
         
         cola2_msgs::Float32Stamped svMsg;
         svMsg.header.stamp = ros::Time::now();
-        svMsg.header.frame_id = ns + "/" + pressure->getName();
+        svMsg.header.frame_id = pressure->getName();
         svMsg.data = 1500.0;
         soundVelocityPub.publish(svMsg);
 
@@ -269,19 +269,19 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     }
  
     //////////////////////////////////////////////ACTUATORS//////////////////////////////////////////
-    sf::Thruster* th = (sf::Thruster*)auv->getActuator("ThrusterSurgePort");
+    sf::Thruster* th = (sf::Thruster*)auv->getActuator(ns + "/ThrusterSurgePort");
     th->setSetpoint(thrustSetpoints[0]);
 
-    th = (sf::Thruster*)auv->getActuator("ThrusterSurgeStarboard");
+    th = (sf::Thruster*)auv->getActuator(ns + "/ThrusterSurgeStarboard");
     th->setSetpoint(thrustSetpoints[1]);
 
-    th = (sf::Thruster*)auv->getActuator("ThrusterHeaveBow");
+    th = (sf::Thruster*)auv->getActuator(ns + "/ThrusterHeaveBow");
     th->setSetpoint(thrustSetpoints[2]);
 
-    th = (sf::Thruster*)auv->getActuator("ThrusterHeaveStern");
+    th = (sf::Thruster*)auv->getActuator(ns + "/ThrusterHeaveStern");
     th->setSetpoint(thrustSetpoints[3]);
 
-    th = (sf::Thruster*)auv->getActuator("ThrusterSway");
+    th = (sf::Thruster*)auv->getActuator(ns + "/ThrusterSway");
     th->setSetpoint(thrustSetpoints[4]);
 
     ros::spinOnce();
