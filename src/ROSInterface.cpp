@@ -1,54 +1,52 @@
-/*
- * StonefishROSInterface.hpp
- *
- * Created: 30/11/2017 17:40:00
- * Author: Patryk Cieslak
- * Copyright(c)2017-2019 Patryk Cieslak
- */
-#include <ros/ros.h>
-#include <sensor_msgs/FluidPressure.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/point_cloud2_iterator.h>
-#include <nav_msgs/Odometry.h>
-#include <tf/transform_broadcaster.h>
-#include <cola2_msgs/DVL.h>
-#include <cola2_msgs/Float32Stamped.h>
-#include <Stonefish/sensors/Sample.h>
-#include <Stonefish/sensors/scalar/Pressure.h>
-#include <Stonefish/sensors/scalar/DVL.h>
-#include <Stonefish/sensors/scalar/FOG.h>
-#include <Stonefish/sensors/scalar/IMU.h>
-#include <Stonefish/sensors/scalar/GPS.h>
-#include <Stonefish/sensors/scalar/ForceTorque.h>
-#include <Stonefish/sensors/scalar/Odometry.h>
-#include <Stonefish/sensors/vision/ColorCamera.h>
-#include <Stonefish/sensors/vision/DepthCamera.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
+/*    
+    This file is a part of stonefish_ros.
 
-void publishTF(tf::TransformBroadcaster& broadcaster, const sf::Transform& T, const ros::Time& t, const std::string &frame_id, const std::string &child_frame_id)
+    stonefish_ros is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    stonefish_ros is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+//
+//  ROSInterface.cpp
+//  stonefish_ros
+//
+//  Created by Patryk Cieslak on 30/11/17.
+//  Copyright (c) 2017-2019 Patryk Cieslak. All rights reserved.
+//
+
+#include "ROSInterface.h"
+
+namespace sf
 {
-    sf::Vector3 o = T.getOrigin();
-    sf::Quaternion q = T.getRotation();
+
+void ROSInterface::PublishTF(tf::TransformBroadcaster& broadcaster, const Transform& T, const ros::Time& t, const std::string &frame_id, const std::string &child_frame_id)
+{
+    Vector3 o = T.getOrigin();
+    Quaternion q = T.getRotation();
     tf::Transform TF;
     TF.setOrigin(tf::Vector3(o.x(), o.y(), o.z()));
     TF.setRotation(tf::Quaternion(q.x(), q.y(), q.z(), q.w()));
     broadcaster.sendTransform(tf::StampedTransform(TF, t, frame_id, child_frame_id));
 }
 
-void publishIMU(ros::Publisher& pub, sf::IMU* imu)
+void ROSInterface::PublishIMU(ros::Publisher& pub, IMU* imu)
 {
-    sf::Sample s = imu->getLastSample();
-    sf::Vector3 rpy = sf::Vector3(s.getValue(0), s.getValue(1), s.getValue(2));
-    sf::Quaternion quat(rpy.z(), rpy.y(), rpy.x());
+    Sample s = imu->getLastSample();
+    Vector3 rpy = Vector3(s.getValue(0), s.getValue(1), s.getValue(2));
+    Quaternion quat(rpy.z(), rpy.y(), rpy.x());
         
-    sf::Scalar oVariance = imu->getSensorChannelDescription(0).stdDev;
+    Scalar oVariance = imu->getSensorChannelDescription(0).stdDev;
     oVariance *= oVariance; //Variance is square of standard deviation
-    sf::Scalar vVariance = imu->getSensorChannelDescription(3).stdDev;
+    Scalar vVariance = imu->getSensorChannelDescription(3).stdDev;
     vVariance *= vVariance; //Variance is square of standard deviation
 
     sensor_msgs::Imu msg;
@@ -67,28 +65,25 @@ void publishIMU(ros::Publisher& pub, sf::IMU* imu)
     msg.angular_velocity_covariance[0] = vVariance;
     msg.angular_velocity_covariance[4] = vVariance;
     msg.angular_velocity_covariance[8] = vVariance;
-
     pub.publish(msg);
 }
 
-void publishPressure(ros::Publisher& pub, sf::Pressure* press)
+void ROSInterface::PublishPressure(ros::Publisher& pub, Pressure* press)
 {
-    sf::Sample s = press->getLastSample();
-
+    Sample s = press->getLastSample();
     sensor_msgs::FluidPressure msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = press->getName();
     msg.fluid_pressure = s.getValue(0);
     msg.variance = press->getSensorChannelDescription(0).stdDev;
     msg.variance *= msg.variance; //Variance is square of standard deviation
-
     pub.publish(msg);
 }
 
-void publishDVL(ros::Publisher& pub, sf::DVL* dvl)
+void ROSInterface::PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* dvl)
 {
-    sf::Sample s = dvl->getLastSample();
-    sf::Scalar vVariance = dvl->getSensorChannelDescription(0).stdDev;
+    Sample s = dvl->getLastSample();
+    Scalar vVariance = dvl->getSensorChannelDescription(0).stdDev;
     vVariance *= vVariance; //Variance is square of standard deviation
 
     cola2_msgs::DVL msg;
@@ -101,20 +96,29 @@ void publishDVL(ros::Publisher& pub, sf::DVL* dvl)
     msg.velocity_covariance[4] = vVariance;
     msg.velocity_covariance[8] = vVariance;
     msg.altitude = s.getValue(3);
-
     pub.publish(msg);
+
+    sensor_msgs::Range msg2;
+    msg2.header.stamp = ros::Time::now();
+    msg2.header.frame_id = dvl->getName() + "_altitude";
+    msg2.radiation_type = msg2.ULTRASOUND;
+    msg2.field_of_view = 0.2;
+    msg2.min_range = 0.5;
+    msg2.max_range = 80.0;
+    msg2.range = s.getValue(3);
+    altPub.publish(msg2);
 }
 
-void publishGPS(ros::Publisher& pub, sf::GPS* gps)
+void ROSInterface::PublishGPS(ros::Publisher& pub, GPS* gps)
 {
-    sf::Sample s = gps->getLastSample();
+    Sample s = gps->getLastSample();
 
     sensor_msgs::NavSatFix msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = gps->getName();
     msg.status.service = msg.status.SERVICE_GPS;
 
-    if(s.getValue(1) < sf::Scalar(0)) //Underwater
+    if(s.getValue(1) < Scalar(0)) //Underwater
     {
         msg.status.status = msg.status.STATUS_NO_FIX;
         msg.latitude = 0.0;
@@ -132,14 +136,12 @@ void publishGPS(ros::Publisher& pub, sf::GPS* gps)
     msg.position_covariance[0] = msg.position_covariance[4] = gps->getNoise() * gps->getNoise();
     msg.position_covariance[8] = 1.0;
     msg.position_covariance_type = msg.COVARIANCE_TYPE_DIAGONAL_KNOWN;
-
     pub.publish(msg);
 }
 
-void publishOdometry(ros::Publisher& pub, sf::Odometry* odom)
+void ROSInterface::PublishOdometry(ros::Publisher& pub, Odometry* odom)
 {
-    sf::Sample s = odom->getLastSample();
-
+    Sample s = odom->getLastSample();
     nav_msgs::Odometry msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = "world_ned";
@@ -157,11 +159,25 @@ void publishOdometry(ros::Publisher& pub, sf::Odometry* odom)
     msg.twist.twist.angular.x = s.getValue(10);
     msg.twist.twist.angular.y = s.getValue(11);
     msg.twist.twist.angular.z = s.getValue(12);
-    
     pub.publish(msg);
 }
 
-void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::ColorCamera* cam)
+void ROSInterface::PublishForceTorque(ros::Publisher& pub, ForceTorque* ft)
+{
+    Sample s = ft->getLastSample();    
+    geometry_msgs::WrenchStamped msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = ft->getName();
+    msg.wrench.force.x = -s.getValue(0);
+    msg.wrench.force.y = -s.getValue(1);
+    msg.wrench.force.z = -s.getValue(2);
+    msg.wrench.torque.x = -s.getValue(3);
+    msg.wrench.torque.y = -s.getValue(4);
+    msg.wrench.torque.z = -s.getValue(5);
+    pub.publish(msg);
+}
+
+void ROSInterface::PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam)
 {
 	//Publish image message
     sensor_msgs::Image img;
@@ -222,7 +238,7 @@ void publishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, sf::
 	cameraInfoPub.publish(info);
 }
 
-void publishPointCloud(ros::Publisher& pointCloudPub, sf::DepthCamera* cam)
+void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam)
 {
 	uint32_t width, height, nPoints;
 	cam->getResolution(width, height);
@@ -282,3 +298,4 @@ void publishPointCloud(ros::Publisher& pointCloudPub, sf::DepthCamera* cam)
     pointCloudPub.publish(msg);
 }
 
+}

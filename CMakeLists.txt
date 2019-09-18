@@ -34,18 +34,25 @@ include_directories(
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(${Stonefish_CFLAGS})
 
-add_executable(girona500_auv_dynamics include/StonefishROSInterface.hpp src/girona500_auv_dynamics.cpp src/G500AUVDynamicsManager.cpp)
+add_library(stonefish_ros_lib
+src/ROSInterface.cpp
+src/ROSSimulationManager.cpp
+src/ROSScenarioParser.cpp
+)
+target_link_libraries(stonefish_ros_lib ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+
+add_executable(girona500_auv_dynamics src/girona500_auv_dynamics.cpp src/G500AUVDynamicsManager.cpp)
 add_dependencies(girona500_auv_dynamics cola2_msgs_gencpp)
-target_link_libraries(girona500_auv_dynamics ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+target_link_libraries(girona500_auv_dynamics ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros_lib)
 
-add_executable(girona500_auv_simulator include/StonefishROSInterface.hpp src/girona500_auv_simulator.cpp src/G500AUVSimulationManager.cpp)
+add_executable(girona500_auv_simulator src/girona500_auv_simulator.cpp src/G500AUVSimulationManager.cpp)
 add_dependencies(girona500_auv_simulator cola2_msgs_gencpp)
-target_link_libraries(girona500_auv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+target_link_libraries(girona500_auv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros_lib)
 
-add_executable(girona500_iauv_simulator include/StonefishROSInterface.hpp src/girona500_iauv_simulator.cpp src/G500IAUVSimulationManager.cpp)
+add_executable(girona500_iauv_simulator src/girona500_iauv_simulator.cpp src/G500IAUVSimulationManager.cpp)
 add_dependencies(girona500_iauv_simulator cola2_msgs_gencpp)
-target_link_libraries(girona500_iauv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+target_link_libraries(girona500_iauv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros_lib)
 
-#add_executable(sparus2_auv_simulator include/StonefishROSInterface.hpp src/sparus2_auv_simulator.cpp src/Sparus2AUVSimulationManager.cpp)
-#add_dependencies(sparus2_auv_simulator cola2_msgs_gencpp)
-#target_link_libraries(sparus2_auv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+add_executable(parsed_simulator src/parsed_simulator.cpp)
+add_dependencies(parsed_simulator cola2_msgs_gencpp)
+target_link_libraries(parsed_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros_lib)

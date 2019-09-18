@@ -33,13 +33,13 @@
 #include <Stonefish/entities/statics/Obstacle.h>
 #include <Stonefish/entities/solids/Wing.h>
 #include <Stonefish/actuators/Thruster.h>
-#include <Stonefish/actuators/ServoMotor.h>
+#include <Stonefish/actuators/Servo.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/sensors/Sample.h>
 #include <Stonefish/utils/SystemUtil.hpp>
 #include <Stonefish/utils/UnitSystem.h>
 #include <Stonefish/core/NED.h>
-#include "StonefishROSInterface.hpp"
+#include "ROSInterface.h"
 
 G500IAUVSimulationManager::G500IAUVSimulationManager(sf::Scalar stepsPerSecond) 
 	: SimulationManager(stepsPerSecond, sf::SolverType::SOLVER_SI, sf::CollisionFilteringType::COLLISION_EXCLUSIVE, sf::FluidDynamicsType::GEOMETRY_BASED)
@@ -242,10 +242,10 @@ void G500IAUVSimulationManager::BuildScenario()
     iauv->DefineFixedJoint("ForceTorqueJoint", ns + "/ECALink4", ns + "/ECAEndEffector", sf::Transform(sf::IQ(), sf::Vector3(0.0, 0.0, 0.05)));
   
     //Drives
-    sf::ServoMotor* srv1 = new sf::ServoMotor(ns + "/Servo1", 1.0, 1.0, 1000.0);
-    sf::ServoMotor* srv2 = new sf::ServoMotor(ns + "/Servo2", 1.0, 1.0, 1000.0);
-    sf::ServoMotor* srv3 = new sf::ServoMotor(ns + "/Servo3", 1.0, 1.0, 1000.0);
-    sf::ServoMotor* srv4 = new sf::ServoMotor(ns + "/Servo4", 1.0, 1.0, 1000.0);
+    sf::Servo* srv1 = new sf::Servo(ns + "/Servo1", 1.0, 1.0, 1000.0);
+    sf::Servo* srv2 = new sf::Servo(ns + "/Servo2", 1.0, 1.0, 1000.0);
+    sf::Servo* srv3 = new sf::Servo(ns + "/Servo3", 1.0, 1.0, 1000.0);
+    sf::Servo* srv4 = new sf::Servo(ns + "/Servo4", 1.0, 1.0, 1000.0);
     iauv->AddJointActuator(srv1, "joint1");
     iauv->AddJointActuator(srv2, "joint2");
     iauv->AddJointActuator(srv3, "joint3");
@@ -284,7 +284,7 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	if(odom->isNewDataAvailable())
 	{
 		//Odometry from physics engine (ground truth)
-		publishOdometry(odomPub, odom);
+		sf::ROSInterface::PublishOdometry(odomPub, odom);
 		odom->MarkDataOld();
 		
         //Manipulator joints
@@ -297,11 +297,11 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
         msg.velocity.resize(4);
         msg.effort.resize(4);
 
-        sf::ServoMotor* srv;
+        sf::Servo* srv;
 
         for(unsigned int i=0; i<4; ++i)
         {
-            srv = (sf::ServoMotor*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
+            srv = (sf::Servo*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
             msg.name[i] = ns.substr(1) + "/eca_5emicro_manipulator/" + srv->getJointName();
             msg.position[i] = srv->getPosition();
             msg.velocity[i] = srv->getVelocity();
@@ -314,7 +314,7 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	//IMU readings
 	if(imu->isNewDataAvailable())
 	{
-		publishIMU(imuPub, imu);
+		sf::ROSInterface::PublishIMU(imuPub, imu);
 		imu->MarkDataOld();
 		imuDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
 	}
@@ -322,27 +322,15 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	//DVL readings
 	if(dvl->isNewDataAvailable())
 	{
-		sf::Sample s = dvl->getLastSample();
-        publishDVL(dvlPub, dvl);
-		dvl->MarkDataOld();
-	
-        sensor_msgs::Range msg;
-        msg.header.stamp = ros::Time::now();
-        msg.header.frame_id = dvl->getName() + "_altitude";
-        msg.radiation_type = msg.ULTRASOUND;
-        msg.field_of_view = 0.2;
-        msg.min_range = 0.5;
-        msg.max_range = 80.0;
-        msg.range = s.getValue(3);
-        altitudePub.publish(msg);
-		
-		dvlDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
+        sf::ROSInterface::PublishDVL(dvlPub, altitudePub, dvl);
+        dvl->MarkDataOld();
+        dvlDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
 	}
 	
 	//GPS readings
 	if(gps->isNewDataAvailable())
 	{
-		publishGPS(gpsPub, gps);
+		sf::ROSInterface::PublishGPS(gpsPub, gps);
 		gps->MarkDataOld();
         gpsDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
 	}
@@ -350,7 +338,7 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	//SVS readings
 	if(pressure->isNewDataAvailable())
 	{
-		publishPressure(pressurePub, pressure);
+		sf::ROSInterface::PublishPressure(pressurePub, pressure);
         pressure->MarkDataOld();
 		
         cola2_msgs::Float32Stamped svMsg;
@@ -388,14 +376,14 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 		msg.wrench.torque.z = -filteredFT[5];
 		ftPub.publish(msg);
 		
-        publishTF(br, robotFrame.inverse() * ft->getSensorFrame(), msg.header.stamp, ns + "/base_link", ns + "/" + ft->getName());
+        sf::ROSInterface::PublishTF(br, robotFrame.inverse() * ft->getSensorFrame(), msg.header.stamp, ns + "/base_link", ns + "/" + ft->getName());
 	}
 	
 	//Camera stream
 	if(cam->isNewDataAvailable())
 	{
 		cam->MarkDataOld();
-        publishTF(br, robotFrame.inverse() * cam->getSensorFrame(), ros::Time::now(), ns + "/base_link", ns + "/" + cam->getName());
+        sf::ROSInterface::PublishTF(br, robotFrame.inverse() * cam->getSensorFrame(), ros::Time::now(), ns + "/base_link", ns + "/" + cam->getName());
 	}
     
 	//////////////////////////////////////////////ACTUATORS//////////////////////////////////////////
@@ -416,12 +404,12 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
     th->setSetpoint(thrustSetpoints[4]);
 
     //Manipulator
-    sf::ServoMotor* srv;
+    sf::Servo* srv;
 	if(armCtrlVelocity)
 	{
 		for(unsigned int i=0; i<armSetpoints.size(); ++i)
         {
-	   	   srv = (sf::ServoMotor*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
+	   	   srv = (sf::Servo*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
            srv->setDesiredVelocity(armSetpoints[i]);
         }
 	}
@@ -429,7 +417,7 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	{
 		for(unsigned int i=0; i<armSetpoints.size(); ++i)
         {
-           srv = (sf::ServoMotor*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
+           srv = (sf::Servo*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
            srv->setDesiredPosition(armSetpoints[i]);
         }
 	}
@@ -478,5 +466,5 @@ void G500IAUVSimulationManager::ArmCallback(const sensor_msgs::JointState& msg)
 
 void G500IAUVSimulationManager::CameraImageReady(sf::ColorCamera* c)
 {
-	publishCamera(cameraPub, cameraInfoPub, c);
+	sf::ROSInterface::PublishCamera(cameraPub, cameraInfoPub, c);
 }

@@ -38,7 +38,7 @@
 #include <Stonefish/utils/UnitSystem.h>
 #include <Stonefish/sensors/Sample.h>
 #include <Stonefish/core/NED.h>
-#include "StonefishROSInterface.hpp"
+#include "ROSInterface.h"
 
 G500AUVDynamicsManager::G500AUVDynamicsManager(sf::Scalar stepsPerSecond) 
 	: SimulationManager(stepsPerSecond, sf::SolverType::SOLVER_SI, sf::CollisionFilteringType::COLLISION_EXCLUSIVE, sf::FluidDynamicsType::GEOMETRY_BASED)
@@ -208,14 +208,14 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     //Ground truth
     if(odom->isNewDataAvailable())
     {
-        publishOdometry(odomPub, odom);
+        sf::ROSInterface::PublishOdometry(odomPub, odom);
         odom->MarkDataOld();
     }
     
     //IMU readings
     if(imu->isNewDataAvailable())
     {
-        publishIMU(imuPub, imu);
+        sf::ROSInterface::PublishIMU(imuPub, imu);
         imu->MarkDataOld();
         imuDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
     }
@@ -223,27 +223,15 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     //DVL readings
     if(dvl->isNewDataAvailable())
     {
-        sf::Sample s = dvl->getLastSample();
-        publishDVL(dvlPub, dvl);
+        sf::ROSInterface::PublishDVL(dvlPub, altitudePub, dvl);
         dvl->MarkDataOld();
-    
-        sensor_msgs::Range msg;
-        msg.header.stamp = ros::Time::now();
-        msg.header.frame_id = dvl->getName() + "_altitude";
-        msg.radiation_type = msg.ULTRASOUND;
-        msg.field_of_view = 0.2;
-        msg.min_range = 0.5;
-        msg.max_range = 80.0;
-        msg.range = s.getValue(3);
-        altitudePub.publish(msg);
-        
         dvlDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
     }
     
     //GPS readings
     if(gps->isNewDataAvailable())
     {
-        publishGPS(gpsPub, gps);
+        sf::ROSInterface::PublishGPS(gpsPub, gps);
         gps->MarkDataOld();
         gpsDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
     }
@@ -251,7 +239,7 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     //SVS readings
     if(pressure->isNewDataAvailable())
     {
-        publishPressure(pressurePub, pressure);
+        sf::ROSInterface::PublishPressure(pressurePub, pressure);
         pressure->MarkDataOld();
         
         cola2_msgs::Float32Stamped svMsg;

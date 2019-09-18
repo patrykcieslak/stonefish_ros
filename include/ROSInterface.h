@@ -1,0 +1,77 @@
+/*    
+    This file is a part of stonefish_ros.
+
+    stonefish_ros is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    stonefish_ros is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+//
+//  ROSInterface.h
+//  stonefish_ros
+//
+//  Created by Patryk Cieslak on 30/11/17.
+//  Copyright (c) 2017-2019 Patryk Cieslak. All rights reserved.
+//
+
+#ifndef __Stonefish_ROSInterface__
+#define __Stonefish_ROSInterface__
+
+#include <ros/ros.h>
+#include <sensor_msgs/FluidPressure.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Range.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
+#include <geometry_msgs/WrenchStamped.h>
+#include <nav_msgs/Odometry.h>
+#include <tf/transform_broadcaster.h>
+#include <cola2_msgs/DVL.h>
+#include <cola2_msgs/Float32Stamped.h>
+#include <Stonefish/sensors/Sample.h>
+#include <Stonefish/sensors/scalar/Pressure.h>
+#include <Stonefish/sensors/scalar/DVL.h>
+#include <Stonefish/sensors/scalar/Compass.h>
+#include <Stonefish/sensors/scalar/IMU.h>
+#include <Stonefish/sensors/scalar/GPS.h>
+#include <Stonefish/sensors/scalar/ForceTorque.h>
+#include <Stonefish/sensors/scalar/Odometry.h>
+#include <Stonefish/sensors/vision/ColorCamera.h>
+#include <Stonefish/sensors/vision/DepthCamera.h>
+#include <Eigen/Core>
+#include <Eigen/Dense>
+
+namespace sf
+{
+    class ROSInterface
+    {
+    public:
+        static void PublishTF(tf::TransformBroadcaster& broadcaster, const Transform& T, const ros::Time& t, const std::string &frame_id, const std::string &child_frame_id);
+        static void PublishIMU(ros::Publisher& pub, IMU* imu);
+        static void PublishPressure(ros::Publisher& pub, Pressure* press);
+        static void PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* dvl);
+        static void PublishGPS(ros::Publisher& pub, GPS* gps);
+        static void PublishOdometry(ros::Publisher& pub, Odometry* odom);
+        static void PublishForceTorque(ros::Publisher& pub, ForceTorque* ft);
+        static void PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam);
+        static void PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam);
+
+
+    private:
+        ROSInterface();
+    };
+}
+
+#endif
