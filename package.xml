@@ -31,7 +31,6 @@
 	<run_depend>cola2_girona500</run_depend>
 	<run_depend>girona500_description</run_depend>
 	<run_depend>eca_5emicro_manipulator_description</run_depend>
-	<run_depend>blueprintlab_reach5mini_manipulator_description</run_depend>
 	<run_depend>geometry_msgs</run_depend>
 	<run_depend>nav_msgs</run_depend>
 	<run_depend>sensor_msgs</run_depend>

@@ -23,15 +23,15 @@
 //  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
 //
 
-#include "ROSSimulationManager.h"
+#include "stonefish_ros/ROSSimulationManager.h"
+#include "stonefish_ros/ROSScenarioParser.h"
+#include "stonefish_ros/ROSInterface.h"
 
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/utils/SystemUtil.hpp>
 #include <Stonefish/core/Robot.h>
-#include "ROSScenarioParser.h"
-#include "ROSInterface.h"
 
 namespace sf
 {

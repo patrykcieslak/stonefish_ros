@@ -26,7 +26,7 @@
 #include <ros/ros.h>
 #include <Stonefish/core/GraphicalSimulationApp.h>
 #include <Stonefish/utils/SystemUtil.hpp>
-#include "ROSSimulationManager.h"
+#include "stonefish_ros/ROSSimulationManager.h"
 
 /*
     Command line arguments:

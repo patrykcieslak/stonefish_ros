@@ -23,7 +23,7 @@
 //  Copyright (c) 2017-2019 Patryk Cieslak. All rights reserved.
 //
 
-#include "ROSInterface.h"
+#include "stonefish_ros/ROSInterface.h"
 
 namespace sf
 {

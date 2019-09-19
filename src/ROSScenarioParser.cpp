@@ -23,9 +23,9 @@
 //  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
 //
 
-#include "ROSScenarioParser.h"
+#include "stonefish_ros/ROSScenarioParser.h"
+#include "stonefish_ros/ROSSimulationManager.h"
 
-#include "ROSSimulationManager.h"
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/actuators/Actuator.h>
 #include <Stonefish/actuators/Servo.h>

@@ -37,7 +37,7 @@
 #include <Stonefish/utils/SystemUtil.hpp>
 #include <Stonefish/utils/UnitSystem.h>
 #include <Stonefish/core/NED.h>
-#include "ROSInterface.h"
+#include "stonefish_ros/ROSInterface.h"
 
 G500AUVSimulationManager::G500AUVSimulationManager(sf::Scalar stepsPerSecond) 
 	: SimulationManager(stepsPerSecond, sf::SolverType::SOLVER_SI, sf::CollisionFilteringType::COLLISION_EXCLUSIVE, sf::FluidDynamicsType::GEOMETRY_BASED)
