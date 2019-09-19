@@ -56,7 +56,6 @@
 #include <tf/transform_broadcaster.h>
 //ROS sim actuators
 #include <cola2_msgs/Setpoints.h>
-#include <cola2_lib/rosutils/diagnostic_helper.h>
 
 class G500IAUVSimulationManager : public sf::SimulationManager
 {
@@ -74,8 +73,6 @@ public:
     
     //Others
     void CameraImageReady(sf::ColorCamera* c);
-    sf::Scalar getFilteringCoeff();
-    void setFilteringCoeff(sf::Scalar c);
     
 private:
 	//Stonefish
@@ -92,8 +89,6 @@ private:
 	sf::Vector3 rpy;
 	std::vector<double> thrustSetpoints;
 	std::vector<double> armSetpoints;
-	std::vector<sf::Scalar> filteredFT;
-	sf::Scalar filteringCoeff;
 	
 	//ROS
 	ros::NodeHandle nh;
@@ -111,10 +106,6 @@ private:
 	ros::Publisher jointStatePub;
 	ros::Publisher cameraPub;
 	ros::Publisher cameraInfoPub;
-	cola2::rosutils::DiagnosticHelper* imuDiag;
-	cola2::rosutils::DiagnosticHelper* dvlDiag;
-	cola2::rosutils::DiagnosticHelper* gpsDiag;
-	cola2::rosutils::DiagnosticHelper* svsDiag;
 	tf::TransformBroadcaster br;
 
 	//Actuators

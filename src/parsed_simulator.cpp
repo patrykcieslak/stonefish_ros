@@ -28,43 +28,60 @@
 #include <Stonefish/utils/SystemUtil.hpp>
 #include "stonefish_ros/ROSSimulationManager.h"
 
-/*
-    Command line arguments:
-    1. Path to the data directory
-    2. Path to the scenario description file (in the data directory)
-    3. Horizontal resolution of the simulation window
-    4. Vertical resolution of the simulation window
-*/
-
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "parsed_simulator", ros::init_options::NoSigintHandler);
 
-	if(argc < 5)
+	if(argc < 7)
 	{
 		ROS_FATAL("Not enough command line parameters provided!");
 		return 1;
 	}
 
+    std::string dataDirPath = std::string(argv[1]) + "/";
+    std::string scenarioPath(argv[2]);
+    sf::Scalar rate = atof(argv[3]);
+
 	sf::RenderSettings s;
-    s.windowW = atoi(argv[3]);
-    s.windowH = atoi(argv[4]);
-    s.shadows = sf::RenderQuality::QUALITY_HIGH;
-    s.ao = sf::RenderQuality::QUALITY_HIGH;
-    s.atmosphere = sf::RenderQuality::QUALITY_HIGH;
-    s.ocean = sf::RenderQuality::QUALITY_HIGH;
-    s.msaa = true;
+    s.windowW = atoi(argv[4]);
+    s.windowH = atoi(argv[5]);
+
+    std::string quality(argv[6]);
+    if(quality == "low")
+    {
+        s.shadows = sf::RenderQuality::QUALITY_LOW;
+        s.ao = sf::RenderQuality::QUALITY_DISABLED;
+        s.atmosphere = sf::RenderQuality::QUALITY_LOW;
+        s.ocean = sf::RenderQuality::QUALITY_LOW;
+        s.msaa = false;
+    }
+    else if(quality == "high")
+    {
+        s.shadows = sf::RenderQuality::QUALITY_HIGH;
+        s.ao = sf::RenderQuality::QUALITY_HIGH;
+        s.atmosphere = sf::RenderQuality::QUALITY_HIGH;
+        s.ocean = sf::RenderQuality::QUALITY_HIGH;
+        s.msaa = true;
+    }
+    else // "medium"
+    {
+        s.shadows = sf::RenderQuality::QUALITY_MEDIUM;
+        s.ao = sf::RenderQuality::QUALITY_MEDIUM;
+        s.atmosphere = sf::RenderQuality::QUALITY_MEDIUM;
+        s.ocean = sf::RenderQuality::QUALITY_MEDIUM;
+        s.msaa = false;
+    }
 
     sf::HelperSettings h;
     h.showFluidDynamics = false;
-    h.showCoordSys = true;
+    h.showCoordSys = false;
     h.showBulletDebugInfo = false;
-    h.showSensors = true;
-    h.showActuators = true;
-    h.showForces = true;
+    h.showSensors = false;
+    h.showActuators = false;
+    h.showForces = false;
 	
-	sf::ROSSimulationManager manager(500.0, std::string(argv[2]));
-	sf::GraphicalSimulationApp app("Stonefish Simulator", std::string(argv[1]), s, h, &manager); 
+	sf::ROSSimulationManager manager(rate, scenarioPath);
+	sf::GraphicalSimulationApp app("Stonefish Simulator", dataDirPath, s, h, &manager); 
 	app.Run();
 
 	return 0;

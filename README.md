@@ -18,13 +18,23 @@ This package uses _Stonefish_ library (developed by Patryk Cieślak) to simulate
 
 ### Launching
 
-Before launching the robot simulators it is best to connect a gamepad compatible with Logitech F310.
-The following simulators are available:
-1. GIRONA500 AUV in console mode (only dynamics and non-vision sensors). 
+This package includes examples, showing how to use the combination of the _Stonefish_ library and the _stonefish_ros_ library to build custom robot simulators interfacing with ROS. Before launching the robot simulators it is best to connect a gamepad compatible with Logitech F310.
+
+There are three ways to create a new simulator:
+1. Launch the standard simulator node, taking as input an XML file descirbing the simulation scenario.
+2. Subclass the empty simulation classes from the _Stonefish_ library, which unlocks extended functionality and custom handling of ROS communication.
+3. Subclass the ROS interfaced simulation classes from the _stonefish_ros_ library, which gives a combination of solutions 1 and 2.
+
+The first approach is presented by the following examples:
+- GIRONA500 I-AUV, equipped with an ECA 5E Micro manipulator, with a force-torque sensor installed in the manipulator wrist and a simple two finger gripper
+   `roslaunch stonefish_ros girona500_eca_parsed_simulator.launch`
+
+The second approach is presented by the following examples:
+- GIRONA500 AUV in console mode (only dynamics and non-vision sensors)
    `roslaunch stonefish_ros girona500_auv_dynamics.launch`
-2. GIRONA500 AUV with a down-looking camera.
+- GIRONA500 AUV with a down-looking camera
    `roslaunch stonefish_ros girona500_auv_simulator.launch`
-3. GIRONA500 I-AUV, equipped with an ECA 5E Micro manipulator, with a force-torque sensor installed in the manipulator wrist.
+- GIRONA500 I-AUV, equipped with an ECA 5E Micro manipulator, with a force-torque sensor installed in the manipulator wrist
    `roslaunch stonefish_ros girona500_eca_simulator.launch` 
 
 ### Credits

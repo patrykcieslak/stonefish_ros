@@ -24,6 +24,8 @@
 //
 
 #include "G500AUVDynamicsManager.h"
+
+#include <cola2_lib/rosutils/this_node.h>
 #include <Stonefish/entities/statics/Plane.h>
 #include <Stonefish/entities/solids/Polyhedron.h>
 #include <Stonefish/entities/solids/Box.h>
@@ -39,6 +41,7 @@
 #include <Stonefish/sensors/Sample.h>
 #include <Stonefish/core/NED.h>
 #include "stonefish_ros/ROSInterface.h"
+
 
 G500AUVDynamicsManager::G500AUVDynamicsManager(sf::Scalar stepsPerSecond) 
 	: SimulationManager(stepsPerSecond, sf::SolverType::SOLVER_SI, sf::CollisionFilteringType::COLLISION_EXCLUSIVE, sf::FluidDynamicsType::GEOMETRY_BASED)
@@ -57,24 +60,7 @@ G500AUVDynamicsManager::G500AUVDynamicsManager(sf::Scalar stepsPerSecond)
     
     //Input to simulation
     thrustSub = nh.subscribe(ns + "/controller/thruster_setpoints", 1, &G500AUVDynamicsManager::ThrustCallback, this);
-    
-    //Diagnostics
-    dvlDiag = new cola2::rosutils::DiagnosticHelper(nh, "dvl", "Simulated");
-    gpsDiag = new cola2::rosutils::DiagnosticHelper(nh, "gps", "Simulated");
-    imuDiag = new cola2::rosutils::DiagnosticHelper(nh, "imu", "Simulated");
-    svsDiag = new cola2::rosutils::DiagnosticHelper(nh, "pressure", "Simulated");
-
     thrustSetpoints = std::vector<double>(5, 0.0);		
-}
-
-void G500AUVDynamicsManager::DestroyScenario()
-{
-	SimulationManager::DestroyScenario();
-	
-	delete dvlDiag;
-	delete gpsDiag;
-	delete imuDiag;
-	delete svsDiag;
 }
 
 void G500AUVDynamicsManager::BuildScenario()
@@ -217,7 +203,6 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     {
         sf::ROSInterface::PublishIMU(imuPub, imu);
         imu->MarkDataOld();
-        imuDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
     }
     
     //DVL readings
@@ -225,7 +210,6 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     {
         sf::ROSInterface::PublishDVL(dvlPub, altitudePub, dvl);
         dvl->MarkDataOld();
-        dvlDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
     }
     
     //GPS readings
@@ -233,7 +217,6 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
     {
         sf::ROSInterface::PublishGPS(gpsPub, gps);
         gps->MarkDataOld();
-        gpsDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
     }
 
     //SVS readings
@@ -252,8 +235,6 @@ void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
         tempMsg.header = svMsg.header;
         tempMsg.temperature = 15.42;
         temperaturePub.publish(tempMsg);
-        
-        svsDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
     }
  
     //////////////////////////////////////////////ACTUATORS//////////////////////////////////////////

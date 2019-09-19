@@ -2,7 +2,7 @@
   <!-- Arguments -->
   <arg name="robot_name" default="girona500"/>
   <arg name="manipulator_name" default="eca_5emicro_manipulator"/>
-  <arg name="xacro_file" default="$(find stonefish_ros)/data/girona500_eca.urdf.xarco"/>
+  <arg name="xacro_file" default="$(find stonefish_ros)/data/urdf/girona500_eca.urdf.xarco"/>
 
   <!-- Robot description -->
   <param name="$(arg robot_name)/robot_description" command="$(find xacro)/xacro --inorder '$(arg xacro_file)' robot_namespace:=$(arg robot_name) manipulator_namespace:=$(arg manipulator_name)"/>

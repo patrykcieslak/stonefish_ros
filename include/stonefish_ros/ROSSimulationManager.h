@@ -58,7 +58,7 @@ namespace sf
 	class ROSSimulationManager : public SimulationManager
 	{
 	public:
-		ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilename);
+		ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath);
 	    virtual void BuildScenario();
 	    virtual void SimulationStepCompleted(Scalar timeStep);
 		
@@ -72,7 +72,7 @@ namespace sf
 	    std::map<std::string, ros::Subscriber>& getSubscribers();
 
 	protected:
-		std::string scnFilename;
+		std::string scnFilePath;
 		ros::NodeHandle nh;
 		std::map<std::string, ros::Publisher> pubs;
 		std::map<std::string, ros::Subscriber> subs;

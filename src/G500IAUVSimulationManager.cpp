@@ -24,6 +24,8 @@
 //
 
 #include "G500IAUVSimulationManager.h"
+
+#include <cola2_lib/rosutils/this_node.h>
 #include <Stonefish/entities/statics/Plane.h>
 #include <Stonefish/entities/solids/Polyhedron.h>
 #include <Stonefish/entities/solids/Box.h>
@@ -63,40 +65,9 @@ G500IAUVSimulationManager::G500IAUVSimulationManager(sf::Scalar stepsPerSecond)
     thrustSub = nh.subscribe(ns + "/controller/thruster_setpoints", 1, &G500IAUVSimulationManager::ThrustCallback, this);
    	armSub = nh.subscribe(ns + "/eca_5emicro_manipulator/desired_joint_states", 1, &G500IAUVSimulationManager::ArmCallback, this);
     jointStatePub = nh.advertise<sensor_msgs::JointState>(ns + "/eca_5emicro_manipulator/joint_states", 2);
-   
-    //Diagnostics
-    dvlDiag = new cola2::rosutils::DiagnosticHelper(nh, "dvl", "Simulated");
-    gpsDiag = new cola2::rosutils::DiagnosticHelper(nh, "gps", "Simulated");
-    imuDiag = new cola2::rosutils::DiagnosticHelper(nh, "imu", "Simulated");
-    svsDiag = new cola2::rosutils::DiagnosticHelper(nh, "pressure", "Simulated");
-    
-    ft = NULL;
-    filteredFT = std::vector<btScalar>(6, 0.0);
-    filteringCoeff = 0.5;
-    
     thrustSetpoints = std::vector<double>(5, 0.0);
 	armSetpoints = std::vector<double>(4, 0.0);
 	armCtrlVelocity = false;		
-}
-
-sf::Scalar G500IAUVSimulationManager::getFilteringCoeff()
-{
-	return filteringCoeff;	
-}
-
-void G500IAUVSimulationManager::setFilteringCoeff(sf::Scalar c)
-{
-	filteringCoeff = c;
-}
-
-void G500IAUVSimulationManager::DestroyScenario()
-{
-	SimulationManager::DestroyScenario();
-	
-	delete dvlDiag;
-	delete gpsDiag;
-	delete imuDiag;
-	delete svsDiag;
 }
 
 void G500IAUVSimulationManager::BuildScenario()
@@ -316,7 +287,6 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	{
 		sf::ROSInterface::PublishIMU(imuPub, imu);
 		imu->MarkDataOld();
-		imuDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
 	}
 	
 	//DVL readings
@@ -324,7 +294,6 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	{
         sf::ROSInterface::PublishDVL(dvlPub, altitudePub, dvl);
         dvl->MarkDataOld();
-        dvlDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
 	}
 	
 	//GPS readings
@@ -332,7 +301,6 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	{
 		sf::ROSInterface::PublishGPS(gpsPub, gps);
 		gps->MarkDataOld();
-        gpsDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
 	}
 
 	//SVS readings
@@ -351,39 +319,21 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
         tempMsg.header = svMsg.header;
         tempMsg.temperature = 15.42;
         temperaturePub.publish(tempMsg);
-		
-		svsDiag->setLevel(diagnostic_msgs::DiagnosticStatus::OK);
 	}
 
 	//Force/Torque sensor readings with exponential filtering
-	if(ft != NULL && ft->isNewDataAvailable())
+	if(ft->isNewDataAvailable())
 	{
-		sf::Sample s = ft->getLastSample();
+	    sf::ROSInterface::PublishForceTorque(ftPub, ft);
 		ft->MarkDataOld();
-		
-		std::vector<sf::Scalar> ftdata = s.getData();
-		for(unsigned int i=0; i<ftdata.size(); ++i)
-			filteredFT[i] = filteringCoeff * ftdata[i] + (btScalar(1) - filteringCoeff) * filteredFT[i];
-				
-		geometry_msgs::WrenchStamped msg;
-		msg.header.stamp = ros::Time::now();
-		msg.header.frame_id = ns + "/ft_sensor";
-        msg.wrench.force.x = -filteredFT[0];
-		msg.wrench.force.y = -filteredFT[1];
-		msg.wrench.force.z = -filteredFT[2];
-		msg.wrench.torque.x = -filteredFT[3];
-		msg.wrench.torque.y = -filteredFT[4];
-		msg.wrench.torque.z = -filteredFT[5];
-		ftPub.publish(msg);
-		
-        sf::ROSInterface::PublishTF(br, robotFrame.inverse() * ft->getSensorFrame(), msg.header.stamp, ns + "/base_link", ns + "/" + ft->getName());
+        sf::ROSInterface::PublishTF(br, robotFrame.inverse() * ft->getSensorFrame(), ros::Time::now(), ns + "/base_link", ft->getName());
 	}
 	
 	//Camera stream
 	if(cam->isNewDataAvailable())
 	{
 		cam->MarkDataOld();
-        sf::ROSInterface::PublishTF(br, robotFrame.inverse() * cam->getSensorFrame(), ros::Time::now(), ns + "/base_link", ns + "/" + cam->getName());
+        sf::ROSInterface::PublishTF(br, robotFrame.inverse() * cam->getSensorFrame(), ros::Time::now(), ns + "/base_link", cam->getName());
 	}
     
 	//////////////////////////////////////////////ACTUATORS//////////////////////////////////////////
@@ -409,16 +359,19 @@ void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 	{
 		for(unsigned int i=0; i<armSetpoints.size(); ++i)
         {
-	   	   srv = (sf::Servo*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
-           srv->setDesiredVelocity(armSetpoints[i]);
+	   	    srv = (sf::Servo*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
+            srv->setControlMode(sf::ServoControlMode::VELOCITY_CTRL);
+            srv->setDesiredVelocity(armSetpoints[i]);
         }
 	}
 	else
 	{
 		for(unsigned int i=0; i<armSetpoints.size(); ++i)
         {
-           srv = (sf::Servo*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
-           srv->setDesiredPosition(armSetpoints[i]);
+            srv = (sf::Servo*)iauv->getActuator(ns + "/Servo" + std::to_string(i+1));
+            srv->setControlMode(sf::ServoControlMode::POSITION_CTRL);
+            srv->setDesiredPosition(armSetpoints[i]);
+            srv->setDesiredVelocity(sf::Scalar(0));
         }
 	}
 
@@ -440,7 +393,7 @@ void G500IAUVSimulationManager::ThrustCallback(const cola2_msgs::Setpoints& msg)
 
 void G500IAUVSimulationManager::ArmCallback(const sensor_msgs::JointState& msg)
 {
-	unsigned int nJoints = 8;
+	unsigned int nJoints = 4;
 	
 	if(msg.position.size() >= nJoints)
 	{

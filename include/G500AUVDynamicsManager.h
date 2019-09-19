@@ -53,7 +53,6 @@
 #include <tf/transform_broadcaster.h>
 //ROS sim actuators
 #include <cola2_msgs/Setpoints.h>
-#include <cola2_lib/rosutils/diagnostic_helper.h>
 
 class G500AUVDynamicsManager : public sf::SimulationManager
 {
@@ -92,10 +91,6 @@ private:
 	ros::Publisher dvlPub;
 	ros::Publisher altitudePub;
 	ros::Publisher gpsPub;
-	cola2::rosutils::DiagnosticHelper* imuDiag;
-	cola2::rosutils::DiagnosticHelper* dvlDiag;
-	cola2::rosutils::DiagnosticHelper* gpsDiag;
-	cola2::rosutils::DiagnosticHelper* svsDiag;
 	tf::TransformBroadcaster br;
 
 	//Actuators

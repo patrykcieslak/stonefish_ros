@@ -81,7 +81,7 @@
                 <param name="dev" value="$(arg joystick_device)"/>
                 <param name="deadzone" value="0.05"/>
             </node>
-             <node respawn="false" pkg="iauv_simulation" type="joy_to_teleoperation_girona500_iauv.py" name="joy_to_teleoperation" output="screen">
+             <node respawn="false" pkg="eca_5emicro_manipulator_description" type="joy_to_teleoperation_girona500_iauv.py" name="joy_to_teleoperation" output="screen">
                 <param name="manipulator_ns" value="eca_5emicro_manipulator"/>
             </node>
         </group>
@@ -114,13 +114,19 @@
                 <param name="bson_only_mode" value="false"/>
             </node>
         </group>
-
-        <!-- Load robot description -->
-        <include file="$(find iauv_simulation)/launch/girona500_eca5emicro_description.launch">
-            <arg name="robot_name" value="$(arg robot_name)"/>
-        </include>
     </group>
 
     <!-- Run Simulator -->
-    <node name="parsed_simulator" pkg="stonefish_ros" type="parsed_simulator" args="$(find stonefish_ros)/data/ girona500_eca.scn 1200 800" output="screen"/>
+    <include file="$(find stonefish_ros)/launch/simulator.launch">
+    	<arg name="simulation_data" value="$(find stonefish_ros)/data"/>
+    	<arg name="scenario_description" value="$(find stonefish_ros)/data/scenarios/girona500_eca.scn"/>
+   		<arg name="simulation_rate" value="500.0"/>
+    	<arg name="graphics_resolution" value="1200 800"/>
+    	<arg name="graphics_quality" value="medium"/>
+    </include>
+
+    <!-- Load robot description -->
+    <include file="$(find stonefish_ros)/launch/girona500_eca_description.launch">
+        <arg name="robot_name" value="$(arg robot_name)"/>
+    </include>
 </launch>

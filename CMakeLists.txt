@@ -35,7 +35,7 @@ catkin_package(
                  std_srvs 
                  tf 
                  tf_conversions
-  DEPENDS Bullet Stonefish
+  DEPENDS BULLET Stonefish
 )
 
 include_directories(

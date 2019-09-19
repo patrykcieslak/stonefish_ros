@@ -36,8 +36,8 @@
 namespace sf
 {
 
-ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilename) 
-	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE, FluidDynamicsType::GEOMETRY_BASED), scnFilename(scenarioFilename)
+ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath) 
+	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE, FluidDynamicsType::GEOMETRY_BASED), scnFilePath(scenarioFilePath)
 {
 }
 
@@ -59,7 +59,7 @@ std::map<std::string, ros::Subscriber>& ROSSimulationManager::getSubscribers()
 void ROSSimulationManager::BuildScenario()
 {
     ROSScenarioParser parser(this);
-    parser.Parse(GetDataPath() + scnFilename);
+    parser.Parse(scnFilePath);
 }
 
 void ROSSimulationManager::AddROSRobot(ROSRobot* robot)
