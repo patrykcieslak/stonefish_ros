@@ -116,7 +116,8 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
-        if(rosRobots[i]->servoSetpoints.size() == 0)
+        if(rosRobots[i]->servoSetpoints.size() == 0 
+           || pubs.find(rosRobots[i]->robot->getName() + "/servos") == pubs.end())
             continue;
 
         unsigned int aID = 0;
@@ -184,7 +185,6 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                     {
                         ((Servo*)actuator)->setControlMode(ServoControlMode::POSITION_CTRL);
                         ((Servo*)actuator)->setDesiredPosition(setpoint);
-                        ((Servo*)actuator)->setDesiredVelocity(Scalar(0));
                     }
                 }
                     break;

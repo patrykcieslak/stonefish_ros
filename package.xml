@@ -20,7 +20,8 @@
 	<build_depend>std_srvs</build_depend>
 	<build_depend>tf</build_depend>
 	<build_depend>tf_conversions</build_depend>
-	<build_depend>libStonefish</build_depend>
+	<build_depend>Bullet</build_depend>
+	<build_depend>Stonefish</build_depend>
 	
 	<run_depend>roscpp</run_depend>
 	<run_depend>rospy</run_depend>
@@ -37,7 +38,8 @@
 	<run_depend>std_srvs</run_depend>
 	<run_depend>tf</run_depend>
 	<run_depend>tf_conversions</run_depend>
-	<run_depend>libStonefish</run_depend>
+	<run_depend>Bullet</run_depend>
+	<run_depend>Stonefish</run_depend>
 
   <export>
   </export>
