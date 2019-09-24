@@ -188,6 +188,8 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         pubs[sensorName] = nh.advertise<nav_msgs::Odometry>(topicStr, 2);
     else if(typeStr == "forcetorque")
         pubs[sensorName] = nh.advertise<geometry_msgs::WrenchStamped>(topicStr, 2);
+    else if(typeStr == "encoder")
+        pubs[sensorName] = nh.advertise<sensor_msgs::JointState>(topicStr, 2);
     else if(typeStr == "camera")
     {
         pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image_color", 2);

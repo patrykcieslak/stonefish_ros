@@ -25,6 +25,34 @@
 
 #include "stonefish_ros/ROSInterface.h"
 
+#include <Stonefish/sensors/Sample.h>
+#include <Stonefish/sensors/scalar/Pressure.h>
+#include <Stonefish/sensors/scalar/DVL.h>
+#include <Stonefish/sensors/scalar/IMU.h>
+#include <Stonefish/sensors/scalar/GPS.h>
+#include <Stonefish/sensors/scalar/ForceTorque.h>
+#include <Stonefish/sensors/scalar/RotaryEncoder.h>
+#include <Stonefish/sensors/scalar/Odometry.h>
+#include <Stonefish/sensors/vision/ColorCamera.h>
+#include <Stonefish/sensors/vision/DepthCamera.h>
+
+#include <sensor_msgs/FluidPressure.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Range.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/JointState.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
+#include <geometry_msgs/WrenchStamped.h>
+#include <nav_msgs/Odometry.h>
+#include <cola2_msgs/DVL.h>
+#include <cola2_msgs/Float32Stamped.h>
+
+#include <Eigen/Core>
+#include <Eigen/Dense>
+
 namespace sf
 {
 
@@ -174,6 +202,21 @@ void ROSInterface::PublishForceTorque(ros::Publisher& pub, ForceTorque* ft)
     msg.wrench.torque.x = -s.getValue(3);
     msg.wrench.torque.y = -s.getValue(4);
     msg.wrench.torque.z = -s.getValue(5);
+    pub.publish(msg);
+}
+
+void ROSInterface::PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc)
+{
+    Sample s = enc->getLastSample();
+    sensor_msgs::JointState msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = enc->getName();
+    msg.name.resize(1);
+    msg.position.resize(1);
+    msg.velocity.resize(1);
+    msg.name[0] = enc->getJointName();
+    msg.position[0] = s.getValue(0);
+    msg.velocity[0] = s.getValue(1);
     pub.publish(msg);
 }
 

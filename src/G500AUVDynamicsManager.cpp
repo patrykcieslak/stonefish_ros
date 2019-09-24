@@ -42,6 +42,15 @@
 #include <Stonefish/core/NED.h>
 #include "stonefish_ros/ROSInterface.h"
 
+#include <sensor_msgs/FluidPressure.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Range.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/JointState.h>
+#include <geometry_msgs/WrenchStamped.h>
+#include <nav_msgs/Odometry.h>
+#include <cola2_msgs/DVL.h>
+#include <cola2_msgs/Float32Stamped.h>
 
 G500AUVDynamicsManager::G500AUVDynamicsManager(sf::Scalar stepsPerSecond) 
 	: SimulationManager(stepsPerSecond, sf::SolverType::SOLVER_SI, sf::CollisionFilteringType::COLLISION_EXCLUSIVE, sf::FluidDynamicsType::GEOMETRY_BASED)

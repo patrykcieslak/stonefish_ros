@@ -27,34 +27,21 @@
 #define __Stonefish_ROSInterface__
 
 #include <ros/ros.h>
-#include <sensor_msgs/FluidPressure.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/Range.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/point_cloud2_iterator.h>
-#include <geometry_msgs/WrenchStamped.h>
-#include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
-#include <cola2_msgs/DVL.h>
-#include <cola2_msgs/Float32Stamped.h>
-#include <Stonefish/sensors/Sample.h>
-#include <Stonefish/sensors/scalar/Pressure.h>
-#include <Stonefish/sensors/scalar/DVL.h>
-#include <Stonefish/sensors/scalar/Compass.h>
-#include <Stonefish/sensors/scalar/IMU.h>
-#include <Stonefish/sensors/scalar/GPS.h>
-#include <Stonefish/sensors/scalar/ForceTorque.h>
-#include <Stonefish/sensors/scalar/Odometry.h>
-#include <Stonefish/sensors/vision/ColorCamera.h>
-#include <Stonefish/sensors/vision/DepthCamera.h>
-#include <Eigen/Core>
-#include <Eigen/Dense>
+#include <Stonefish/StonefishCommon.h>
 
 namespace sf
 {
+    class IMU;
+    class Pressure;
+    class DVL;
+    class GPS;
+    class Odometry;
+    class ForceTorque;
+    class RotaryEncoder;
+    class ColorCamera;
+    class DepthCamera;
+
     class ROSInterface
     {
     public:
@@ -65,6 +52,7 @@ namespace sf
         static void PublishGPS(ros::Publisher& pub, GPS* gps);
         static void PublishOdometry(ros::Publisher& pub, Odometry* odom);
         static void PublishForceTorque(ros::Publisher& pub, ForceTorque* ft);
+        static void PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc);
         static void PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam);
         static void PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam);
 

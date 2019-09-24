@@ -27,11 +27,20 @@
 #include "stonefish_ros/ROSScenarioParser.h"
 #include "stonefish_ros/ROSInterface.h"
 
+#include <Stonefish/core/Robot.h>
+#include <Stonefish/sensors/scalar/Pressure.h>
+#include <Stonefish/sensors/scalar/DVL.h>
+#include <Stonefish/sensors/scalar/IMU.h>
+#include <Stonefish/sensors/scalar/GPS.h>
+#include <Stonefish/sensors/scalar/ForceTorque.h>
+#include <Stonefish/sensors/scalar/RotaryEncoder.h>
+#include <Stonefish/sensors/scalar/Odometry.h>
+#include <Stonefish/sensors/vision/ColorCamera.h>
+#include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/utils/SystemUtil.hpp>
-#include <Stonefish/core/Robot.h>
 
 namespace sf
 {
@@ -103,6 +112,10 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
                 case ScalarSensorType::SENSOR_FT:
                     ROSInterface::PublishForceTorque(pubs[sensor->getName()], (ForceTorque*)sensor);
+                    break;
+
+                case ScalarSensorType::SENSOR_ENCODER:
+                    ROSInterface::PublishEncoder(pubs[sensor->getName()], (RotaryEncoder*)sensor);
                     break;
 
                 default:
@@ -247,6 +260,12 @@ ServosCallback::ServosCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(s
 
 void ServosCallback::operator()(const sensor_msgs::JointStateConstPtr& msg)
 {
+    if(msg->name.size() == 0)
+    {
+        ROS_ERROR("Desired joint state message is missing joint names!");
+        return;
+    }
+
     if(msg->position.size() > 0)
     {
         robot->servoVelocityMode = false;
@@ -258,7 +277,7 @@ void ServosCallback::operator()(const sensor_msgs::JointStateConstPtr& msg)
             }
             catch(const std::out_of_range& e)
             {
-                ROS_ERROR_STREAM("Invalid joint name in desired joint state message: " << msg->name[i]);
+                ROS_WARN_STREAM("Invalid joint name in desired joint state message: " << msg->name[i]);
             }
         }
     }
@@ -273,7 +292,7 @@ void ServosCallback::operator()(const sensor_msgs::JointStateConstPtr& msg)
             }
             catch(const std::out_of_range& e)
             {
-                ROS_ERROR_STREAM("Invalid joint name in desired joint state message: " << msg->name[i]);
+                ROS_WARN_STREAM("Invalid joint name in desired joint state message: " << msg->name[i]);
             }
         }
     }
