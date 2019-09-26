@@ -196,12 +196,12 @@ void ROSInterface::PublishForceTorque(ros::Publisher& pub, ForceTorque* ft)
     geometry_msgs::WrenchStamped msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = ft->getName();
-    msg.wrench.force.x = -s.getValue(0);
-    msg.wrench.force.y = -s.getValue(1);
-    msg.wrench.force.z = -s.getValue(2);
-    msg.wrench.torque.x = -s.getValue(3);
-    msg.wrench.torque.y = -s.getValue(4);
-    msg.wrench.torque.z = -s.getValue(5);
+    msg.wrench.force.x = s.getValue(0);
+    msg.wrench.force.y = s.getValue(1);
+    msg.wrench.force.z = s.getValue(2);
+    msg.wrench.torque.x = s.getValue(3);
+    msg.wrench.torque.y = s.getValue(4);
+    msg.wrench.torque.z = s.getValue(5);
     pub.publish(msg);
 }
 
