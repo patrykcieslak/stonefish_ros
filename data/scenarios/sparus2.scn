@@ -156,14 +156,14 @@
 
 		<sensor name="pressure" type="pressure" rate="5.0">
 			<link name="Vehicle"/>
-			<origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
-			<noise pressure="5.0"/>
+			<origin rpy="0.0 0.0 0.0" xyz="0.387 0.0 -0.033"/>
+			<noise pressure="100.0"/>
 			<ros_publisher topic="/sparus2/navigator/pressure"/>
 		</sensor>
 
 		<sensor name="dvl" type="dvl" rate="5.0">
 			<link name="Vehicle"/>
-			<origin rpy="3.1416 0.0 -0.785" xyz="-0.415 0.0 0.25"/>
+			<origin rpy="3.1416 0.0 2.356" xyz="-0.4145 0.0 0.11"/>
 			<specs beam_angle="30.0"/>
 			<range velocity="9.0 9.0 9.0" altitude_min="0.5" altitude_max="81.0"/>
 			<noise velocity="0.0015" altitude="0.001"/>
@@ -172,14 +172,14 @@
 
 		<sensor name="imu_filter" type="imu" rate="20.0">
 			<link name="Vehicle"/>
-			<origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+			<origin rpy="0.0 0.0 0.0" xyz="0.36377 -0.02093 -0.0849"/>
 			<noise angle="0.000001745" angular_velocity="0.00001745"/>
 			<ros_publisher topic="/sparus2/navigator/imu"/>
 		</sensor>
 
 		<sensor name="gps" type="gps" rate="1.0">
 			<link name="Vehicle"/>
-			<origin rpy="0.0 0.0 0.0" xyz="-0.388 0.0 -0.36"/>
+			<origin rpy="0.0 0.0 0.0" xyz="-0.39 0.0 -0.36"/>
 			<noise ned_position="0.5"/>
 			<ros_publisher topic="/sparus2/navigator/gps"/>
 		</sensor>
