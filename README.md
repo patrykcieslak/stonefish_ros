@@ -11,7 +11,10 @@ This package uses _Stonefish_ library (developed by Patryk Cieślak) to simulate
 - [cola2_msgs](https://bitbucket.org/iquarobotics/cola2_msgs) 
 - [cola2_girona500](https://bitbucket.org/iquarobotics/cola2_girona500)
 - [girona500_description](https://bitbucket.org/iquarobotics/girona500_description)
+- [cola2_sparus2](https://bitbucket.org/iquarobotics/cola2_sparus2)
+- [sparus2_description](https://bitbucket.org/iquarobotics/sparus2_description)
 - [eca_5emicro_manipulator_description](https://bitbucket.org/udg_cirs/eca_5emicro_manipulator_description)
+
 3. Clone the *stonefish_ros* package to your catkin workspace.
 4. Compile the workspace.
 5. Launch one of the examples.
@@ -28,7 +31,9 @@ There are three ways to create a new simulator:
 The first approach is presented by the following examples:
 - GIRONA500 I-AUV, equipped with an ECA 5E Micro manipulator, with a force-torque sensor installed in the manipulator wrist and a simple two finger gripper
    `roslaunch stonefish_ros girona500_eca_parsed_simulator.launch`
-
+- SPARUS II AUV, without payload
+   `roslaunch stonefish_ros sparus2_parsed_simulator.launch`
+   
 The second approach is presented by the following examples:
 - GIRONA500 AUV in console mode (only dynamics and non-vision sensors)
    `roslaunch stonefish_ros girona500_auv_dynamics.launch`
