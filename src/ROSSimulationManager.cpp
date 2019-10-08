@@ -234,7 +234,7 @@ void ThrustersCallback::operator()(const cola2_msgs::SetpointsConstPtr& msg)
     }
 
     for(size_t i=0; i<robot->thrusterSetpoints.size(); ++i)
-        robot->thrusterSetpoints[i] = -msg->setpoints[i];
+        robot->thrusterSetpoints[i] = msg->setpoints[i];
 }
 
 PropellersCallback::PropellersCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)

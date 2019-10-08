@@ -142,7 +142,7 @@
 				<dimensions radius="0.110" height="0.37"/>
 				<origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
 				<material name="Neutral"/>
-				<mass value="8.0"/>
+				<mass value="8.8"/>
 				<look name="grey"/>
 				<compound_transform rpy="0.0 1.571 0.0" xyz="0.575 0.0 0.0"/>
 			</internal_part>			
@@ -183,12 +183,12 @@
 			<noise ned_position="0.5"/>
 			<ros_publisher topic="/sparus2/navigator/gps"/>
 		</sensor>
-		
-		<actuator name="ThrusterSurgePort" type="thruster">
+
+		<actuator name="ThrusterHeave" type="thruster">
 			<link name="Vehicle"/>
-			<origin rpy="0.0 0.0 0.0" xyz="-0.573 -0.167 0.0"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
-			<propeller diameter="0.05" right="true">
+			<origin rpy="0.0 1.571 0.0" xyz="0.0 0.0 0.07"/>
+			<specs thrust_coeff="0.537" torque_coeff="0.05" max_rpm="3000.0" inverted="true"/>
+			<propeller diameter="0.08" right="true">
 				<mesh filename="sparus2/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
 				<look name="white"/>
@@ -198,25 +198,25 @@
 		<actuator name="ThrusterSurgeStarboard" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 0.0 0.0" xyz="-0.573 0.167 0.0"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
-			<propeller diameter="0.05" right="true">
+			<specs thrust_coeff="0.698" torque_coeff="0.05" max_rpm="3000.0"/>
+			<propeller diameter="0.08" right="false">
 				<mesh filename="sparus2/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
 				<look name="white"/>
 			</propeller>
 		</actuator>
 
-		<actuator name="ThrusterHeave" type="thruster">
+		<actuator name="ThrusterSurgePort" type="thruster">
 			<link name="Vehicle"/>
-			<origin rpy="0.0 1.571 0.0" xyz="0.0 0.0 0.07"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
-			<propeller diameter="0.05" right="true">
+			<origin rpy="0.0 0.0 0.0" xyz="-0.573 -0.167 0.0"/>
+			<specs thrust_coeff="0.698" torque_coeff="0.05" max_rpm="3000.0"/>
+			<propeller diameter="0.08" right="true">
 				<mesh filename="sparus2/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
 				<look name="white"/>
 			</propeller>
 		</actuator>
-
+		
 		<world_transform rpy="0.0 0.0 0.0" xyz="0.0 0.0 1.0"/>
 
 		<ros_subscriber thrusters="/sparus2/controller/thruster_setpoints"/> 
