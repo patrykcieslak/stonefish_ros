@@ -462,7 +462,7 @@
 		<actuator name="ThrusterSurgePort" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="3.1416 0.0 0.0" xyz="-0.3297 -0.2587 -0.021"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
+			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0" inverted="true"/>
 			<propeller diameter="0.18" right="true">
 				<mesh filename="girona500/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
@@ -473,7 +473,7 @@
 		<actuator name="ThrusterSurgeStarboard" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 0.0 0.0" xyz="-0.3297 0.2587 -0.021"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
+			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0" inverted="true"/>
 			<propeller diameter="0.18" right="true">
 				<mesh filename="girona500/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
@@ -484,7 +484,7 @@
 		<actuator name="ThrusterHeaveBow" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 -1.571 -1.571" xyz="0.5347 0.0 -0.3137"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
+			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0" inverted="true"/>
 			<propeller diameter="0.18" right="true">
 				<mesh filename="girona500/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
@@ -495,7 +495,7 @@
 		<actuator name="ThrusterHeaveStern" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 -1.571 1.571" xyz="-0.5827 0.0 -0.3137"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
+			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0" inverted="true"/>
 			<propeller diameter="0.18" right="true">
 				<mesh filename="girona500/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
@@ -506,7 +506,7 @@
 		<actuator name="ThrusterSway" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 3.1416 1.571" xyz="-0.0627 0.0307 -0.021"/>
-			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0"/>
+			<specs thrust_coeff="0.48" torque_coeff="0.05" max_rpm="1000.0" inverted="true"/>
 			<propeller diameter="0.18" right="true">
 				<mesh filename="girona500/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
