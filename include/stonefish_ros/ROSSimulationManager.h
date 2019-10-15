@@ -30,6 +30,7 @@
 #include <Stonefish/core/SimulationManager.h>
 //ROS
 #include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 #include <sensor_msgs/JointState.h>
 #include <cola2_msgs/Setpoints.h>
 
@@ -42,12 +43,13 @@ namespace sf
 	{
 		Robot* robot;
 		bool servoVelocityMode;
+		bool publishBaseLinkTransform;
 		std::vector<Scalar> thrusterSetpoints;
 		std::vector<Scalar> propellerSetpoints;
 		std::map<std::string, Scalar> servoSetpoints;
 
 		ROSRobot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers) 
-			: robot(robot), servoVelocityMode(true)
+			: robot(robot), servoVelocityMode(true), publishBaseLinkTransform(false)
 		{
 			thrusterSetpoints = std::vector<Scalar>(nThrusters, Scalar(0));
 			propellerSetpoints = std::vector<Scalar>(nPropellers, Scalar(0));
@@ -74,6 +76,7 @@ namespace sf
 	protected:
 		std::string scnFilePath;
 		ros::NodeHandle nh;
+		tf::TransformBroadcaster br;
 		std::map<std::string, ros::Publisher> pubs;
 		std::map<std::string, ros::Subscriber> subs;
 		std::vector<ROSRobot*> rosRobots;

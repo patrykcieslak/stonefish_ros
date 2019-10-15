@@ -108,11 +108,19 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         }
     }
 
+    //Check if we should publish world_ned -> base_link transform
+    XMLElement* item;
+    if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
+    {
+        bool publishBaseLinkTransforms;
+        if (item->QueryBoolAttribute("publish", &publishBaseLinkTransforms) == XML_SUCCESS && publishBaseLinkTransforms)
+            rosRobot->publishBaseLinkTransform = true;
+    }
+
     //Save robot
     sim->AddROSRobot(rosRobot);
 
     //Generate subscribers
-    XMLElement* item;
     if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
     {
         const char* topicThrust = nullptr;
@@ -137,6 +145,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
             pubs[robot->getName() + "/servos"] = nh.advertise<sensor_msgs::JointState>(std::string(topicSrv), 2);
     }
+
 
     return true;
 }

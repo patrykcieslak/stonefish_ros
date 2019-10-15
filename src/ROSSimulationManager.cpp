@@ -126,6 +126,13 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         sensor->MarkDataOld();
     }   
 
+    //////////////////////////////////////WORLD TRANSFORMS/////////////////////////////////////////
+    for(size_t i=0; i<rosRobots.size(); ++i)
+    {
+        if (rosRobots[i]->publishBaseLinkTransform)
+            sf::ROSInterface::PublishTF(br, rosRobots[i]->robot->getTransform(), ros::Time::now(), "world_ned", rosRobots[i]->robot->getName() + "/base_link");
+    }
+
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
