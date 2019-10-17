@@ -184,7 +184,7 @@ void G500AUVSimulationManager::BuildScenario()
     gps = new sf::GPS(ns + "/gps", 1);
     gps->setNoise(0.5);
 
-    cam = new sf::ColorCamera(ns + "/proscilica", 1360, 1024, 55.0, 1, 10);
+    cam = new sf::ColorCamera(ns + "/proscilica", 1360, 1024, 55.0, 10);
     cam->InstallNewDataHandler(std::bind(&G500AUVSimulationManager::CameraImageReady, this, std::placeholders::_1));
     cam->setDisplayOnScreen(false);
 
