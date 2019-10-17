@@ -39,6 +39,9 @@ namespace sf
         ROSScenarioParser(ROSSimulationManager* sm);
 
     protected:
+        std::string substituteROSVars(const std::string& value);
+        bool replaceROSVars(XMLNode* node);
+        virtual bool PreProcess(XMLNode* root);
         virtual bool ParseRobot(XMLElement* element);
         virtual bool ParseSensor(XMLElement* element, Robot* robot);
     };
