@@ -31,7 +31,6 @@
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
-#include <Stonefish/sensors/scalar/FOG.h>
 #include <Stonefish/sensors/scalar/IMU.h>
 #include <Stonefish/sensors/scalar/GPS.h>
 #include <Stonefish/sensors/scalar/Odometry.h>
@@ -72,7 +71,6 @@ private:
 	sf::Odometry* odom;
 	sf::Pressure* pressure;
 	sf::DVL* dvl;
-	sf::FOG* fog;
 	sf::IMU* imu;
 	sf::GPS* gps;
 	sf::Robot* auv;
