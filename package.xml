@@ -26,7 +26,6 @@
 	<run_depend>roscpp</run_depend>
 	<run_depend>rospy</run_depend>
 	<run_depend>message_runtime</run_depend>
-	<run_depend>cola2_core</run_depend>
 	<run_depend>cola2_lib</run_depend>
 	<run_depend>cola2_msgs</run_depend>
 	<run_depend>cola2_girona500</run_depend>
