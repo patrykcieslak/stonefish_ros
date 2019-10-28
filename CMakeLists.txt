@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(stonefish_ros)
 
 find_package(catkin REQUIRED COMPONENTS
-  cola2_lib
+  cola2_lib_ros
   cola2_msgs
   geometry_msgs
   nav_msgs
@@ -25,7 +25,7 @@ add_compile_options(${Stonefish_CFLAGS})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES stonefish_ros
-  CATKIN_DEPENDS cola2_lib 
+  CATKIN_DEPENDS cola2_lib_ros
                  cola2_msgs 
                  geometry_msgs 
                  nav_msgs 
