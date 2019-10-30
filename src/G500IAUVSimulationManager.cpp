@@ -25,7 +25,7 @@
 
 #include "G500IAUVSimulationManager.h"
 
-#include <cola2_lib/rosutils/this_node.h>
+#include <cola2_lib_ros/this_node.h>
 #include <Stonefish/entities/statics/Plane.h>
 #include <Stonefish/entities/solids/Polyhedron.h>
 #include <Stonefish/entities/solids/Box.h>
@@ -58,7 +58,7 @@
 G500IAUVSimulationManager::G500IAUVSimulationManager(sf::Scalar stepsPerSecond) 
 	: SimulationManager(stepsPerSecond, sf::SolverType::SOLVER_SI, sf::CollisionFilteringType::COLLISION_EXCLUSIVE, sf::FluidDynamicsType::GEOMETRY_BASED)
 {
-    std::string ns = cola2::rosutils::getNamespace();
+    std::string ns = cola2::ros::getNamespace();
 
 	//Output from simulation
 	gpsPub = nh.advertise<sensor_msgs::NavSatFix>(ns + "/navigator/gps", 2);
@@ -84,7 +84,7 @@ G500IAUVSimulationManager::G500IAUVSimulationManager(sf::Scalar stepsPerSecond)
 
 void G500IAUVSimulationManager::BuildScenario()
 {
-	std::string ns = cola2::rosutils::getNamespace();
+  std::string ns = cola2::ros::getNamespace();
 
     ///////MATERIALS////////
     CreateMaterial("Neutral", 1000.0, 0.5);
@@ -261,7 +261,7 @@ void G500IAUVSimulationManager::BuildScenario()
 void G500IAUVSimulationManager::SimulationStepCompleted(sf::Scalar timeStep)
 {
 	/////////////////////////////////////////SENSORS//////////////////////////////////////////////
-    std::string ns = cola2::rosutils::getNamespace();
+    std::string ns = cola2::ros::getNamespace();
 	sf::Transform robotFrame = odom->getSensorFrame();
 	
 	if(odom->isNewDataAvailable())
