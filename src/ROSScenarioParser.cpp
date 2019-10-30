@@ -53,7 +53,7 @@ ROSScenarioParser::ROSScenarioParser(ROSSimulationManager* sm) : ScenarioParser(
 {
 }
 
-std::string ROSScenarioParser::substituteROSVars(const std::string& value)
+std::string ROSScenarioParser::SubstituteROSVars(const std::string& value)
 {
     std::string replacedValue;
 
@@ -69,7 +69,7 @@ std::string ROSScenarioParser::substituteROSVars(const std::string& value)
                                          std::istream_iterator<std::string>());
         if (results.size() != 2)
         {
-            ROS_ERROR("ROSScenarioParser: substitution args need to be 2, got: %s", arguments.c_str());
+            ROS_ERROR("Scenario parser(ROS): substitution args need to be 2, got: %s", arguments.c_str());
             continue;
         }
 
@@ -78,7 +78,7 @@ std::string ROSScenarioParser::substituteROSVars(const std::string& value)
             std::string packagePath = ros::package::getPath(results[1]);
             if (packagePath.empty())
             {
-                ROS_ERROR("ROSScenarioParser: could not find package %s!", results[1].c_str());
+                ROS_ERROR("Scenario parser(ROS): could not find package '%s'!", results[1].c_str());
                 return value;
             }
             replacedValue += packagePath;
@@ -93,14 +93,14 @@ std::string ROSScenarioParser::substituteROSVars(const std::string& value)
             }
             if (!ros::param::get(results[1], param))
             {
-                ROS_ERROR("ROSScenarioParser: could not find parameter %s!", results[1].c_str());
+                ROS_ERROR("Scenario parser(ROS): could not find parameter '%s'!", results[1].c_str());
                 return value;
             }
             replacedValue += param;
         }
         else 
         {
-            ROS_ERROR("ROSScenarioParser: substitution command %s not currently supported!", results[0].c_str());
+            ROS_ERROR("Scenario parser(ROS): substitution command '%s' not currently supported!", results[0].c_str());
             return value;
         }
 
@@ -112,7 +112,7 @@ std::string ROSScenarioParser::substituteROSVars(const std::string& value)
     return replacedValue;
 }
 
-bool ROSScenarioParser::replaceROSVars(XMLNode* node)
+bool ROSScenarioParser::ReplaceROSVars(XMLNode* node)
 {
     XMLElement* element = node->ToElement();
     if (element != nullptr)
@@ -120,10 +120,10 @@ bool ROSScenarioParser::replaceROSVars(XMLNode* node)
         for (const tinyxml2::XMLAttribute* attr = element->FirstAttribute(); attr != nullptr; attr = attr->Next())
         {
             std::string value = std::string(attr->Value());
-            std::string substitutedValue = substituteROSVars(value);
+            std::string substitutedValue = SubstituteROSVars(value);
             if (substitutedValue != value)
             {
-                ROS_INFO("Replacing %s with %s", value.c_str(), substitutedValue.c_str());
+                ROS_INFO("Scenario parser(ROS): replacing '%s' with '%s'.", value.c_str(), substitutedValue.c_str());
                 element->SetAttribute(attr->Name(), substitutedValue.c_str());
             }
 
@@ -132,10 +132,8 @@ bool ROSScenarioParser::replaceROSVars(XMLNode* node)
 
     for (tinyxml2::XMLNode* child = node->FirstChild(); child != nullptr; child = child->NextSibling())
     {
-        if(!replaceROSVars(child))
-        {
+        if(!ReplaceROSVars(child))
             return false;
-        }
     }
 
     return true;
@@ -143,7 +141,7 @@ bool ROSScenarioParser::replaceROSVars(XMLNode* node)
 
 bool ROSScenarioParser::PreProcess(XMLNode* root)
 {
-    return replaceROSVars(root);
+    return ReplaceROSVars(root);
 }
 
 bool ROSScenarioParser::ParseRobot(XMLElement* element)
@@ -206,11 +204,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     //Check if we should publish world_ned -> base_link transform
     XMLElement* item;
     if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
-    {
-        bool publishBaseLinkTransforms;
-        if (item->QueryBoolAttribute("publish", &publishBaseLinkTransforms) == XML_SUCCESS && publishBaseLinkTransforms)
-            rosRobot->publishBaseLinkTransform = true;
-    }
+        item->QueryBoolAttribute("publish", &rosRobot->publishBaseLinkTransform);
 
     //Save robot
     sim->AddROSRobot(rosRobot);
