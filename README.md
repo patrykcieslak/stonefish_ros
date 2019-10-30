@@ -5,9 +5,9 @@ This package uses _Stonefish_ library (developed by Patryk Cieślak) to simulate
 ### Installation
 
 1. Install the open-source [Stonefish](https://github.com/patrykcieslak/stonefish) library.
-2. Install the open-source ROS packages from the CIRS laboratory:
+2. Install the open-source [cola2_lib](https://bitbucket.org/iquarobotics/cola2_lib) library.
+3. Install the open-source ROS packages:
 - [cola2_core](https://bitbucket.org/iquarobotics/cola2_core)
-- [cola2_lib](https://bitbucket.org/iquarobotics/cola2_lib)
 - [cola2_lib_ros](https://bitbucket.org/iquarobotics/cola2_lib_ros)
 - [cola2_msgs](https://bitbucket.org/iquarobotics/cola2_msgs) 
 - [cola2_girona500](https://bitbucket.org/iquarobotics/cola2_girona500)
@@ -15,10 +15,9 @@ This package uses _Stonefish_ library (developed by Patryk Cieślak) to simulate
 - [cola2_sparus2](https://bitbucket.org/iquarobotics/cola2_sparus2)
 - [sparus2_description](https://bitbucket.org/iquarobotics/sparus2_description)
 - [eca_5emicro_manipulator_description](https://bitbucket.org/udg_cirs/eca_5emicro_manipulator_description)
-
-3. Clone the *stonefish_ros* package to your catkin workspace.
-4. Compile the workspace.
-5. Launch one of the examples.
+4. Clone the *stonefish_ros* package to your catkin workspace.
+5. Compile the workspace.
+6. Launch one of the examples.
 
 ### Launching
 
