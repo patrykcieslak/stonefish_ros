@@ -44,11 +44,106 @@
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
 
+#include <ros/package.h>
+
 namespace sf
 {
 
 ROSScenarioParser::ROSScenarioParser(ROSSimulationManager* sm) : ScenarioParser(sm)
 {
+}
+
+std::string ROSScenarioParser::substituteROSVars(const std::string& value)
+{
+    std::string replacedValue;
+
+    size_t currentPos = 0;
+    size_t startPos, endPos;
+    while ((startPos = value.find("$(", currentPos)) != std::string::npos && (endPos = value.find(")", startPos+2)) != std::string::npos)
+    {
+        replacedValue += value.substr(currentPos, startPos - currentPos);
+
+        std::string arguments = value.substr(startPos+2, endPos-startPos-2);
+        std::istringstream iss(arguments);
+        std::vector<std::string> results(std::istream_iterator<std::string>{iss},
+                                         std::istream_iterator<std::string>());
+        if (results.size() != 2)
+        {
+            ROS_ERROR("ROSScenarioParser: substitution args need to be 2, got: %s", arguments.c_str());
+            continue;
+        }
+
+        if (results[0] == "find")
+        {
+            std::string packagePath = ros::package::getPath(results[1]);
+            if (packagePath.empty())
+            {
+                ROS_ERROR("ROSScenarioParser: could not find package %s!", results[1].c_str());
+                return value;
+            }
+            replacedValue += packagePath;
+        }
+        else if (results[0] == "param")
+        {
+            std::string param;
+            // to get private params, we need to prefix ~ it seems
+            if (!results[1].empty() && results[1][0] != '~' && results[1][0] != '/')
+            {
+                results[1] = std::string("~") + results[1];
+            }
+            if (!ros::param::get(results[1], param))
+            {
+                ROS_ERROR("ROSScenarioParser: could not find parameter %s!", results[1].c_str());
+                return value;
+            }
+            replacedValue += param;
+        }
+        else 
+        {
+            ROS_ERROR("ROSScenarioParser: substitution command %s not currently supported!", results[0].c_str());
+            return value;
+        }
+
+        currentPos = endPos + 1;
+    }
+
+    replacedValue += value.substr(currentPos, value.size() - currentPos);
+
+    return replacedValue;
+}
+
+bool ROSScenarioParser::replaceROSVars(XMLNode* node)
+{
+    XMLElement* element = node->ToElement();
+    if (element != nullptr)
+    {
+        for (const tinyxml2::XMLAttribute* attr = element->FirstAttribute(); attr != nullptr; attr = attr->Next())
+        {
+            std::string value = std::string(attr->Value());
+            std::string substitutedValue = substituteROSVars(value);
+            if (substitutedValue != value)
+            {
+                ROS_INFO("Replacing %s with %s", value.c_str(), substitutedValue.c_str());
+                element->SetAttribute(attr->Name(), substitutedValue.c_str());
+            }
+
+        }
+    }
+
+    for (tinyxml2::XMLNode* child = node->FirstChild(); child != nullptr; child = child->NextSibling())
+    {
+        if(!replaceROSVars(child))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool ROSScenarioParser::PreProcess(XMLNode* root)
+{
+    return replaceROSVars(root);
 }
 
 bool ROSScenarioParser::ParseRobot(XMLElement* element)
@@ -108,11 +203,19 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         }
     }
 
+    //Check if we should publish world_ned -> base_link transform
+    XMLElement* item;
+    if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
+    {
+        bool publishBaseLinkTransforms;
+        if (item->QueryBoolAttribute("publish", &publishBaseLinkTransforms) == XML_SUCCESS && publishBaseLinkTransforms)
+            rosRobot->publishBaseLinkTransform = true;
+    }
+
     //Save robot
     sim->AddROSRobot(rosRobot);
 
     //Generate subscribers
-    XMLElement* item;
     if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
     {
         const char* topicThrust = nullptr;
@@ -137,6 +240,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
             pubs[robot->getName() + "/servos"] = nh.advertise<sensor_msgs::JointState>(std::string(topicSrv), 2);
     }
+
 
     return true;
 }
