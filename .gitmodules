@@ -1,3 +1,6 @@
 [submodule "external/bullet3"]
 	path = external/bullet3
 	url = https://github.com/bulletphysics/bullet3.git
+[submodule "external/stonefish"]
+	path = external/stonefish
+	url = https://github.com/patrykcieslak/stonefish.git

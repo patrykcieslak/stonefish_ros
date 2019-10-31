@@ -24,8 +24,8 @@ add_subdirectory(external)
 #link_directories(/home/nbore/Stonefish/bullet3_install/lib)
 
 #find_package(Bullet REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(Stonefish REQUIRED stonefish)
+#find_package(PkgConfig REQUIRED)
+#pkg_check_modules(Stonefish REQUIRED stonefish)
 
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(${Stonefish_CFLAGS})
