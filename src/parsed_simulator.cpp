@@ -24,8 +24,8 @@
 //
 
 #include <ros/ros.h>
-#include <Stonefish/core/GraphicalSimulationApp.h>
-#include <Stonefish/utils/SystemUtil.hpp>
+#include <core/GraphicalSimulationApp.h>
+#include <utils/SystemUtil.hpp>
 #include "stonefish_ros/ROSSimulationManager.h"
 
 int main(int argc, char **argv)

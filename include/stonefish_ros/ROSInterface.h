@@ -28,7 +28,7 @@
 
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
-#include <Stonefish/StonefishCommon.h>
+#include <StonefishCommon.h>
 
 namespace sf
 {

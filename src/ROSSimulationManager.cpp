@@ -27,20 +27,20 @@
 #include "stonefish_ros/ROSScenarioParser.h"
 #include "stonefish_ros/ROSInterface.h"
 
-#include <Stonefish/core/Robot.h>
-#include <Stonefish/sensors/scalar/Pressure.h>
-#include <Stonefish/sensors/scalar/DVL.h>
-#include <Stonefish/sensors/scalar/IMU.h>
-#include <Stonefish/sensors/scalar/GPS.h>
-#include <Stonefish/sensors/scalar/ForceTorque.h>
-#include <Stonefish/sensors/scalar/RotaryEncoder.h>
-#include <Stonefish/sensors/scalar/Odometry.h>
-#include <Stonefish/sensors/vision/ColorCamera.h>
-#include <Stonefish/sensors/vision/DepthCamera.h>
-#include <Stonefish/actuators/Thruster.h>
-#include <Stonefish/actuators/Propeller.h>
-#include <Stonefish/actuators/Servo.h>
-#include <Stonefish/utils/SystemUtil.hpp>
+#include <core/Robot.h>
+#include <sensors/scalar/Pressure.h>
+#include <sensors/scalar/DVL.h>
+#include <sensors/scalar/IMU.h>
+#include <sensors/scalar/GPS.h>
+#include <sensors/scalar/ForceTorque.h>
+#include <sensors/scalar/RotaryEncoder.h>
+#include <sensors/scalar/Odometry.h>
+#include <sensors/vision/ColorCamera.h>
+#include <sensors/vision/DepthCamera.h>
+#include <actuators/Thruster.h>
+#include <actuators/Propeller.h>
+#include <actuators/Servo.h>
+#include <utils/SystemUtil.hpp>
 
 namespace sf
 {

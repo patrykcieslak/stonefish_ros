@@ -26,7 +26,7 @@
 #ifndef __Stonefish_ROSScenarioParser__
 #define __Stonefish_ROSScenarioParser__
 
-#include <Stonefish/core/ScenarioParser.h>
+#include <core/ScenarioParser.h>
 #include <ros/ros.h>
 
 namespace sf

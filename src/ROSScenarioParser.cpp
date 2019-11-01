@@ -26,11 +26,11 @@
 #include "stonefish_ros/ROSScenarioParser.h"
 #include "stonefish_ros/ROSSimulationManager.h"
 
-#include <Stonefish/core/Robot.h>
-#include <Stonefish/actuators/Actuator.h>
-#include <Stonefish/actuators/Servo.h>
-#include <Stonefish/sensors/vision/ColorCamera.h>
-#include <Stonefish/sensors/vision/DepthCamera.h>
+#include <core/Robot.h>
+#include <actuators/Actuator.h>
+#include <actuators/Servo.h>
+#include <sensors/vision/ColorCamera.h>
+#include <sensors/vision/DepthCamera.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>

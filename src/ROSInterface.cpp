@@ -25,16 +25,16 @@
 
 #include "stonefish_ros/ROSInterface.h"
 
-#include <Stonefish/sensors/Sample.h>
-#include <Stonefish/sensors/scalar/Pressure.h>
-#include <Stonefish/sensors/scalar/DVL.h>
-#include <Stonefish/sensors/scalar/IMU.h>
-#include <Stonefish/sensors/scalar/GPS.h>
-#include <Stonefish/sensors/scalar/ForceTorque.h>
-#include <Stonefish/sensors/scalar/RotaryEncoder.h>
-#include <Stonefish/sensors/scalar/Odometry.h>
-#include <Stonefish/sensors/vision/ColorCamera.h>
-#include <Stonefish/sensors/vision/DepthCamera.h>
+#include <sensors/Sample.h>
+#include <sensors/scalar/Pressure.h>
+#include <sensors/scalar/DVL.h>
+#include <sensors/scalar/IMU.h>
+#include <sensors/scalar/GPS.h>
+#include <sensors/scalar/ForceTorque.h>
+#include <sensors/scalar/RotaryEncoder.h>
+#include <sensors/scalar/Odometry.h>
+#include <sensors/vision/ColorCamera.h>
+#include <sensors/vision/DepthCamera.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>

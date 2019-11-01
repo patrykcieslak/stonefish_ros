@@ -27,7 +27,7 @@
 #define __Stonefish_ROSSimulationManager__
 
 //Stonefish
-#include <Stonefish/core/SimulationManager.h>
+#include <core/SimulationManager.h>
 //ROS
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
