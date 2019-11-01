@@ -1,3 +1,5 @@
-
+#add_subdirectory(glm)
 add_subdirectory(bullet3)
+set(BULLET_INCLUDE_DIR external/bullet3)
 add_subdirectory(stonefish)
+#add_dependencies(Stonefish BULLET_PHYSICS)

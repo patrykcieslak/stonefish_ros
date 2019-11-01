@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(stonefish_ros)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DBT_EULER_DEFAULT_ZYX -DBT_USE_DOUBLE_PRECISION -DBUILD_PYBULLET=OFF -DBUILD_SHARED_LIBS=ON -DUSE_DOUBLE_PRECISION=ON")
+set(SHADER_PATH "\"${CMAKE_CURRENT_SOURCE_DIR}/external/stonefish/Library/shaders/\"")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DBT_EULER_DEFAULT_ZYX -DBT_USE_DOUBLE_PRECISION -DBUILD_PYBULLET=OFF -DBUILD_SHARED_LIBS=ON -DUSE_DOUBLE_PRECISION=ON -DSHADER_DIR_PATH=${SHADER_PATH}")
 
 find_package(catkin REQUIRED COMPONENTS
     #cola2_lib_ros
@@ -18,12 +20,16 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Bullet REQUIRED)
+
+include_directories(external/glm)
+include_directories(${BULLET_INCLUDE_DIRS})
 add_subdirectory(external)
 
-#set(BULLET_ROOT /home/nbore/Stonefish/bullet3_install)
-#link_directories(/home/nbore/Stonefish/bullet3_install/lib)
+set(Stonefish_INCLUDE_DIRS external/stonefish/Library/include)
+set(Stonefish_LIBRARIES Stonefish)
 
-#find_package(Bullet REQUIRED)
 #find_package(PkgConfig REQUIRED)
 #pkg_check_modules(Stonefish REQUIRED stonefish)
 
