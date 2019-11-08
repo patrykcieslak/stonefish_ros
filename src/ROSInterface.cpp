@@ -33,6 +33,7 @@
 #include <Stonefish/sensors/scalar/ForceTorque.h>
 #include <Stonefish/sensors/scalar/RotaryEncoder.h>
 #include <Stonefish/sensors/scalar/Odometry.h>
+#include <Stonefish/sensors/scalar/Multibeam.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
 
@@ -45,6 +46,7 @@
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
+#include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <cola2_msgs/DVL.h>
@@ -339,6 +341,38 @@ void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera*
     modifier.resize(nGoodPoints);
 
     pointCloudPub.publish(msg);
+}
+
+void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes)
+{
+	float angRange = mbes->getAngleRangeDeg();
+    uint32_t angSteps = mbes->getAngleSteps();
+
+    sensor_msgs::LaserScan msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = mbes->getName();
+    msg.angle_min = -angRange/2.; // start angle of the scan [rad]
+    msg.angle_max = angRange/2.; // end angle of the scan [rad]
+    msg.angle_increment = angRange/float(angSteps); // angular distance between measurements [rad]
+
+    msg.time_increment = 0.; // time between measurements [seconds] - if your scanner is moving, this will be used in interpolating position of 3d points
+    msg.scan_time = 0.; // time between scans [seconds]
+
+    msg.range_min = 0.; // minimum range value [m]
+    msg.range_max = 1000.; // maximum range value [m]
+
+    msg.ranges.resize(angSteps); // range data [m] (Note: values < range_min or > range_max should be discarded)
+    msg.intensities.resize(0); // intensity data [device-specific units].  If your device does not provide intensities, please leave the array empty
+    
+    double* angles = mbes->getAnglesDataPointer();
+    double* distances = mbes->getDistancesDataPointer();
+
+    for(uint32_t i = 0; i<angSteps; ++i)
+    {
+        msg.ranges[i] = distances[i];
+    }
+
+    laserScanPub.publish(msg);
 }
 
 }
