@@ -209,6 +209,14 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
                     break;
 
+                case ActuatorType::ACTUATOR_VBS:
+                {
+                    std_msgs::Float64 msg;
+                    msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
+                    pubs[actuator->getName()].publish(msg);
+                }
+                    break;
+
                 default:
                     break;
             }
@@ -307,6 +315,15 @@ void ServosCallback::operator()(const sensor_msgs::JointStateConstPtr& msg)
     {
         ROS_ERROR("No effort control mode implemented in simulation!");
     }
+}
+
+VBSCallback::VBSCallback(VariableBuoyancy* act) : act(act)
+{
+}
+
+void VBSCallback::operator()(const std_msgs::Float64ConstPtr& msg)
+{   
+    act->setFlowRate(msg->data);
 }
 
 }

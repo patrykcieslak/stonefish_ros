@@ -28,9 +28,11 @@
 
 //Stonefish
 #include <Stonefish/core/SimulationManager.h>
+#include <Stonefish/actuators/VariableBuoyancy.h>
 //ROS
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <std_msgs/Float64.h>
 #include <sensor_msgs/JointState.h>
 #include <cola2_msgs/Setpoints.h>
 
@@ -114,6 +116,16 @@ namespace sf
 	private:
 		ROSSimulationManager* sm;
 		ROSRobot* robot;
+	};
+
+	class VBSCallback
+	{
+	public: 
+		VBSCallback(VariableBuoyancy* act);
+		void operator()(const std_msgs::Float64ConstPtr& msg);
+
+	private:
+		VariableBuoyancy* act;
 	};
 }
 

@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <scenario>
 	<environment>
 		<ned latitude="41.7777" longitude="3.0333"/>
@@ -543,6 +544,20 @@
 			<joint name="eca_5emicro_manipulator/finger2"/>
 			<controller position_gain="1.0" velocity_gain="1.0" max_torque="1000.0"/>
 		</actuator>
+
+		<!-- Example of a variable buoyancy system actuator -->
+		<!--
+		<actuator name="VBS" type="vbs">
+			<link name="Vehicle"/>
+			<origin rpy="0.0 0.0 0.0" xyz="-0.5 0.0 0.0"/>
+			<volume initial="0.001">
+				<mesh filename="girona500/vbs_min.obj"/>
+				<mesh filename="girona500/vbs_max.obj"/>
+			</volume>
+			<ros_publisher topic="/girona500/vbs/volume"/>
+			<ros_subscriber topic="/girona500/vbs/flow_rate"/>
+		</actuator>
+		-->
 
 		<world_transform rpy="0.0 0.0 0.0" xyz="0.0 0.0 1.0"/>
 
