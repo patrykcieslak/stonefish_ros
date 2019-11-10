@@ -345,7 +345,7 @@ void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera*
 
 void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes)
 {
-	float angRange = mbes->getAngleRangeDeg();
+	float angRange = mbes->getAngleRange();
     uint32_t angSteps = mbes->getAngleSteps();
 
     sensor_msgs::LaserScan msg;
