@@ -31,6 +31,12 @@
 #include <actuators/Servo.h>
 #include <sensors/vision/ColorCamera.h>
 #include <sensors/vision/DepthCamera.h>
+#include <Stonefish/core/Robot.h>
+#include <Stonefish/actuators/Actuator.h>
+#include <Stonefish/actuators/Servo.h>
+#include <Stonefish/sensors/vision/ColorCamera.h>
+#include <Stonefish/sensors/vision/DepthCamera.h>
+#include <std_msgs/Float64.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>
@@ -300,6 +306,45 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         pubs[sensorName] = nh.advertise<sensor_msgs::PointCloud2>(topicStr, 2);
         DepthCamera* cam = (DepthCamera*)robot->getSensor(sensorName);
         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::DepthCameraImageReady, sim, std::placeholders::_1));
+    }
+
+    return true;
+}
+
+bool ROSScenarioParser::ParseActuator(XMLElement* element, Robot* robot)
+{
+    if(!ScenarioParser::ParseActuator(element, robot))
+        return false;
+
+    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+    ros::NodeHandle& nh = sim->getNodeHandle();
+    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+    std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+
+    //Actuator info
+    const char* name = nullptr;
+    const char* type = nullptr;
+    element->QueryStringAttribute("name", &name);
+    element->QueryStringAttribute("type", &type);
+    std::string actuatorName = robot->getName() + "/" + std::string(name);
+    std::string typeStr(type);
+
+    //Publish and subscribe info
+    if(typeStr == "vbs")
+    {
+        XMLElement* item;
+        const char* pubTopic = nullptr;
+        const char* subTopic = nullptr;
+        if((item = element->FirstChildElement("ros_publisher")) != nullptr 
+            && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+        {
+            pubs[actuatorName] = nh.advertise<std_msgs::Float64>(std::string(pubTopic), 2);
+        }
+        if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+            && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
+        {
+            subs[actuatorName] = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, VBSCallback((VariableBuoyancy*)robot->getActuator(actuatorName)));
+        }
     }
 
     return true;
