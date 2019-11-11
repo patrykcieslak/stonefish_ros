@@ -31,11 +31,6 @@
 #include <actuators/Servo.h>
 #include <sensors/vision/ColorCamera.h>
 #include <sensors/vision/DepthCamera.h>
-#include <Stonefish/core/Robot.h>
-#include <Stonefish/actuators/Actuator.h>
-#include <Stonefish/actuators/Servo.h>
-#include <Stonefish/sensors/vision/ColorCamera.h>
-#include <Stonefish/sensors/vision/DepthCamera.h>
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
