@@ -41,6 +41,7 @@ namespace sf
     class RotaryEncoder;
     class ColorCamera;
     class DepthCamera;
+    class Multibeam;
 
     class ROSInterface
     {
@@ -55,6 +56,7 @@ namespace sf
         static void PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc);
         static void PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam);
         static void PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam);
+        static void PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes);
 
 
     private:

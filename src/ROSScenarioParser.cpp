@@ -39,6 +39,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/JointState.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/WrenchStamped.h>
@@ -289,6 +290,8 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         pubs[sensorName] = nh.advertise<geometry_msgs::WrenchStamped>(topicStr, 2);
     else if(typeStr == "encoder")
         pubs[sensorName] = nh.advertise<sensor_msgs::JointState>(topicStr, 2);
+    else if(typeStr == "multibeam1d")
+        pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, 2);
     else if(typeStr == "camera")
     {
         pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image_color", 2);
