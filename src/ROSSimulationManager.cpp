@@ -118,6 +118,10 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                     ROSInterface::PublishEncoder(pubs[sensor->getName()], (RotaryEncoder*)sensor);
                     break;
 
+                case ScalarSensorType::SENSOR_MULTIBEAM:
+                    ROSInterface::PublishLaserScan(pubs[sensor->getName()], (Multibeam*)sensor);
+                    break;
+
                 default:
                     break;
             }
