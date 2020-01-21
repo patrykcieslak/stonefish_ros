@@ -49,16 +49,6 @@ src/ROSScenarioParser.cpp
 )
 target_link_libraries(stonefish_ros ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
 
-#Code examples
-add_executable(girona500_auv_dynamics src/girona500_auv_dynamics.cpp src/G500AUVDynamicsManager.cpp)
-target_link_libraries(girona500_auv_dynamics ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
-
-add_executable(girona500_auv_simulator src/girona500_auv_simulator.cpp src/G500AUVSimulationManager.cpp)
-target_link_libraries(girona500_auv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
-
-add_executable(girona500_iauv_simulator src/girona500_iauv_simulator.cpp src/G500IAUVSimulationManager.cpp)
-target_link_libraries(girona500_iauv_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
-
 #Universal simulator with XML parser
 add_executable(parsed_simulator src/parsed_simulator.cpp)
 target_link_libraries(parsed_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
