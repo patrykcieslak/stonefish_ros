@@ -11,9 +11,6 @@
 	<buildtool_depend>catkin</buildtool_depend>
 	<build_depend>roscpp</build_depend>
 	<build_depend>roslib</build_depend>
-	<build_depend>rospy</build_depend>
-	<build_depend>message_generation</build_depend>
-        <build_depend>cola2_lib_ros</build_depend>
 	<build_depend>cola2_msgs</build_depend>
 	<build_depend>geometry_msgs</build_depend>
 	<build_depend>nav_msgs</build_depend>
@@ -26,9 +23,6 @@
 	
 	<run_depend>roscpp</run_depend>
 	<run_depend>roslib</run_depend>
-	<run_depend>rospy</run_depend>
-	<run_depend>message_runtime</run_depend>
-        <run_depend>cola2_lib_ros</run_depend>
 	<run_depend>cola2_msgs</run_depend>
 	<run_depend>cola2_girona500</run_depend>
 	<run_depend>girona500_description</run_depend>

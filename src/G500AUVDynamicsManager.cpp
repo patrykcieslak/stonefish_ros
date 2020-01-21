@@ -25,7 +25,6 @@
 
 #include "G500AUVDynamicsManager.h"
 
-#include <cola2_lib_ros/this_node.h>
 #include <Stonefish/entities/statics/Plane.h>
 #include <Stonefish/entities/solids/Polyhedron.h>
 #include <Stonefish/entities/solids/Box.h>
@@ -55,7 +54,7 @@
 G500AUVDynamicsManager::G500AUVDynamicsManager(sf::Scalar stepsPerSecond) 
 	: SimulationManager(stepsPerSecond, sf::SolverType::SOLVER_SI, sf::CollisionFilteringType::COLLISION_EXCLUSIVE, sf::FluidDynamicsType::GEOMETRY_BASED)
 {
-  std::string ns = cola2::ros::getNamespace();
+  std::string ns = ros::this_node::getNamespace();
 
     //Output from simulation
     gpsPub = nh.advertise<sensor_msgs::NavSatFix>(ns + "/navigator/gps", 2);
@@ -74,7 +73,7 @@ G500AUVDynamicsManager::G500AUVDynamicsManager(sf::Scalar stepsPerSecond)
 
 void G500AUVDynamicsManager::BuildScenario()
 {
-    std::string ns = cola2::ros::getNamespace();
+    std::string ns = ros::this_node::getNamespace();
 
     ///////MATERIALS////////
     CreateMaterial("Dummy", 1000.0, 0.5);
@@ -144,11 +143,11 @@ void G500AUVDynamicsManager::BuildScenario()
     sf::Polyhedron* prop3 = new sf::Polyhedron(ns + "/Propeller3", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     sf::Polyhedron* prop4 = new sf::Polyhedron(ns + "/Propeller4", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
     sf::Polyhedron* prop5 = new sf::Polyhedron(ns + "/Propeller5", sf::GetDataPath() + "girona500/propeller.obj", 1.0, sf::I4(), "Neutral", sf::BodyPhysicsType::SUBMERGED_BODY);
-    sf::Thruster* thSway = new sf::Thruster(ns + "/ThrusterSway", prop1, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thSurgeP = new sf::Thruster(ns + "/ThrusterSurgePort", prop2, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thSurgeS = new sf::Thruster(ns + "/ThrusterSurgeStarboard", prop3, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thHeaveS = new sf::Thruster(ns + "/ThrusterHeaveStern", prop4, 0.18, 0.48, 0.05, 1000.0, true);
-    sf::Thruster* thHeaveB = new sf::Thruster(ns + "/ThrusterHeaveBow", prop5, 0.18, 0.48, 0.05, 1000.0, true);
+    sf::Thruster* thSway = new sf::Thruster(ns + "/ThrusterSway", prop1, 0.18, std::make_pair(0.48, 0.48), 0.05, 1000.0, true);
+    sf::Thruster* thSurgeP = new sf::Thruster(ns + "/ThrusterSurgePort", prop2, 0.18, std::make_pair(0.48, 0.48), 0.05, 1000.0, true);
+    sf::Thruster* thSurgeS = new sf::Thruster(ns + "/ThrusterSurgeStarboard", prop3, 0.18, std::make_pair(0.48, 0.48), 0.05, 1000.0, true);
+    sf::Thruster* thHeaveS = new sf::Thruster(ns + "/ThrusterHeaveStern", prop4, 0.18, std::make_pair(0.48, 0.48), 0.05, 1000.0, true);
+    sf::Thruster* thHeaveB = new sf::Thruster(ns + "/ThrusterHeaveBow", prop5, 0.18, std::make_pair(0.48, 0.48), 0.05, 1000.0, true);
 
     //Create sensors
     odom = new sf::Odometry(ns + "/dynamics", 30);
@@ -197,7 +196,7 @@ void G500AUVDynamicsManager::BuildScenario()
 void G500AUVDynamicsManager::SimulationStepCompleted(sf::Scalar timeStep)
 {
 	/////////////////////////////////////////SENSORS//////////////////////////////////////////////
-    std::string ns = cola2::ros::getNamespace();
+    std::string ns = ros::this_node::getNamespace();
     sf::Transform robotFrame = odom->getSensorFrame();
     
     //Ground truth

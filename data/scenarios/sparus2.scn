@@ -3,7 +3,7 @@
 	<environment>
 		<ned latitude="41.7777" longitude="3.0333"/>
 		<sun azimuth="20.0" elevation="50.0"/>
-		<ocean enabled="true" waves="0.0"/>
+		<ocean enabled="true"/>
 	</environment>
 
 	<materials>
@@ -188,7 +188,7 @@
 		<actuator name="ThrusterHeave" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 1.571 0.0" xyz="0.0 0.0 0.07"/>
-			<specs thrust_coeff="0.537" torque_coeff="0.05" max_rpm="3000.0" inverted="true"/>
+			<specs thrust_coeff="0.537" thrust_coeff_backward="0.278" torque_coeff="0.01" max_rpm="5000.0" inverted="true"/>
 			<propeller diameter="0.08" right="true">
 				<mesh filename="sparus2/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
@@ -199,7 +199,7 @@
 		<actuator name="ThrusterSurgeStarboard" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 0.0 0.0" xyz="-0.573 0.167 0.0"/>
-			<specs thrust_coeff="0.698" torque_coeff="0.05" max_rpm="3000.0"/>
+			<specs thrust_coeff="0.698" thrust_coeff_backward="0.293" torque_coeff="0.01" max_rpm="5000.0"/>
 			<propeller diameter="0.08" right="false">
 				<mesh filename="sparus2/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
@@ -210,7 +210,7 @@
 		<actuator name="ThrusterSurgePort" type="thruster">
 			<link name="Vehicle"/>
 			<origin rpy="0.0 0.0 0.0" xyz="-0.573 -0.167 0.0"/>
-			<specs thrust_coeff="0.698" torque_coeff="0.05" max_rpm="3000.0"/>
+			<specs thrust_coeff="0.698" thrust_coeff_backward="0.293" torque_coeff="0.01" max_rpm="5000.0"/>
 			<propeller diameter="0.08" right="true">
 				<mesh filename="sparus2/propeller.obj" scale="1.0"/>
 				<material name="Neutral"/>
