@@ -11,8 +11,8 @@ This package delivers a ROS interface for the _Stonefish_ library. It also inclu
 
 ### Launching
 
-This package does not include any examples of usage. The best way to learn how to use this package is to install the _stonefish_cirs_ package, containing multiple fully working examples of robots.
-To launch the included standard simulator node the following lunch file tags should be used:
+This package does not include any examples of usage. The best way to learn how to use this package is to install the [stonefish_cirs](https://github.com/patrykcieslak/stonefish_cirs) package, containing multiple fully working examples of robots.
+To launch the included standard simulator node the following launch file tags should be used:
 ```
 <launch>
     <arg name="simulation_data" default="..."/> <!-- path to the data directory -->
