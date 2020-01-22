@@ -11,18 +11,8 @@ This package delivers a ROS interface for the _Stonefish_ library. It also inclu
 
 ### Launching
 
+To run the standard simulator node you have to include the 'simulator.launch' file in your own launch file, overriding the default arguments.
 This package does not include any examples of usage. The best way to learn how to use this package is to install the [stonefish_cirs](https://github.com/patrykcieslak/stonefish_cirs) package, containing multiple fully working examples of robots.
-To launch the included standard simulator node the following launch file tags should be used:
-```
-<launch>
-    <arg name="simulation_data" default="..."/> <!-- path to the data directory -->
-    <arg name="scenario_description" default="..."/> <!-- path to the scenario description -->
-    <arg name="simulation_rate" default="500"/> <!-- number of simulation steps per second -->
-    <arg name="graphics_resolution" default="1200 800"/> <!-- resolution of the simulation window -->
-    <arg name="graphics_quality" default="medium"/> <!-- low, medium or high -->
-    <node name="stonefish_simulator" pkg="stonefish_ros" type="parsed_simulator" args="$(arg simulation_data) $(arg scenario_description) $(arg simulation_rate) $(arg graphics_resolution) $(arg graphics_quality)"/>
-</launch>
-```
 
 ### Credits
 This software was written and is continuously developed by Patryk Cieślak.
