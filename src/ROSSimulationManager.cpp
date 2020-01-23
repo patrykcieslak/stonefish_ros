@@ -194,6 +194,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             {
                 case ActuatorType::ACTUATOR_THRUSTER:
                     ((Thruster*)actuator)->setSetpoint(rosRobots[i]->thrusterSetpoints[thID++]);
+                    //ROS_INFO("[Thruster %d] Setpoint: %1.3lf Omega: %1.3lf Thrust: %1.3lf", thID, ((Thruster*)actuator)->getSetpoint(), ((Thruster*)actuator)->getOmega(), ((Thruster*)actuator)->getThrust());
                     break;
 
                 case ActuatorType::ACTUATOR_PROPELLER:

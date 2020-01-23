@@ -1,46 +1,18 @@
 ### stonefish_ros package for ROS
 
-This package uses _Stonefish_ library (developed by Patryk Cieślak) to simulate dynamics, hydrodynamics, actuators and sensors of autonomous underwater vehicles (AUV) in a realistic virtual environment, including collision detection and high quality rendering. The simulators included in the package are based on robots used at the CIRS laboratory (University of Girona, Spain) and they depend on the COLA2 software architecture developed at the lab.
+This package delivers a ROS interface for the _Stonefish_ library. It also includes a standard simulator node, which loads the simulation scenario from a scenario description file (XML). The included parser extends the standard functionality of the _Stonefish_ library to enable ROS style search for files, resolution of arguments as well as a complete message interface. 
 
 ### Installation
 
 1. Install the open-source [Stonefish](https://github.com/patrykcieslak/stonefish) library.
-2. Install the open-source [cola2_lib](https://bitbucket.org/iquarobotics/cola2_lib) library.
-3. Install the open-source ROS packages:
-- [cola2_core](https://bitbucket.org/iquarobotics/cola2_core)
-- [cola2_lib_ros](https://bitbucket.org/iquarobotics/cola2_lib_ros)
-- [cola2_msgs](https://bitbucket.org/iquarobotics/cola2_msgs) 
-- [cola2_girona500](https://bitbucket.org/iquarobotics/cola2_girona500)
-- [girona500_description](https://bitbucket.org/iquarobotics/girona500_description)
-- [cola2_sparus2](https://bitbucket.org/iquarobotics/cola2_sparus2)
-- [sparus2_description](https://bitbucket.org/iquarobotics/sparus2_description)
-- [eca_5emicro_manipulator_description](https://bitbucket.org/udg_cirs/eca_5emicro_manipulator_description)
-4. Clone the *stonefish_ros* package to your catkin workspace.
-5. Compile the workspace.
-6. Launch one of the examples.
+2. Install the open-source ROS package [cola2_msgs](https://bitbucket.org/iquarobotics/cola2_msgs).
+3. Clone the *stonefish_ros* package to your catkin workspace.
+4. Compile the workspace.
 
 ### Launching
 
-This package includes examples, showing how to use the combination of the _Stonefish_ library and the _stonefish_ros_ library to build custom robot simulators interfacing with ROS. Before launching the robot simulators it is best to connect a gamepad compatible with Logitech F310.
-
-There are three ways to create a new simulator:
-1. Launch the standard simulator node, taking as input an XML file descirbing the simulation scenario.
-2. Subclass the empty simulation classes from the _Stonefish_ library, which unlocks extended functionality and custom handling of ROS communication.
-3. Subclass the ROS interfaced simulation classes from the _stonefish_ros_ library, which gives a combination of solutions 1 and 2.
-
-The first approach is presented by the following examples:
-- GIRONA500 I-AUV, equipped with an ECA 5E Micro manipulator, with a force-torque sensor installed in the manipulator wrist and a simple two finger gripper
-   `roslaunch stonefish_ros girona500_eca_parsed_simulator.launch`
-- SPARUS II AUV, without payload
-   `roslaunch stonefish_ros sparus2_parsed_simulator.launch`
-   
-The second approach is presented by the following examples:
-- GIRONA500 AUV in console mode (only dynamics and non-vision sensors)
-   `roslaunch stonefish_ros girona500_auv_dynamics.launch`
-- GIRONA500 AUV with a down-looking camera
-   `roslaunch stonefish_ros girona500_auv_simulator.launch`
-- GIRONA500 I-AUV, equipped with an ECA 5E Micro manipulator, with a force-torque sensor installed in the manipulator wrist
-   `roslaunch stonefish_ros girona500_eca_simulator.launch` 
+To run the standard simulator node you have to include the 'simulator.launch' file in your own launch file, overriding the default arguments.
+This package does not include any examples of usage. The best way to learn how to use this package is to install the [stonefish_cirs](https://github.com/patrykcieslak/stonefish_cirs) package, containing multiple fully working examples of robots.
 
 ### Credits
 This software was written and is continuously developed by Patryk Cieślak.
