@@ -11,9 +11,6 @@
 	<buildtool_depend>catkin</buildtool_depend>
 	<build_depend>roscpp</build_depend>
 	<build_depend>roslib</build_depend>
-	<build_depend>rospy</build_depend>
-	<build_depend>message_generation</build_depend>
-    <!-- <build_depend>cola2_lib_ros</build_depend> -->
 	<build_depend>cola2_msgs</build_depend>
 	<build_depend>geometry_msgs</build_depend>
 	<build_depend>nav_msgs</build_depend>
@@ -21,27 +18,16 @@
 	<build_depend>std_srvs</build_depend>
 	<build_depend>tf</build_depend>
 	<build_depend>tf_conversions</build_depend>
-	<build_depend>Bullet</build_depend>
-	<build_depend>Stonefish</build_depend>
 	
 	<run_depend>roscpp</run_depend>
 	<run_depend>roslib</run_depend>
-	<run_depend>rospy</run_depend>
-	<run_depend>message_runtime</run_depend>
-    <!-- <run_depend>cola2_lib_ros</run_depend> -->
 	<run_depend>cola2_msgs</run_depend>
-	<run_depend>cola2_girona500</run_depend>
-	<run_depend>girona500_description</run_depend>
-	<run_depend>eca_5emicro_manipulator_description</run_depend>
 	<run_depend>geometry_msgs</run_depend>
 	<run_depend>nav_msgs</run_depend>
 	<run_depend>sensor_msgs</run_depend>
 	<run_depend>std_srvs</run_depend>
 	<run_depend>tf</run_depend>
 	<run_depend>tf_conversions</run_depend>
-	<run_depend>Bullet</run_depend>
-	<run_depend>Stonefish</run_depend>
-
   <export>
   </export>
 </package>
