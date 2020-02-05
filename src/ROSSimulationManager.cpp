@@ -46,8 +46,10 @@ namespace sf
 {
 
 ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath) 
-	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE, FluidDynamicsType::GEOMETRY_BASED), scnFilePath(scenarioFilePath)
+	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE, FluidDynamicsType::GEOMETRY_BASED), scnFilePath(scenarioFilePath), nh("~")
 {
+    srvECurrents = nh.advertiseService("enable_currents", &ROSSimulationManager::EnableCurrents, this);
+    srvDCurrents = nh.advertiseService("disable_currents", &ROSSimulationManager::DisableCurrents, this);
 }
 
 ros::NodeHandle& ROSSimulationManager::getNodeHandle()
@@ -239,6 +241,22 @@ void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
 void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
 {
     ROSInterface::PublishPointCloud(pubs[cam->getName()], cam);
+}
+
+bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+{
+    getOcean()->EnableCurrents();
+    res.message = "Currents simulation enabled.";
+    res.success = true;
+    return true;
+}
+
+bool ROSSimulationManager::DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+{
+    getOcean()->DisableCurrents();
+    res.message = "Currents simulation disabled.";
+    res.success = true;
+    return true;
 }
 
 ThrustersCallback::ThrustersCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)
