@@ -36,6 +36,7 @@
 #include <Stonefish/sensors/scalar/Multibeam.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
+#include <Stonefish/sensors/vision/Multibeam2.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -340,6 +341,58 @@ void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera*
     msg.width = nGoodPoints;
     modifier.resize(nGoodPoints);
 
+    pointCloudPub.publish(msg);
+}
+
+void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb)
+{
+    uint32_t hRes, vRes, nPoints;
+    mb->getResolution(hRes, vRes);
+    nPoints = hRes * vRes;
+    glm::vec2 range = mb->getRangeLimits();
+    float hFovRad = mb->getHorizontalFOV()/180.f*M_PI;
+    float vFovRad = mb->getVerticalFOV()/180.f*M_PI; 
+    float hStepAngleRad = hFovRad/(float)(hRes-1);
+    float vStepAngleRad = vFovRad/(float)(vRes-1);
+
+    sensor_msgs::PointCloud2 msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = mb->getName();
+    msg.height = 1;
+    msg.width = nPoints;
+
+    sensor_msgs::PointCloud2Modifier modifier(msg);
+    modifier.setPointCloud2Fields(3, "x", 1, sensor_msgs::PointField::FLOAT32,
+                                     "y", 1, sensor_msgs::PointField::FLOAT32,
+                                     "z", 1, sensor_msgs::PointField::FLOAT32);
+    modifier.setPointCloud2FieldsByString(1, "xyz");
+    modifier.resize(nPoints);
+
+    sensor_msgs::PointCloud2Iterator<float> iterX(msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> iterY(msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> iterZ(msg, "z");
+
+    float* data = (float*)mb->getRangeDataPointer();
+
+    for(uint32_t v=0; v<vRes; ++v)
+    {
+        uint32_t offset = v*hRes;
+        float hAngleRad = -hFovRad/2.f + (0.5f/hRes*hFovRad);
+        float vAngleRad = vFovRad/2.f - ((0.5f+v)/vRes*vFovRad);
+        for(uint32_t h=0; h<hRes; ++h)
+        {
+            float depth = data[offset + h];
+            Eigen::Vector3f mbPoint = Eigen::Vector3f(tanf(hAngleRad), tanf(vAngleRad), 1.f).normalized() * depth;
+            *iterX = mbPoint.x();
+    		*iterY = mbPoint.y();
+    		*iterZ = mbPoint.z();
+    		++iterX;
+    		++iterY;
+    		++iterZ;
+            hAngleRad += hStepAngleRad;
+        }
+    }
+    
     pointCloudPub.publish(msg);
 }
 

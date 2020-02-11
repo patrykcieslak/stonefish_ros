@@ -41,6 +41,7 @@ namespace sf
 {
 	class ColorCamera;
 	class DepthCamera;
+	class Multibeam2;
 
 	struct ROSRobot
 	{
@@ -71,6 +72,7 @@ namespace sf
 		virtual void SimulationStepCompleted(Scalar timeStep);		
 	    virtual void ColorCameraImageReady(ColorCamera* cam);
 	    virtual void DepthCameraImageReady(DepthCamera* cam);
+		virtual void MultibeamScanReady(Multibeam2* mb);
 
 	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
