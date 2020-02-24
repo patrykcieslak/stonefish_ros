@@ -37,6 +37,7 @@
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
+#include <Stonefish/sensors/vision/FLS.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -427,6 +428,28 @@ void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbe
     }
 
     laserScanPub.publish(msg);
+}
+
+void ROSInterface::PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls)
+{
+    //Publish image message
+    sensor_msgs::Image img;
+    img.header.stamp = ros::Time::now();
+    img.header.frame_id = fls->getName();
+	fls->getDisplayResolution(img.width, img.height);
+	img.encoding = "rgb8";
+	img.is_bigendian = 0;
+    img.step = img.width*3;
+    img.data.resize(img.width*img.height*3);
+    //Copy image data
+    uint8_t* data = (uint8_t*)fls->getDisplayDataPointer();
+    for(uint32_t r = 0; r<img.height; ++r) //Every row of image
+    {
+		uint8_t* srcRow = data + r*img.step; 
+		uint8_t* dstRow = img.data.data() + (img.height-1-r) * img.step; 
+		memcpy(dstRow, srcRow, img.step);
+    }
+    sonarDisplayPub.publish(img);
 }
 
 }

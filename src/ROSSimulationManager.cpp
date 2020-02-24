@@ -38,6 +38,7 @@
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
+#include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Servo.h>
@@ -247,6 +248,11 @@ void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
 void ROSSimulationManager::MultibeamScanReady(Multibeam2* mb)
 {
     ROSInterface::PublishPointCloud(pubs[mb->getName()], mb);
+}
+
+void ROSSimulationManager::FLSScanReady(FLS* fls)
+{
+    ROSInterface::PublishFLS(pubs[fls->getName()], fls);
 }
 
 bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)

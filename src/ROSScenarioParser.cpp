@@ -32,6 +32,7 @@
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
+#include <Stonefish/sensors/vision/FLS.h>
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -311,6 +312,12 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         pubs[sensorName] = nh.advertise<sensor_msgs::PointCloud2>(topicStr, 2);
         Multibeam2* mb = (Multibeam2*)robot->getSensor(sensorName);
         mb->InstallNewDataHandler(std::bind(&ROSSimulationManager::MultibeamScanReady, sim, std::placeholders::_1));
+    }
+    else if(typeStr == "fls")
+    {
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", 2);
+        FLS* fls = (FLS*)robot->getSensor(sensorName);
+        fls->InstallNewDataHandler(std::bind(&ROSSimulationManager::FLSScanReady, sim, std::placeholders::_1));
     }
 
     return true;

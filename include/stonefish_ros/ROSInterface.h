@@ -43,6 +43,7 @@ namespace sf
     class DepthCamera;
     class Multibeam;
     class Multibeam2;
+    class FLS;
 
     class ROSInterface
     {
@@ -59,6 +60,7 @@ namespace sf
         static void PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam);
         static void PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb);
         static void PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes);
+        static void PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls);
         
     private:
         ROSInterface();
