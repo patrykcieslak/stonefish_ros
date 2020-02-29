@@ -44,6 +44,7 @@ namespace sf
     class Multibeam;
     class Multibeam2;
     class FLS;
+    class Contact;
 
     class ROSInterface
     {
@@ -61,6 +62,7 @@ namespace sf
         static void PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb);
         static void PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes);
         static void PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls);
+        static void PublishContact(ros::Publisher& contactPub, Contact* cnt);
         
     private:
         ROSInterface();

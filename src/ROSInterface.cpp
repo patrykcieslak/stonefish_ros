@@ -38,6 +38,7 @@
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
+#include <Stonefish/sensors/Contact.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -51,6 +52,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Float32Stamped.h>
 
@@ -450,6 +452,42 @@ void ROSInterface::PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls)
 		memcpy(dstRow, srcRow, img.step);
     }
     sonarDisplayPub.publish(img);
+}
+
+void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
+{
+    if(cnt->getHistory().size() == 0)
+        return;
+
+    ContactPoint cp = cnt->getHistory().back();
+    
+    //Publish marker array message
+    visualization_msgs::Marker msg;
+    msg.header.frame_id = "world_ned";
+    msg.header.stamp = ros::Time::now();
+    msg.ns = cnt->getName();
+    msg.id = 0;
+    msg.type = visualization_msgs::Marker::ARROW;
+    msg.action = visualization_msgs::Marker::ADD;
+    msg.pose.position.x = 0.0;
+    msg.pose.position.y = 0.0;
+    msg.pose.position.z = 0.0;
+    msg.pose.orientation.x = 0.0;
+    msg.pose.orientation.y = 0.0;
+    msg.pose.orientation.z = 0.0;
+    msg.pose.orientation.w = 1.0;
+    msg.points.resize(2);
+    msg.points[0].x = cp.locationA.getX();
+    msg.points[0].y = cp.locationA.getY();
+    msg.points[0].z = cp.locationA.getZ();
+    msg.points[1].x = cp.locationA.getX() + cp.normalForceA.getX();
+    msg.points[1].y = cp.locationA.getY() + cp.normalForceA.getY();
+    msg.points[1].z = cp.locationA.getZ() + cp.normalForceA.getZ();
+    msg.color.r = 1.0;
+    msg.color.g = 1.0;
+    msg.color.b = 0.0;
+    msg.color.a = 1.0;
+    contactPub.publish(msg);
 }
 
 }

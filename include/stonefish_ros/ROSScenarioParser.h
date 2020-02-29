@@ -43,6 +43,7 @@ namespace sf
         virtual bool ParseRobot(XMLElement* element);
         virtual bool ParseSensor(XMLElement* element, Robot* robot);
         virtual bool ParseActuator(XMLElement* element, Robot* robot);
+        virtual bool ParseContact(XMLElement* element);
 
     private:
         std::string SubstituteROSVars(const std::string& value);

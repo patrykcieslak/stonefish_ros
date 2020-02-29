@@ -39,6 +39,7 @@
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
+#include <Stonefish/sensors/Contact.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Servo.h>
@@ -92,6 +93,9 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
         if(sensor->getType() != SensorType::SENSOR_VISION)
         {
+            if(pubs.find(sensor->getName()) == pubs.end())
+                continue;
+
             switch(((ScalarSensor*)sensor)->getScalarSensorType())
             {
                 case ScalarSensorType::SENSOR_ODOM:
@@ -134,11 +138,20 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         sensor->MarkDataOld();
     }   
 
+    //////////////////////////////////////CONTACTS/////////////////////////////////////////////////
+    unsigned int cID = 0;
+    Contact* cnt;
+    while((cnt = getContact(cID++)) != NULL)
+    {
+        if(pubs.find(cnt->getName()) != pubs.end())
+            ROSInterface::PublishContact(pubs[cnt->getName()], cnt);
+    }    
+
     //////////////////////////////////////WORLD TRANSFORMS/////////////////////////////////////////
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
-        if (rosRobots[i]->publishBaseLinkTransform)
-            sf::ROSInterface::PublishTF(br, rosRobots[i]->robot->getTransform(), ros::Time::now(), "world_ned", rosRobots[i]->robot->getName() + "/base_link");
+        if(rosRobots[i]->publishBaseLinkTransform)
+            ROSInterface::PublishTF(br, rosRobots[i]->robot->getTransform(), ros::Time::now(), "world_ned", rosRobots[i]->robot->getName() + "/base_link");
     }
 
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
@@ -220,9 +233,12 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
                 case ActuatorType::ACTUATOR_VBS:
                 {
-                    std_msgs::Float64 msg;
-                    msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
-                    pubs[actuator->getName()].publish(msg);
+                    if(pubs.find(actuator->getName()) != pubs.end())
+                    {
+                        std_msgs::Float64 msg;
+                        msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
+                        pubs[actuator->getName()].publish(msg);
+                    }
                 }
                     break;
 

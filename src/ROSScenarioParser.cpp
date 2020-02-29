@@ -45,6 +45,7 @@
 #include <sensor_msgs/JointState.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/WrenchStamped.h>
+#include <visualization_msgs/Marker.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
 
@@ -359,6 +360,33 @@ bool ROSScenarioParser::ParseActuator(XMLElement* element, Robot* robot)
         }
     }
 
+    return true;
+}
+
+bool ROSScenarioParser::ParseContact(XMLElement* element)
+{
+    if(!ScenarioParser::ParseContact(element))
+        return false;
+    
+    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+    ros::NodeHandle& nh = sim->getNodeHandle();
+    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+
+    //Contact info
+    const char* name = nullptr;
+    element->QueryStringAttribute("name", &name);
+    std::string contactName = std::string(name);
+    
+    //Publishing info
+    XMLElement* item;
+    const char* topic = nullptr;
+    if((item = element->FirstChildElement("ros_publisher")) == nullptr 
+        || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        return true;
+    std::string topicStr(topic);
+    
+    pubs[contactName] = nh.advertise<visualization_msgs::Marker>(topicStr, 2);
+    
     return true;
 }
 
