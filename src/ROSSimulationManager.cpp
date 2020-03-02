@@ -143,9 +143,15 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     Contact* cnt;
     while((cnt = getContact(cID++)) != NULL)
     {
+        if(!cnt->isNewDataAvailable())
+            continue;
+
         if(pubs.find(cnt->getName()) != pubs.end())
+        {
             ROSInterface::PublishContact(pubs[cnt->getName()], cnt);
-    }    
+            cnt->MarkDataOld();
+        }
+    }   
 
     //////////////////////////////////////WORLD TRANSFORMS/////////////////////////////////////////
     for(size_t i=0; i<rosRobots.size(); ++i)
