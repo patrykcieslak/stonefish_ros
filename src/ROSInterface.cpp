@@ -39,6 +39,7 @@
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/Contact.h>
+#include <Stonefish/comms/AcousticModem.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -51,6 +52,7 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/WrenchStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 #include <cola2_msgs/DVL.h>
@@ -488,6 +490,22 @@ void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
     msg.color.b = 0.0;
     msg.color.a = 1.0;
     contactPub.publish(msg);
+}
+
+void ROSInterface::PublishAcousticModem(ros::Publisher& modemPub, AcousticModem* modem)
+{
+    std::string frame;
+    Vector3 pos;
+    modem->getPosition(pos, frame);
+
+    //Publish position message
+    geometry_msgs::Vector3Stamped msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = frame;
+    msg.vector.x = pos.getX();
+    msg.vector.y = pos.getY();
+    msg.vector.z = pos.getZ();
+    modemPub.publish(msg);
 }
 
 }

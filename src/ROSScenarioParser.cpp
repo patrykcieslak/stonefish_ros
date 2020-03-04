@@ -45,6 +45,7 @@
 #include <sensor_msgs/JointState.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/WrenchStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <visualization_msgs/Marker.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
@@ -360,6 +361,37 @@ bool ROSScenarioParser::ParseActuator(XMLElement* element, Robot* robot)
         }
     }
 
+    return true;
+}
+
+bool ROSScenarioParser::ParseComm(XMLElement* element, Robot* robot)
+{
+    if(!ScenarioParser::ParseComm(element, robot))
+        return false;
+
+    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+    ros::NodeHandle& nh = sim->getNodeHandle();
+    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+    
+    const char* name = nullptr;
+    const char* type = nullptr;
+    element->QueryStringAttribute("name", &name);
+    element->QueryStringAttribute("type", &type);
+    std::string commName = robot != nullptr ?  robot->getName() + "/" + std::string(name) : std::string(name);
+    std::string typeStr(type);
+
+    //Publish info
+    if(typeStr == "acoustic_modem" || typeStr == "usbl")
+    {
+        XMLElement* item;
+        const char* pubTopic = nullptr;
+        if((item = element->FirstChildElement("ros_publisher")) != nullptr 
+            && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+        {
+            pubs[commName] = nh.advertise<geometry_msgs::Vector3Stamped>(std::string(pubTopic), 2);
+        }
+    }
+    
     return true;
 }
 

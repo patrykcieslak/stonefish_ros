@@ -40,6 +40,7 @@
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/Contact.h>
+#include <Stonefish/comms/AcousticModem.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Servo.h>
@@ -84,9 +85,9 @@ void ROSSimulationManager::AddROSRobot(ROSRobot* robot)
 void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 {
 	////////////////////////////////////////SENSORS//////////////////////////////////////////////
-    unsigned int sID = 0;
+    unsigned int id = 0;
     Sensor* sensor;
-    while((sensor = getSensor(sID++)) != NULL)
+    while((sensor = getSensor(id++)) != NULL)
     {
         if(!sensor->isNewDataAvailable())
             continue;
@@ -136,12 +137,31 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         }
 
         sensor->MarkDataOld();
-    }   
+    }  
+
+    ///////////////////////////////////////COMMS///////////////////////////////////////////////////
+    id = 0;
+    Comm* comm;
+    while((comm = getComm(id++)) != NULL)
+    {
+        if(pubs.find(comm->getName()) == pubs.end())
+            continue;
+
+        switch(comm->getType())
+        {
+            case COMM_ACOUSTIC:
+                ROSInterface::PublishAcousticModem(pubs[comm->getName()], (AcousticModem*)comm);
+                break;
+            
+            default:
+                break;
+        }
+    }
 
     //////////////////////////////////////CONTACTS/////////////////////////////////////////////////
-    unsigned int cID = 0;
+    id = 0;
     Contact* cnt;
-    while((cnt = getContact(cID++)) != NULL)
+    while((cnt = getContact(id++)) != NULL)
     {
         if(!cnt->isNewDataAvailable())
             continue;
