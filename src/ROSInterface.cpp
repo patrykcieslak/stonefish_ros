@@ -39,7 +39,7 @@
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/Contact.h>
-#include <Stonefish/comms/AcousticModem.h>
+#include <Stonefish/comms/USBL.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -55,6 +55,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Float32Stamped.h>
 
@@ -463,7 +464,7 @@ void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
 
     ContactPoint cp = cnt->getHistory().back();
     
-    //Publish marker array message
+    //Publish marker message
     visualization_msgs::Marker msg;
     msg.header.frame_id = "world_ned";
     msg.header.stamp = ros::Time::now();
@@ -492,20 +493,41 @@ void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
     contactPub.publish(msg);
 }
 
-void ROSInterface::PublishAcousticModem(ros::Publisher& modemPub, AcousticModem* modem)
+void ROSInterface::PublishUSBL(ros::Publisher& usblPub, USBL* usbl)
 {
-    std::string frame;
-    Vector3 pos;
-    modem->getPosition(pos, frame);
+    std::map<uint64_t, std::pair<Scalar, Vector3>>& transPos = usbl->getTransponderPositions();
+    if(transPos.size() == 0)
+        return;   
 
-    //Publish position message
-    geometry_msgs::Vector3Stamped msg;
-    msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = frame;
-    msg.vector.x = pos.getX();
-    msg.vector.y = pos.getY();
-    msg.vector.z = pos.getZ();
-    modemPub.publish(msg);
+    visualization_msgs::MarkerArray msg;
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = usbl->getName();
+    marker.header.stamp = ros::Time::now();
+    marker.ns = usbl->getName();
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = marker.scale.y = marker.scale.z = 0.1;
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+    marker.color.a = 1.0;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+
+    std::map<uint64_t, std::pair<Scalar, Vector3>>::iterator it;
+    for(it = transPos.begin(); it!=transPos.end(); ++it)
+    {
+        marker.id = it->first;
+        Vector3 pos = it->second.second;
+        marker.pose.position.x = pos.getX();
+        marker.pose.position.y = pos.getY();
+        marker.pose.position.z = pos.getZ();
+        msg.markers.push_back(marker);    
+    }
+
+    usblPub.publish(msg);
 }
 
 }

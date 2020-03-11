@@ -47,6 +47,7 @@
 #include <geometry_msgs/WrenchStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
 
@@ -381,14 +382,14 @@ bool ROSScenarioParser::ParseComm(XMLElement* element, Robot* robot)
     std::string typeStr(type);
 
     //Publish info
-    if(typeStr == "acoustic_modem" || typeStr == "usbl")
+    if(typeStr == "usbl")
     {
         XMLElement* item;
         const char* pubTopic = nullptr;
         if((item = element->FirstChildElement("ros_publisher")) != nullptr 
             && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
         {
-            pubs[commName] = nh.advertise<geometry_msgs::Vector3Stamped>(std::string(pubTopic), 2);
+            pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(std::string(pubTopic), 2);
         }
     }
     

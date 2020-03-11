@@ -40,7 +40,7 @@
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/Contact.h>
-#include <Stonefish/comms/AcousticModem.h>
+#include <Stonefish/comms/USBL.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Servo.h>
@@ -144,13 +144,17 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     Comm* comm;
     while((comm = getComm(id++)) != NULL)
     {
+        if(!comm->isNewDataAvailable())
+            continue;
+
         if(pubs.find(comm->getName()) == pubs.end())
             continue;
 
         switch(comm->getType())
         {
             case COMM_ACOUSTIC:
-                ROSInterface::PublishAcousticModem(pubs[comm->getName()], (AcousticModem*)comm);
+                ROSInterface::PublishUSBL(pubs[comm->getName()], (USBL*)comm);
+                comm->MarkDataOld();
                 break;
             
             default:

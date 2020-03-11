@@ -45,7 +45,7 @@ namespace sf
     class Multibeam2;
     class FLS;
     class Contact;
-    class AcousticModem;
+    class USBL;
 
     class ROSInterface
     {
@@ -64,7 +64,7 @@ namespace sf
         static void PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes);
         static void PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls);
         static void PublishContact(ros::Publisher& contactPub, Contact* cnt);
-        static void PublishAcousticModem(ros::Publisher& modemPub, AcousticModem* modem);
+        static void PublishUSBL(ros::Publisher& usblPub, USBL* usbl);
         
     private:
         ROSInterface();
