@@ -60,8 +60,9 @@ ROSScenarioParser::ROSScenarioParser(ROSSimulationManager* sm) : ScenarioParser(
 {
 }
 
-std::string ROSScenarioParser::SubstituteROSVars(const std::string& value)
+std::string ROSScenarioParser::SubstituteROSVars(const std::string& value, std::map<std::string, std::string>& scenario_args)
 {
+
     std::string replacedValue;
 
     size_t currentPos = 0;
@@ -92,18 +93,33 @@ std::string ROSScenarioParser::SubstituteROSVars(const std::string& value)
         }
         else if (results[0] == "param")
         {
-            std::string param;
-            // to get private params, we need to prefix ~ it seems
-            if (!results[1].empty() && results[1][0] != '~' && results[1][0] != '/')
-            {
-                results[1] = std::string("~") + results[1];
-            }
-            if (!ros::param::get(results[1], param))
-            {
-                ROS_ERROR("Scenario parser(ROS): could not find parameter '%s'!", results[1].c_str());
-                return value;
-            }
-            replacedValue += param;
+			if (results[1] == "robot_name"){
+				ROS_INFO("Recevied args:%d", scenario_args.size());
+			}
+			// first priority is to see if these params are defined in the scenario file
+			// if they are, we substitde those
+			// otherwise we will check with ros if they are defined in ros
+			// Maybe have a specific keyword for scenario args instead? like $(scn blah)
+			if (scenario_args.find(results[1]) != scenario_args.end())
+			{
+				replacedValue += scenario_args[results[1]];
+			}
+			else
+			{
+				std::string param;
+				// to get private params, we need to prefix ~ it seems
+				if (!results[1].empty() && results[1][0] != '~' && results[1][0] != '/')
+				{
+					results[1] = std::string("~") + results[1];
+				}
+				if (!ros::param::get(results[1], param))
+				{
+					ROS_ERROR("Scenario parser(ROS): could not find parameter '%s'!", results[1].c_str());
+					return value;
+				}
+				replacedValue += param;
+			}
+
         }
         else 
         {
@@ -119,7 +135,7 @@ std::string ROSScenarioParser::SubstituteROSVars(const std::string& value)
     return replacedValue;
 }
 
-bool ROSScenarioParser::ReplaceROSVars(XMLNode* node)
+bool ROSScenarioParser::ReplaceROSVars(XMLNode* node, std::map<std::string, std::string>& scenario_args)
 {
     XMLElement* element = node->ToElement();
     if (element != nullptr)
@@ -127,7 +143,7 @@ bool ROSScenarioParser::ReplaceROSVars(XMLNode* node)
         for (const tinyxml2::XMLAttribute* attr = element->FirstAttribute(); attr != nullptr; attr = attr->Next())
         {
             std::string value = std::string(attr->Value());
-            std::string substitutedValue = SubstituteROSVars(value);
+            std::string substitutedValue = SubstituteROSVars(value, scenario_args);
             if (substitutedValue != value)
             {
                 ROS_INFO("Scenario parser(ROS): replacing '%s' with '%s'.", value.c_str(), substitutedValue.c_str());
@@ -139,16 +155,27 @@ bool ROSScenarioParser::ReplaceROSVars(XMLNode* node)
 
     for (tinyxml2::XMLNode* child = node->FirstChild(); child != nullptr; child = child->NextSibling())
     {
-        if(!ReplaceROSVars(child))
+        if(!ReplaceROSVars(child, scenario_args))
             return false;
     }
 
     return true;
 }
 
+bool ROSScenarioParser::ReplaceROSVars(XMLNode* node)
+{
+	std::map<std::string, std::string> empty;
+	return ReplaceROSVars(node, empty);
+}
+
 bool ROSScenarioParser::PreProcess(XMLNode* root)
 {
     return ReplaceROSVars(root);
+}
+
+bool ROSScenarioParser::PreProcess(XMLNode* root, std::map<std::string, std::string>& scenario_args)
+{
+    return ReplaceROSVars(root, scenario_args);
 }
 
 bool ROSScenarioParser::ParseRobot(XMLElement* element)
