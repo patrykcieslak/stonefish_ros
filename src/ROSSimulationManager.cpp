@@ -71,6 +71,11 @@ std::map<std::string, ros::Subscriber>& ROSSimulationManager::getSubscribers()
     return subs;
 }
 
+std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>>& ROSSimulationManager::getCameraMsgPrototypes()
+{
+    return cameraMsgPrototypes;
+}
+
 void ROSSimulationManager::BuildScenario()
 {
     ROSScenarioParser parser(this);
@@ -283,7 +288,28 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
 void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
 {
-	ROSInterface::PublishCamera(pubs[cam->getName()], pubs[cam->getName() + "/info"], cam);
+    //Fill in the image message
+    sensor_msgs::Image* img = &cameraMsgPrototypes[cam->getName()].first;
+    img->header.stamp = ros::Time::now();
+    uint8_t* data = (uint8_t*)cam->getImageDataPointer();
+    for(uint32_t r = 0; r<img->height; ++r) //Every row of image
+    {
+		uint8_t* srcRow = data + r*img->step; 
+		uint8_t* dstRow = img->data.data() + (img->height-1-r) * img->step; 
+		memcpy(dstRow, srcRow, img->step);
+    }
+    
+    //Fill in the info message
+    sensor_msgs::CameraInfo* info = &cameraMsgPrototypes[cam->getName()].second;
+    info->header.stamp = img->header.stamp;
+    
+    //Publish asynchronously
+    PublishCameraThreadData* thData = new PublishCameraThreadData();
+    thData->imgPub = &pubs[cam->getName()];
+    thData->img = img;
+    thData->infoPub = &pubs[cam->getName() + "/info"];
+    thData->info = info;
+    SDL_CreateThread(ROSInterface::PublishCamera, "PublishCameraThread", thData);
 }
 
 void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)

@@ -4,5 +4,5 @@
     <arg name="simulation_rate" default="500"/> <!-- number of simulation steps per second -->
     <arg name="graphics_resolution" default="1200 800"/> <!-- resolution of the simulation window -->
     <arg name="graphics_quality" default="medium"/> <!-- low, medium or high -->
-    <node name="stonefish_simulator" pkg="stonefish_ros" type="parsed_simulator" args="$(arg simulation_data) $(arg scenario_description) $(arg simulation_rate) $(arg graphics_resolution) $(arg graphics_quality)"/>
+    <node name="stonefish_simulator" pkg="stonefish_ros" type="parsed_simulator" args="$(arg simulation_data) $(arg scenario_description) $(arg simulation_rate) $(arg graphics_resolution) $(arg graphics_quality)" output="screen"/>
 </launch>

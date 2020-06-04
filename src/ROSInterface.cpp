@@ -229,30 +229,19 @@ void ROSInterface::PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam)
+std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo> ROSInterface::GenerateCameraMsgPrototypes(ColorCamera* cam)
 {
-	//Publish image message
+    //Image message
     sensor_msgs::Image img;
-    img.header.stamp = ros::Time::now();
     img.header.frame_id = cam->getName();
 	cam->getResolution(img.width, img.height);
 	img.encoding = "rgb8";
 	img.is_bigendian = 0;
     img.step = img.width*3;
     img.data.resize(img.width*img.height*3);
-    //Copy image data
-    uint8_t* data = (uint8_t*)cam->getImageDataPointer();
-    for(uint32_t r = 0; r<img.height; ++r) //Every row of image
-    {
-		uint8_t* srcRow = data + r*img.step; 
-		uint8_t* dstRow = img.data.data() + (img.height-1-r) * img.step; 
-		memcpy(dstRow, srcRow, img.step);
-    }
-    imagePub.publish(img);
-	
-	//Publish camera info message
+
+	//Camera info message
 	sensor_msgs::CameraInfo info;
-	info.header.stamp = img.header.stamp;
 	info.header.frame_id = cam->getName();
     info.width = img.width;
     info.height = img.height;
@@ -287,7 +276,17 @@ void ROSInterface::PublishCamera(ros::Publisher& imagePub, ros::Publisher& camer
     info.roi.height = info.height;
     info.roi.width = info.width;
     info.roi.do_rectify = false;
-	cameraInfoPub.publish(info);
+	
+    return std::make_pair(img, info);
+}
+
+int ROSInterface::PublishCamera(void* data)
+{
+    PublishCameraThreadData* data_ = (PublishCameraThreadData*)data;
+    data_->imgPub->publish(*data_->img);
+    data_->infoPub->publish(*data_->info);
+    delete data_;
+    return 0;
 }
 
 void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam)

@@ -25,6 +25,7 @@
 
 #include "stonefish_ros/ROSScenarioParser.h"
 #include "stonefish_ros/ROSSimulationManager.h"
+#include "stonefish_ros/ROSInterface.h"
 
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/actuators/Actuator.h>
@@ -254,6 +255,7 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
     ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
     ros::NodeHandle& nh = sim->getNodeHandle();
     std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+    std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>>& camMsgProto = sim->getCameraMsgPrototypes();
 
     //Sensor info
     const char* name = nullptr;
@@ -303,6 +305,7 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", 2);
         ColorCamera* cam = (ColorCamera*)robot->getSensor(sensorName);
         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::ColorCameraImageReady, sim, std::placeholders::_1));
+        camMsgProto[sensorName] = ROSInterface::GenerateCameraMsgPrototypes(cam);
     }
     else if(typeStr == "depthcamera")
     {

@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 12/06/19.
-//  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
 //
 
 #include <ros/ros.h>
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
         s.ao = sf::RenderQuality::QUALITY_DISABLED;
         s.atmosphere = sf::RenderQuality::QUALITY_LOW;
         s.ocean = sf::RenderQuality::QUALITY_LOW;
-        s.msaa = false;
+        s.aa = sf::RenderQuality::QUALITY_LOW;
     }
     else if(quality == "high")
     {
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         s.ao = sf::RenderQuality::QUALITY_HIGH;
         s.atmosphere = sf::RenderQuality::QUALITY_HIGH;
         s.ocean = sf::RenderQuality::QUALITY_HIGH;
-        s.msaa = true;
+        s.aa = sf::RenderQuality::QUALITY_HIGH;
     }
     else // "medium"
     {
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         s.ao = sf::RenderQuality::QUALITY_MEDIUM;
         s.atmosphere = sf::RenderQuality::QUALITY_MEDIUM;
         s.ocean = sf::RenderQuality::QUALITY_MEDIUM;
-        s.msaa = false;
+        s.aa = sf::RenderQuality::QUALITY_MEDIUM;
     }
 
     sf::HelperSettings h;

@@ -34,6 +34,8 @@
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <cola2_msgs/Setpoints.h>
 #include <std_srvs/Trigger.h>
 
@@ -82,6 +84,7 @@ namespace sf
 	    ros::NodeHandle& getNodeHandle();
 	    std::map<std::string, ros::Publisher>& getPublishers();
 	    std::map<std::string, ros::Subscriber>& getSubscribers();
+		std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>>& getCameraMsgPrototypes();
 
 	protected:
 		std::string scnFilePath;
@@ -90,6 +93,7 @@ namespace sf
 		ros::ServiceServer srvECurrents, srvDCurrents;
 		std::map<std::string, ros::Publisher> pubs;
 		std::map<std::string, ros::Subscriber> subs;
+		std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>> cameraMsgPrototypes;
 		std::vector<ROSRobot*> rosRobots;
 	};
 

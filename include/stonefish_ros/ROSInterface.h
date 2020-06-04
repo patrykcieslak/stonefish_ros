@@ -27,11 +27,21 @@
 #define __Stonefish_ROSInterface__
 
 #include <ros/ros.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <tf/transform_broadcaster.h>
 #include <Stonefish/StonefishCommon.h>
 
 namespace sf
 {
+    struct PublishCameraThreadData
+	{
+		ros::Publisher* imgPub;
+		ros::Publisher* infoPub;
+		sensor_msgs::Image* img;
+		sensor_msgs::CameraInfo* info;
+	};
+
     class IMU;
     class Pressure;
     class DVL;
@@ -58,13 +68,16 @@ namespace sf
         static void PublishOdometry(ros::Publisher& pub, Odometry* odom);
         static void PublishForceTorque(ros::Publisher& pub, ForceTorque* ft);
         static void PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc);
-        static void PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam);
+        //static void PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam);
         static void PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam);
         static void PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb);
         static void PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes);
         static void PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls);
         static void PublishContact(ros::Publisher& contactPub, Contact* cnt);
         static void PublishUSBL(ros::Publisher& usblPub, USBL* usbl);
+
+        static std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo> GenerateCameraMsgPrototypes(ColorCamera* cam);
+        static int PublishCamera(void* data);
         
     private:
         ROSInterface();
