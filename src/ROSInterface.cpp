@@ -36,6 +36,10 @@
 #include <sensors/scalar/Multibeam.h>
 #include <sensors/vision/ColorCamera.h>
 #include <sensors/vision/DepthCamera.h>
+#include <sensors/vision/Multibeam2.h>
+#include <sensors/vision/FLS.h>
+#include <sensors/Contact.h>
+#include <comms/USBL.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -48,7 +52,10 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/WrenchStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Float32Stamped.h>
 
@@ -343,6 +350,58 @@ void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera*
     pointCloudPub.publish(msg);
 }
 
+void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb)
+{
+    uint32_t hRes, vRes, nPoints;
+    mb->getResolution(hRes, vRes);
+    nPoints = hRes * vRes;
+    glm::vec2 range = mb->getRangeLimits();
+    float hFovRad = mb->getHorizontalFOV()/180.f*M_PI;
+    float vFovRad = mb->getVerticalFOV()/180.f*M_PI; 
+    float hStepAngleRad = hFovRad/(float)(hRes-1);
+    float vStepAngleRad = vFovRad/(float)(vRes-1);
+
+    sensor_msgs::PointCloud2 msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = mb->getName();
+    msg.height = 1;
+    msg.width = nPoints;
+
+    sensor_msgs::PointCloud2Modifier modifier(msg);
+    modifier.setPointCloud2Fields(3, "x", 1, sensor_msgs::PointField::FLOAT32,
+                                     "y", 1, sensor_msgs::PointField::FLOAT32,
+                                     "z", 1, sensor_msgs::PointField::FLOAT32);
+    modifier.setPointCloud2FieldsByString(1, "xyz");
+    modifier.resize(nPoints);
+
+    sensor_msgs::PointCloud2Iterator<float> iterX(msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> iterY(msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> iterZ(msg, "z");
+
+    float* data = (float*)mb->getRangeDataPointer();
+
+    for(uint32_t v=0; v<vRes; ++v)
+    {
+        uint32_t offset = v*hRes;
+        float hAngleRad = -hFovRad/2.f + (0.5f/hRes*hFovRad);
+        float vAngleRad = vFovRad/2.f - ((0.5f+v)/vRes*vFovRad);
+        for(uint32_t h=0; h<hRes; ++h)
+        {
+            float depth = data[offset + h];
+            Eigen::Vector3f mbPoint = Eigen::Vector3f(tanf(hAngleRad), tanf(vAngleRad), 1.f).normalized() * depth;
+            *iterX = mbPoint.x();
+    		*iterY = mbPoint.y();
+    		*iterZ = mbPoint.z();
+    		++iterX;
+    		++iterY;
+    		++iterZ;
+            hAngleRad += hStepAngleRad;
+        }
+    }
+    
+    pointCloudPub.publish(msg);
+}
+
 void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes)
 {
     Sample sample = mbes->getLastSample();
@@ -374,6 +433,101 @@ void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbe
     }
 
     laserScanPub.publish(msg);
+}
+
+void ROSInterface::PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls)
+{
+    //Publish image message
+    sensor_msgs::Image img;
+    img.header.stamp = ros::Time::now();
+    img.header.frame_id = fls->getName();
+	fls->getDisplayResolution(img.width, img.height);
+	img.encoding = "rgb8";
+	img.is_bigendian = 0;
+    img.step = img.width*3;
+    img.data.resize(img.width*img.height*3);
+    //Copy image data
+    uint8_t* data = (uint8_t*)fls->getDisplayDataPointer();
+    for(uint32_t r = 0; r<img.height; ++r) //Every row of image
+    {
+		uint8_t* srcRow = data + r*img.step; 
+		uint8_t* dstRow = img.data.data() + (img.height-1-r) * img.step; 
+		memcpy(dstRow, srcRow, img.step);
+    }
+    sonarDisplayPub.publish(img);
+}
+
+void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
+{
+    if(cnt->getHistory().size() == 0)
+        return;
+
+    ContactPoint cp = cnt->getHistory().back();
+    
+    //Publish marker message
+    visualization_msgs::Marker msg;
+    msg.header.frame_id = "world_ned";
+    msg.header.stamp = ros::Time::now();
+    msg.ns = cnt->getName();
+    msg.id = 0;
+    msg.type = visualization_msgs::Marker::ARROW;
+    msg.action = visualization_msgs::Marker::ADD;
+    msg.pose.position.x = 0.0;
+    msg.pose.position.y = 0.0;
+    msg.pose.position.z = 0.0;
+    msg.pose.orientation.x = 0.0;
+    msg.pose.orientation.y = 0.0;
+    msg.pose.orientation.z = 0.0;
+    msg.pose.orientation.w = 1.0;
+    msg.points.resize(2);
+    msg.points[0].x = cp.locationA.getX();
+    msg.points[0].y = cp.locationA.getY();
+    msg.points[0].z = cp.locationA.getZ();
+    msg.points[1].x = cp.locationA.getX() + cp.normalForceA.getX();
+    msg.points[1].y = cp.locationA.getY() + cp.normalForceA.getY();
+    msg.points[1].z = cp.locationA.getZ() + cp.normalForceA.getZ();
+    msg.color.r = 1.0;
+    msg.color.g = 1.0;
+    msg.color.b = 0.0;
+    msg.color.a = 1.0;
+    contactPub.publish(msg);
+}
+
+void ROSInterface::PublishUSBL(ros::Publisher& usblPub, USBL* usbl)
+{
+    std::map<uint64_t, std::pair<Scalar, Vector3>>& transPos = usbl->getTransponderPositions();
+    if(transPos.size() == 0)
+        return;   
+
+    visualization_msgs::MarkerArray msg;
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = usbl->getName();
+    marker.header.stamp = ros::Time::now();
+    marker.ns = usbl->getName();
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = marker.scale.y = marker.scale.z = 0.1;
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+    marker.color.a = 1.0;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+
+    std::map<uint64_t, std::pair<Scalar, Vector3>>::iterator it;
+    for(it = transPos.begin(); it!=transPos.end(); ++it)
+    {
+        marker.id = it->first;
+        Vector3 pos = it->second.second;
+        marker.pose.position.x = pos.getX();
+        marker.pose.position.y = pos.getY();
+        marker.pose.position.z = pos.getZ();
+        msg.markers.push_back(marker);    
+    }
+
+    usblPub.publish(msg);
 }
 
 }

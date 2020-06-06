@@ -31,6 +31,8 @@
 #include <actuators/Servo.h>
 #include <sensors/vision/ColorCamera.h>
 #include <sensors/vision/DepthCamera.h>
+#include <sensors/vision/Multibeam2.h>
+#include <sensors/vision/FLS.h>
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -43,6 +45,9 @@
 #include <sensor_msgs/JointState.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/WrenchStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
 
@@ -305,6 +310,18 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         DepthCamera* cam = (DepthCamera*)robot->getSensor(sensorName);
         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::DepthCameraImageReady, sim, std::placeholders::_1));
     }
+    else if(typeStr == "multibeam2d")
+    {
+        pubs[sensorName] = nh.advertise<sensor_msgs::PointCloud2>(topicStr, 2);
+        Multibeam2* mb = (Multibeam2*)robot->getSensor(sensorName);
+        mb->InstallNewDataHandler(std::bind(&ROSSimulationManager::MultibeamScanReady, sim, std::placeholders::_1));
+    }
+    else if(typeStr == "fls")
+    {
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", 2);
+        FLS* fls = (FLS*)robot->getSensor(sensorName);
+        fls->InstallNewDataHandler(std::bind(&ROSSimulationManager::FLSScanReady, sim, std::placeholders::_1));
+    }
 
     return true;
 }
@@ -345,6 +362,64 @@ bool ROSScenarioParser::ParseActuator(XMLElement* element, Robot* robot)
         }
     }
 
+    return true;
+}
+
+bool ROSScenarioParser::ParseComm(XMLElement* element, Robot* robot)
+{
+    if(!ScenarioParser::ParseComm(element, robot))
+        return false;
+
+    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+    ros::NodeHandle& nh = sim->getNodeHandle();
+    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+    
+    const char* name = nullptr;
+    const char* type = nullptr;
+    element->QueryStringAttribute("name", &name);
+    element->QueryStringAttribute("type", &type);
+    std::string commName = robot != nullptr ?  robot->getName() + "/" + std::string(name) : std::string(name);
+    std::string typeStr(type);
+
+    //Publish info
+    if(typeStr == "usbl")
+    {
+        XMLElement* item;
+        const char* pubTopic = nullptr;
+        if((item = element->FirstChildElement("ros_publisher")) != nullptr 
+            && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+        {
+            pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(std::string(pubTopic), 2);
+        }
+    }
+    
+    return true;
+}
+
+bool ROSScenarioParser::ParseContact(XMLElement* element)
+{
+    if(!ScenarioParser::ParseContact(element))
+        return false;
+    
+    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+    ros::NodeHandle& nh = sim->getNodeHandle();
+    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+
+    //Contact info
+    const char* name = nullptr;
+    element->QueryStringAttribute("name", &name);
+    std::string contactName = std::string(name);
+    
+    //Publishing info
+    XMLElement* item;
+    const char* topic = nullptr;
+    if((item = element->FirstChildElement("ros_publisher")) == nullptr 
+        || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        return true;
+    std::string topicStr(topic);
+    
+    pubs[contactName] = nh.advertise<visualization_msgs::Marker>(topicStr, 2);
+    
     return true;
 }
 

@@ -37,6 +37,10 @@
 #include <sensors/scalar/Odometry.h>
 #include <sensors/vision/ColorCamera.h>
 #include <sensors/vision/DepthCamera.h>
+#include <sensors/vision/Multibeam2.h>
+#include <sensors/vision/FLS.h>
+#include <sensors/Contact.h>
+#include <comms/USBL.h>
 #include <actuators/Thruster.h>
 #include <actuators/Propeller.h>
 #include <actuators/Servo.h>
@@ -46,8 +50,10 @@ namespace sf
 {
 
 ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath) 
-	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE, FluidDynamicsType::GEOMETRY_BASED), scnFilePath(scenarioFilePath)
+	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE, FluidDynamicsType::GEOMETRY_BASED), scnFilePath(scenarioFilePath), nh("~")
 {
+    srvECurrents = nh.advertiseService("enable_currents", &ROSSimulationManager::EnableCurrents, this);
+    srvDCurrents = nh.advertiseService("disable_currents", &ROSSimulationManager::DisableCurrents, this);
 }
 
 ros::NodeHandle& ROSSimulationManager::getNodeHandle()
@@ -79,15 +85,18 @@ void ROSSimulationManager::AddROSRobot(ROSRobot* robot)
 void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 {
 	////////////////////////////////////////SENSORS//////////////////////////////////////////////
-    unsigned int sID = 0;
+    unsigned int id = 0;
     Sensor* sensor;
-    while((sensor = getSensor(sID++)) != NULL)
+    while((sensor = getSensor(id++)) != NULL)
     {
         if(!sensor->isNewDataAvailable())
             continue;
 
         if(sensor->getType() != SensorType::SENSOR_VISION)
         {
+            if(pubs.find(sensor->getName()) == pubs.end())
+                continue;
+
             switch(((ScalarSensor*)sensor)->getScalarSensorType())
             {
                 case ScalarSensorType::SENSOR_ODOM:
@@ -128,6 +137,44 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         }
 
         sensor->MarkDataOld();
+    }  
+
+    ///////////////////////////////////////COMMS///////////////////////////////////////////////////
+    id = 0;
+    Comm* comm;
+    while((comm = getComm(id++)) != NULL)
+    {
+        if(!comm->isNewDataAvailable())
+            continue;
+
+        if(pubs.find(comm->getName()) == pubs.end())
+            continue;
+
+        switch(comm->getType())
+        {
+            case COMM_ACOUSTIC:
+                ROSInterface::PublishUSBL(pubs[comm->getName()], (USBL*)comm);
+                comm->MarkDataOld();
+                break;
+            
+            default:
+                break;
+        }
+    }
+
+    //////////////////////////////////////CONTACTS/////////////////////////////////////////////////
+    id = 0;
+    Contact* cnt;
+    while((cnt = getContact(id++)) != NULL)
+    {
+        if(!cnt->isNewDataAvailable())
+            continue;
+
+        if(pubs.find(cnt->getName()) != pubs.end())
+        {
+            ROSInterface::PublishContact(pubs[cnt->getName()], cnt);
+            cnt->MarkDataOld();
+        }
     }   
 
     //////////////////////////////////////WORLD TRANSFORMS/////////////////////////////////////////
@@ -220,9 +267,12 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
                 case ActuatorType::ACTUATOR_VBS:
                 {
-                    std_msgs::Float64 msg;
-                    msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
-                    pubs[actuator->getName()].publish(msg);
+                    if(pubs.find(actuator->getName()) != pubs.end())
+                    {
+                        std_msgs::Float64 msg;
+                        msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
+                        pubs[actuator->getName()].publish(msg);
+                    }
                 }
                     break;
 
@@ -243,6 +293,32 @@ void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
 void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
 {
     ROSInterface::PublishPointCloud(pubs[cam->getName()], cam);
+}
+
+void ROSSimulationManager::MultibeamScanReady(Multibeam2* mb)
+{
+    ROSInterface::PublishPointCloud(pubs[mb->getName()], mb);
+}
+
+void ROSSimulationManager::FLSScanReady(FLS* fls)
+{
+    ROSInterface::PublishFLS(pubs[fls->getName()], fls);
+}
+
+bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+{
+    getOcean()->EnableCurrents();
+    res.message = "Currents simulation enabled.";
+    res.success = true;
+    return true;
+}
+
+bool ROSSimulationManager::DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+{
+    getOcean()->DisableCurrents();
+    res.message = "Currents simulation disabled.";
+    res.success = true;
+    return true;
 }
 
 ThrustersCallback::ThrustersCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)

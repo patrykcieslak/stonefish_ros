@@ -35,11 +35,14 @@
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/JointState.h>
 #include <cola2_msgs/Setpoints.h>
+#include <std_srvs/Trigger.h>
 
 namespace sf
 {
 	class ColorCamera;
 	class DepthCamera;
+	class Multibeam2;
+	class FLS;
 
 	struct ROSRobot
 	{
@@ -63,13 +66,18 @@ namespace sf
 	{
 	public:
 		ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath);
-	    virtual void BuildScenario();
-	    virtual void SimulationStepCompleted(Scalar timeStep);
-		
+	    
+		virtual void BuildScenario();
+	    void AddROSRobot(ROSRobot* robot);
+
+		virtual void SimulationStepCompleted(Scalar timeStep);		
 	    virtual void ColorCameraImageReady(ColorCamera* cam);
 	    virtual void DepthCameraImageReady(DepthCamera* cam);
-	    
-	    void AddROSRobot(ROSRobot* robot);
+		virtual void MultibeamScanReady(Multibeam2* mb);
+		virtual void FLSScanReady(FLS* fls);
+
+	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
+		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
 	    ros::NodeHandle& getNodeHandle();
 	    std::map<std::string, ros::Publisher>& getPublishers();
@@ -79,6 +87,7 @@ namespace sf
 		std::string scnFilePath;
 		ros::NodeHandle nh;
 		tf::TransformBroadcaster br;
+		ros::ServiceServer srvECurrents, srvDCurrents;
 		std::map<std::string, ros::Publisher> pubs;
 		std::map<std::string, ros::Subscriber> subs;
 		std::vector<ROSRobot*> rosRobots;
