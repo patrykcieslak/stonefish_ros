@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSSimulationManager.h"
@@ -292,12 +292,7 @@ void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
     sensor_msgs::Image* img = &cameraMsgPrototypes[cam->getName()].first;
     img->header.stamp = ros::Time::now();
     uint8_t* data = (uint8_t*)cam->getImageDataPointer();
-    for(uint32_t r = 0; r<img->height; ++r) //Every row of image
-    {
-		uint8_t* srcRow = data + r*img->step; 
-		uint8_t* dstRow = img->data.data() + (img->height-1-r) * img->step; 
-		memcpy(dstRow, srcRow, img->step);
-    }
+    memcpy(img->data.data(), data, img->width * img->height * 3);
     
     //Fill in the info message
     sensor_msgs::CameraInfo* info = &cameraMsgPrototypes[cam->getName()].second;
