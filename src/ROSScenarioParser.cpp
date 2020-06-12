@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSScenarioParser.h"
@@ -255,7 +255,8 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
     ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
     ros::NodeHandle& nh = sim->getNodeHandle();
     std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-    std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>>& camMsgProto = sim->getCameraMsgPrototypes();
+    std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& camMsgProto = sim->getCameraMsgPrototypes();
+    std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& flsMsgProto = sim->getFLSMsgPrototypes();
 
     //Sensor info
     const char* name = nullptr;
@@ -275,6 +276,7 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
     unsigned int queueSize = (unsigned int)ceil(((Sensor*)robot->getSensor(sensorName))->getUpdateFrequency());
     
     //Generate publishers for different sensor types
+    //--- Scalar sensors
     if(typeStr == "imu")
         pubs[sensorName] = nh.advertise<sensor_msgs::Imu>(topicStr, queueSize);
     else if(typeStr == "dvl")
@@ -300,31 +302,36 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         pubs[sensorName] = nh.advertise<sensor_msgs::JointState>(topicStr, queueSize);
     else if(typeStr == "multibeam1d")
         pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
+    //--- Vision sensors
     else if(typeStr == "camera")
     {
         pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image_color", queueSize);
         pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
         ColorCamera* cam = (ColorCamera*)robot->getSensor(sensorName);
         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::ColorCameraImageReady, sim, std::placeholders::_1));
-        camMsgProto[sensorName] = ROSInterface::GenerateCameraMsgPrototypes(cam);
+        camMsgProto[sensorName] = ROSInterface::GenerateCameraMsgPrototypes(cam, false);
     }
     else if(typeStr == "depthcamera")
     {
-        pubs[sensorName] = nh.advertise<sensor_msgs::PointCloud2>(topicStr, queueSize);
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image_depth", queueSize);
+        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
         DepthCamera* cam = (DepthCamera*)robot->getSensor(sensorName);
         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::DepthCameraImageReady, sim, std::placeholders::_1));
+        camMsgProto[sensorName] = ROSInterface::GenerateCameraMsgPrototypes(cam, true);
     }
     else if(typeStr == "multibeam2d")
     {
         pubs[sensorName] = nh.advertise<sensor_msgs::PointCloud2>(topicStr, queueSize);
         Multibeam2* mb = (Multibeam2*)robot->getSensor(sensorName);
-        mb->InstallNewDataHandler(std::bind(&ROSSimulationManager::MultibeamScanReady, sim, std::placeholders::_1));
+        mb->InstallNewDataHandler(std::bind(&ROSSimulationManager::Multibeam2ScanReady, sim, std::placeholders::_1));
     }
     else if(typeStr == "fls")
     {
-        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
+        pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
         FLS* fls = (FLS*)robot->getSensor(sensorName);
         fls->InstallNewDataHandler(std::bind(&ROSSimulationManager::FLSScanReady, sim, std::placeholders::_1));
+        flsMsgProto[sensorName] = ROSInterface::GenerateFLSMsgPrototypes(fls);
     }
 
     return true;

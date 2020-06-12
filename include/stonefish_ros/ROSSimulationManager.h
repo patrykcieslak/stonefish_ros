@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSSimulationManager__
@@ -68,14 +68,15 @@ namespace sf
 	{
 	public:
 		ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath);
-	    
+	    virtual ~ROSSimulationManager();
+
 		virtual void BuildScenario();
 	    void AddROSRobot(ROSRobot* robot);
 
 		virtual void SimulationStepCompleted(Scalar timeStep);		
 	    virtual void ColorCameraImageReady(ColorCamera* cam);
 	    virtual void DepthCameraImageReady(DepthCamera* cam);
-		virtual void MultibeamScanReady(Multibeam2* mb);
+		virtual void Multibeam2ScanReady(Multibeam2* mb);
 		virtual void FLSScanReady(FLS* fls);
 
 	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
@@ -84,7 +85,8 @@ namespace sf
 	    ros::NodeHandle& getNodeHandle();
 	    std::map<std::string, ros::Publisher>& getPublishers();
 	    std::map<std::string, ros::Subscriber>& getSubscribers();
-		std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>>& getCameraMsgPrototypes();
+		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& getCameraMsgPrototypes();
+		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& getFLSMsgPrototypes();
 
 	protected:
 		std::string scnFilePath;
@@ -93,7 +95,8 @@ namespace sf
 		ros::ServiceServer srvECurrents, srvDCurrents;
 		std::map<std::string, ros::Publisher> pubs;
 		std::map<std::string, ros::Subscriber> subs;
-		std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>> cameraMsgPrototypes;
+		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>> cameraMsgPrototypes;
+		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>> flsMsgPrototypes;
 		std::vector<ROSRobot*> rosRobots;
 	};
 

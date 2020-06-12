@@ -37,6 +37,7 @@
 #include <Stonefish/sensors/scalar/Odometry.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
+#include <Stonefish/sensors/scalar/Multibeam.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/Contact.h>
@@ -56,6 +57,10 @@ ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string sc
     srvDCurrents = nh.advertiseService("disable_currents", &ROSSimulationManager::DisableCurrents, this);
 }
 
+ROSSimulationManager::~ROSSimulationManager()
+{
+}
+
 ros::NodeHandle& ROSSimulationManager::getNodeHandle()
 {
     return nh;
@@ -71,9 +76,14 @@ std::map<std::string, ros::Subscriber>& ROSSimulationManager::getSubscribers()
     return subs;
 }
 
-std::map<std::string, std::pair<sensor_msgs::Image, sensor_msgs::CameraInfo>>& ROSSimulationManager::getCameraMsgPrototypes()
+std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& ROSSimulationManager::getCameraMsgPrototypes()
 {
     return cameraMsgPrototypes;
+}
+
+std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::getFLSMsgPrototypes()
+{
+    return flsMsgPrototypes;
 }
 
 void ROSSimulationManager::BuildScenario()
@@ -289,37 +299,56 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
 {
     //Fill in the image message
-    sensor_msgs::Image* img = &cameraMsgPrototypes[cam->getName()].first;
+    sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->getName()].first;
     img->header.stamp = ros::Time::now();
-    uint8_t* data = (uint8_t*)cam->getImageDataPointer();
-    memcpy(img->data.data(), data, img->width * img->height * 3);
+    memcpy(img->data.data(), (uint8_t*)cam->getImageDataPointer(), img->step * img->height);
     
     //Fill in the info message
-    sensor_msgs::CameraInfo* info = &cameraMsgPrototypes[cam->getName()].second;
+    sensor_msgs::CameraInfoPtr info = cameraMsgPrototypes[cam->getName()].second;
     info->header.stamp = img->header.stamp;
     
-    //Publish asynchronously
-    PublishCameraThreadData* thData = new PublishCameraThreadData();
-    thData->imgPub = &pubs[cam->getName()];
-    thData->img = img;
-    thData->infoPub = &pubs[cam->getName() + "/info"];
-    thData->info = info;
-    SDL_CreateThread(ROSInterface::PublishCamera, "PublishCameraThread", thData);
+    //Publish messages
+    pubs[cam->getName()].publish(img);
+    pubs[cam->getName() + "/info"].publish(info);
 }
+
 
 void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
 {
-    ROSInterface::PublishPointCloud(pubs[cam->getName()], cam);
-}
-
-void ROSSimulationManager::MultibeamScanReady(Multibeam2* mb)
-{
-    ROSInterface::PublishPointCloud(pubs[mb->getName()], mb);
+    //Fill in the image message
+    sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->getName()].first;
+    img->header.stamp = ros::Time::now();
+    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+    
+    //Fill in the info message
+    sensor_msgs::CameraInfoPtr info = cameraMsgPrototypes[cam->getName()].second;
+    info->header.stamp = img->header.stamp;
+    
+    //Publish messages
+    pubs[cam->getName()].publish(img);
+    pubs[cam->getName() + "/info"].publish(info);
 }
 
 void ROSSimulationManager::FLSScanReady(FLS* fls)
 {
-    ROSInterface::PublishFLS(pubs[fls->getName()], fls);
+    //Fill in the data message
+    sensor_msgs::ImagePtr img = flsMsgPrototypes[fls->getName()].first;
+    img->header.stamp = ros::Time::now();
+    memcpy(img->data.data(), (float*)fls->getImageDataPointer(), img->step * img->height); 
+    
+    //Fill in the display message
+    sensor_msgs::ImagePtr disp = flsMsgPrototypes[fls->getName()].second;
+    disp->header.stamp = img->header.stamp;
+    memcpy(disp->data.data(), (uint8_t*)fls->getDisplayDataPointer(), disp->step * disp->height);
+
+    //Publish messages
+    pubs[fls->getName()].publish(img);
+    pubs[fls->getName() + "/display"].publish(disp);
+}
+
+void ROSSimulationManager::Multibeam2ScanReady(Multibeam2* mb)
+{
+    ROSInterface::PublishPointCloud(pubs[mb->getName()], mb);
 }
 
 bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
