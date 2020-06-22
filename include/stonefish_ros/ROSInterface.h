@@ -45,6 +45,7 @@ namespace sf
     class Multibeam;
     class Multibeam2;
     class FLS;
+    class SSS;
     class Contact;
     class USBL;
 
@@ -66,6 +67,7 @@ namespace sf
 
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateFLSMsgPrototypes(FLS* fls);
+        static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateSSSMsgPrototypes(SSS* sss);
 
     private:
         ROSInterface();

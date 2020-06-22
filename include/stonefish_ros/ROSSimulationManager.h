@@ -45,6 +45,7 @@ namespace sf
 	class DepthCamera;
 	class Multibeam2;
 	class FLS;
+	class SSS;
 
 	struct ROSRobot
 	{
@@ -78,6 +79,7 @@ namespace sf
 	    virtual void DepthCameraImageReady(DepthCamera* cam);
 		virtual void Multibeam2ScanReady(Multibeam2* mb);
 		virtual void FLSScanReady(FLS* fls);
+		virtual void SSSScanReady(SSS* sss);
 
 	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
@@ -86,7 +88,7 @@ namespace sf
 	    std::map<std::string, ros::Publisher>& getPublishers();
 	    std::map<std::string, ros::Subscriber>& getSubscribers();
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& getCameraMsgPrototypes();
-		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& getFLSMsgPrototypes();
+		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& getSonarMsgPrototypes();
 
 	protected:
 		std::string scnFilePath;
@@ -96,7 +98,7 @@ namespace sf
 		std::map<std::string, ros::Publisher> pubs;
 		std::map<std::string, ros::Subscriber> subs;
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>> cameraMsgPrototypes;
-		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>> flsMsgPrototypes;
+		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>> sonarMsgPrototypes;
 		std::vector<ROSRobot*> rosRobots;
 	};
 

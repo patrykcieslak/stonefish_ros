@@ -40,6 +40,7 @@
 #include <Stonefish/sensors/scalar/Multibeam.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
+#include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/actuators/Thruster.h>
@@ -81,9 +82,9 @@ std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPt
     return cameraMsgPrototypes;
 }
 
-std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::getFLSMsgPrototypes()
+std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::getSonarMsgPrototypes()
 {
-    return flsMsgPrototypes;
+    return sonarMsgPrototypes;
 }
 
 void ROSSimulationManager::BuildScenario()
@@ -332,18 +333,35 @@ void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
 void ROSSimulationManager::FLSScanReady(FLS* fls)
 {
     //Fill in the data message
-    sensor_msgs::ImagePtr img = flsMsgPrototypes[fls->getName()].first;
+    sensor_msgs::ImagePtr img = sonarMsgPrototypes[fls->getName()].first;
     img->header.stamp = ros::Time::now();
     memcpy(img->data.data(), (float*)fls->getImageDataPointer(), img->step * img->height); 
     
     //Fill in the display message
-    sensor_msgs::ImagePtr disp = flsMsgPrototypes[fls->getName()].second;
+    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[fls->getName()].second;
     disp->header.stamp = img->header.stamp;
     memcpy(disp->data.data(), (uint8_t*)fls->getDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
     pubs[fls->getName()].publish(img);
     pubs[fls->getName() + "/display"].publish(disp);
+}
+
+void ROSSimulationManager::SSSScanReady(SSS* sss)
+{
+    //Fill in the data message
+    sensor_msgs::ImagePtr img = sonarMsgPrototypes[sss->getName()].first;
+    img->header.stamp = ros::Time::now();
+    memcpy(img->data.data(), (float*)sss->getImageDataPointer(), img->step * img->height); 
+    
+    //Fill in the display message
+    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[sss->getName()].second;
+    disp->header.stamp = img->header.stamp;
+    memcpy(disp->data.data(), (uint8_t*)sss->getDisplayDataPointer(), disp->step * disp->height);
+
+    //Publish messages
+    pubs[sss->getName()].publish(img);
+    pubs[sss->getName() + "/display"].publish(disp);
 }
 
 void ROSSimulationManager::Multibeam2ScanReady(Multibeam2* mb)

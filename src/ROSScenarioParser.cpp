@@ -34,6 +34,7 @@
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
+#include <Stonefish/sensors/vision/SSS.h>
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -256,7 +257,7 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
     ros::NodeHandle& nh = sim->getNodeHandle();
     std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
     std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& camMsgProto = sim->getCameraMsgPrototypes();
-    std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& flsMsgProto = sim->getFLSMsgPrototypes();
+    std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& sonarMsgProto = sim->getSonarMsgPrototypes();
 
     //Sensor info
     const char* name = nullptr;
@@ -331,7 +332,15 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
         FLS* fls = (FLS*)robot->getSensor(sensorName);
         fls->InstallNewDataHandler(std::bind(&ROSSimulationManager::FLSScanReady, sim, std::placeholders::_1));
-        flsMsgProto[sensorName] = ROSInterface::GenerateFLSMsgPrototypes(fls);
+        sonarMsgProto[sensorName] = ROSInterface::GenerateFLSMsgPrototypes(fls);
+    }
+    else if(typeStr == "sss")
+    {
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
+        pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
+        SSS* sss = (SSS*)robot->getSensor(sensorName);
+        sss->InstallNewDataHandler(std::bind(&ROSSimulationManager::SSSScanReady, sim, std::placeholders::_1));
+        sonarMsgProto[sensorName] = ROSInterface::GenerateSSSMsgPrototypes(sss);
     }
 
     return true;
