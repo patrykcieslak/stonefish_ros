@@ -226,13 +226,13 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         const char* topicSrv = nullptr;
 
         if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThrust) == XML_SUCCESS)
-            subs[robot->getName() + "/thrusters"] = nh.subscribe<cola2_msgs::Setpoints>(std::string(topicThrust), 1, ThrustersCallback(sim, rosRobot));
+            subs[robot->getName() + "/thrusters"] = nh.subscribe<cola2_msgs::Setpoints>(std::string(topicThrust), 10, ThrustersCallback(sim, rosRobot));
             
         if(nPropellers > 0 && item->QueryStringAttribute("propellers", &topicProp) == XML_SUCCESS)
-            subs[robot->getName() + "/propellers"] = nh.subscribe<cola2_msgs::Setpoints>(std::string(topicProp), 1, PropellersCallback(sim, rosRobot));
+            subs[robot->getName() + "/propellers"] = nh.subscribe<cola2_msgs::Setpoints>(std::string(topicProp), 10, PropellersCallback(sim, rosRobot));
         
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
-            subs[robot->getName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 1, ServosCallback(sim, rosRobot));
+            subs[robot->getName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(sim, rosRobot));
     }
 
     //Generate publishers
@@ -255,6 +255,7 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
 
     ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
     ros::NodeHandle& nh = sim->getNodeHandle();
+    std::map<std::string, ros::ServiceServer>& srvs = sim->getServiceServers();
     std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
     std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& camMsgProto = sim->getCameraMsgPrototypes();
     std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& sonarMsgProto = sim->getSonarMsgPrototypes();
@@ -328,11 +329,12 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
     }
     else if(typeStr == "fls")
     {
-        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
-        pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
         FLS* fls = (FLS*)robot->getSensor(sensorName);
         fls->InstallNewDataHandler(std::bind(&ROSSimulationManager::FLSScanReady, sim, std::placeholders::_1));
         sonarMsgProto[sensorName] = ROSInterface::GenerateFLSMsgPrototypes(fls);
+        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(topicStr + "/settings", FLSService(fls));
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
+        pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
     }
     else if(typeStr == "sss")
     {

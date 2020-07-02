@@ -17,6 +17,15 @@ find_package(Bullet REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Stonefish REQUIRED stonefish)
 
+add_service_files(
+   FILES
+   SonarSettings.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+)
+
 set(CMAKE_CXX_STANDARD 14)
 add_compile_options(${Stonefish_CFLAGS})
 
