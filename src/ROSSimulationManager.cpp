@@ -502,4 +502,26 @@ bool FLSService::operator()(stonefish_ros::SonarSettings::Request& req, stonefis
     return true;
 }
 
+SSSService::SSSService(SSS* sss) : sss(sss)
+{
+}
+
+bool SSSService::operator()(stonefish_ros::SonarSettings::Request& req, stonefish_ros::SonarSettings::Response& res)
+{
+    if(req.range_min <= 0 || req.range_max <= 0 || req.gain <= 0 || req.range_min >= req.range_max)
+    {
+        res.success = false;
+        res.message = "Wrong sonar settings!";
+    }
+    else
+    {
+        sss->setRangeMax(req.range_max);
+        sss->setRangeMin(req.range_min);
+        sss->setGain(req.gain);
+        res.success = true;
+        res.message = "New sonar settings applied.";
+    }
+    return true;
+}
+
 }

@@ -338,11 +338,12 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
     }
     else if(typeStr == "sss")
     {
-        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
-        pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
         SSS* sss = (SSS*)robot->getSensor(sensorName);
         sss->InstallNewDataHandler(std::bind(&ROSSimulationManager::SSSScanReady, sim, std::placeholders::_1));
         sonarMsgProto[sensorName] = ROSInterface::GenerateSSSMsgPrototypes(sss);
+        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(topicStr + "/settings", SSSService(sss));
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
+        pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
     }
 
     return true;

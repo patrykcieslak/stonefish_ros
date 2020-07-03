@@ -158,6 +158,16 @@ namespace sf
 	private:
 		FLS* fls;
 	};
+
+	class SSSService
+	{
+	public:
+		SSSService(SSS* sss);
+		bool operator()(stonefish_ros::SonarSettings::Request& req, stonefish_ros::SonarSettings::Response& res);
+	
+	private:
+		SSS* sss;
+	};
 }
 
 #endif
