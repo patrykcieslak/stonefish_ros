@@ -20,13 +20,15 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2020 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSInterface__
 #define __Stonefish_ROSInterface__
 
 #include <ros/ros.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <tf/transform_broadcaster.h>
 #include <Stonefish/StonefishCommon.h>
 
@@ -39,11 +41,11 @@ namespace sf
     class Odometry;
     class ForceTorque;
     class RotaryEncoder;
-    class ColorCamera;
-    class DepthCamera;
+    class Camera;
     class Multibeam;
     class Multibeam2;
     class FLS;
+    class SSS;
     class Contact;
     class USBL;
 
@@ -58,14 +60,15 @@ namespace sf
         static void PublishOdometry(ros::Publisher& pub, Odometry* odom);
         static void PublishForceTorque(ros::Publisher& pub, ForceTorque* ft);
         static void PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc);
-        static void PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam);
-        static void PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam);
-        static void PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb);
         static void PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes);
-        static void PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls);
+        static void PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb);
         static void PublishContact(ros::Publisher& contactPub, Contact* cnt);
         static void PublishUSBL(ros::Publisher& usblPub, USBL* usbl);
-        
+
+        static std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth);
+        static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateFLSMsgPrototypes(FLS* fls);
+        static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateSSSMsgPrototypes(SSS* sss);
+
     private:
         ROSInterface();
     };

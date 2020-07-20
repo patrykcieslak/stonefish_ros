@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 12/06/19.
-//  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
 //
 
 #include <ros/ros.h>
@@ -49,27 +49,27 @@ int main(int argc, char **argv)
     std::string quality(argv[6]);
     if(quality == "low")
     {
-        s.shadows = sf::RenderQuality::QUALITY_LOW;
-        s.ao = sf::RenderQuality::QUALITY_DISABLED;
-        s.atmosphere = sf::RenderQuality::QUALITY_LOW;
-        s.ocean = sf::RenderQuality::QUALITY_LOW;
-        s.msaa = false;
+        s.shadows = sf::RenderQuality::LOW;
+        s.ao = sf::RenderQuality::DISABLED;
+        s.atmosphere = sf::RenderQuality::LOW;
+        s.ocean = sf::RenderQuality::LOW;
+        s.aa = sf::RenderQuality::LOW;
     }
     else if(quality == "high")
     {
-        s.shadows = sf::RenderQuality::QUALITY_HIGH;
-        s.ao = sf::RenderQuality::QUALITY_HIGH;
-        s.atmosphere = sf::RenderQuality::QUALITY_HIGH;
-        s.ocean = sf::RenderQuality::QUALITY_HIGH;
-        s.msaa = true;
+        s.shadows = sf::RenderQuality::HIGH;
+        s.ao = sf::RenderQuality::HIGH;
+        s.atmosphere = sf::RenderQuality::HIGH;
+        s.ocean = sf::RenderQuality::HIGH;
+        s.aa = sf::RenderQuality::HIGH;
     }
     else // "medium"
     {
-        s.shadows = sf::RenderQuality::QUALITY_MEDIUM;
-        s.ao = sf::RenderQuality::QUALITY_MEDIUM;
-        s.atmosphere = sf::RenderQuality::QUALITY_MEDIUM;
-        s.ocean = sf::RenderQuality::QUALITY_MEDIUM;
-        s.msaa = false;
+        s.shadows = sf::RenderQuality::MEDIUM;
+        s.ao = sf::RenderQuality::MEDIUM;
+        s.atmosphere = sf::RenderQuality::MEDIUM;
+        s.ocean = sf::RenderQuality::MEDIUM;
+        s.aa = sf::RenderQuality::MEDIUM;
     }
 
     sf::HelperSettings h;

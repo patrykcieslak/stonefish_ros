@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2020 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSInterface.h"
@@ -38,6 +38,7 @@
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
+#include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
 
@@ -229,125 +230,37 @@ void ROSInterface::PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishCamera(ros::Publisher& imagePub, ros::Publisher& cameraInfoPub, ColorCamera* cam)
+void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes)
 {
-	//Publish image message
-    sensor_msgs::Image img;
-    img.header.stamp = ros::Time::now();
-    img.header.frame_id = cam->getName();
-	cam->getResolution(img.width, img.height);
-	img.encoding = "rgb8";
-	img.is_bigendian = 0;
-    img.step = img.width*3;
-    img.data.resize(img.width*img.height*3);
-    //Copy image data
-    uint8_t* data = (uint8_t*)cam->getImageDataPointer();
-    for(uint32_t r = 0; r<img.height; ++r) //Every row of image
-    {
-		uint8_t* srcRow = data + r*img.step; 
-		uint8_t* dstRow = img.data.data() + (img.height-1-r) * img.step; 
-		memcpy(dstRow, srcRow, img.step);
-    }
-    imagePub.publish(img);
-	
-	//Publish camera info message
-	sensor_msgs::CameraInfo info;
-	info.header.stamp = img.header.stamp;
-	info.header.frame_id = cam->getName();
-    info.width = img.width;
-    info.height = img.height;
-    info.binning_x = 0;
-    info.binning_y = 0;
-    //Distortion
-    info.distortion_model = "plumb_bob";
-    info.D.resize(5, 0.0);
-    //Rectification (for stereo only)
-    info.R[0] = 1.0;
-    info.R[4] = 1.0;
-    info.R[8] = 1.0;
-    //Intrinsic
-    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
-    double tanvfov2 = (double)info.height/(double)info.width * tanhfov2;
-    info.K[2] = (double)info.width/2.0; //cx
-    info.K[5] = (double)info.height/2.0; //cy
-    info.K[0] = info.K[2]/tanhfov2; //fx
-    info.K[4] = info.K[5]/tanvfov2; //fy 
-    info.K[8] = 1.0;
-    //Projection
-    info.P[2] = info.K[2]; //cx'
-    info.P[6] = info.K[5]; //cy'
-    info.P[0] = info.K[0]; //fx';
-    info.P[5] = info.K[4]; //fy';
-    info.P[3] = 0.0; //Tx - position of second camera from stereo pair
-    info.P[7] = 0.0; //Ty;
-    info.P[10] = 1.0;
-    //ROI
-    info.roi.x_offset = 0;
-    info.roi.y_offset = 0;
-    info.roi.height = info.height;
-    info.roi.width = info.width;
-    info.roi.do_rectify = false;
-	cameraInfoPub.publish(info);
-}
+    Sample sample = mbes->getLastSample();
+    SensorChannel channel = mbes->getSensorChannelDescription(0);
+    std::vector<double> distances = sample.getData();
 
-void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, DepthCamera* cam)
-{
-	uint32_t width, height, nPoints;
-	cam->getResolution(width, height);
-	nPoints = width*height;
-	float tanhfov2 = tanf(cam->getHorizontalFOV()/180.f * M_PI/2.f);
-    float tanvfov2 = tanhfov2 * (float)height/(float)width;
-    glm::vec2 range = cam->getDepthRange();
+    float angRange = mbes->getAngleRange();
+    uint32_t angSteps = distances.size();
 
-    Eigen::Matrix3f K = Eigen::Matrix3f::Zero();
-    K(0,2) = (float)width/2.f; //cx
-    K(1,2) = (float)height/2.f; //cy
-    K(0,0) = K(0,2)/tanhfov2; //fx
-    K(1,1) = K(1,2)/tanvfov2; //fy
-    K(2,2) = 1.f;
-    Eigen::Matrix3f Kinv = K.inverse();
-
-    sensor_msgs::PointCloud2 msg;
+    sensor_msgs::LaserScan msg;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = cam->getName();
-    msg.height = 1;
-    
-    sensor_msgs::PointCloud2Modifier modifier(msg);
-    modifier.setPointCloud2Fields(3, "x", 1, sensor_msgs::PointField::FLOAT32, 
-    								 "y", 1, sensor_msgs::PointField::FLOAT32,
-    								 "z", 1, sensor_msgs::PointField::FLOAT32);
-    modifier.setPointCloud2FieldsByString(1, "xyz");
-    modifier.resize(nPoints);
+    msg.header.frame_id = mbes->getName();
+    msg.angle_min = -angRange/2.; // start angle of the scan [rad]
+    msg.angle_max = angRange/2.; // end angle of the scan [rad]
+    msg.angle_increment = angRange/float(angSteps-1); // angular distance between measurements [rad]
 
-    sensor_msgs::PointCloud2Iterator<float> iterX(msg, "x");
-	sensor_msgs::PointCloud2Iterator<float> iterY(msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iterZ(msg, "z");
+    msg.time_increment = 0.; // time between measurements [seconds] - if your scanner is moving, this will be used in interpolating position of 3d points
+    msg.scan_time = 0.; // time between scans [seconds]
 
-    float* data = (float*)cam->getImageDataPointer();
-    uint32_t nGoodPoints = 0;
+    msg.range_min = channel.rangeMin; // minimum range value [m]
+    msg.range_max = channel.rangeMax; // maximum range value [m]
 
-    for(uint32_t i = 0; i<width; ++i)
-    	for(uint32_t h = 0; h<height; ++h)
-    	{
-    		float depth = data[width*h + i];
-    		if(depth < range.y) //If not at the detection boundary
-    		{
-				Eigen::Vector3f imagePoint(((float)i+0.5f)*depth, ((float)height-(float)h-1.f+0.5f)*depth, depth);
-    			Eigen::Vector3f camPoint = Kinv*imagePoint; 
-    			*iterX = camPoint.x();
-    			*iterY = camPoint.y();
-    			*iterZ = camPoint.z();
-    			++iterX;
-    			++iterY;
-    			++iterZ;
-    			++nGoodPoints;
-    		}
-    	}
+    msg.ranges.resize(angSteps); // range data [m] (Note: values < range_min or > range_max should be discarded)
+    msg.intensities.resize(0); // intensity data [device-specific units].  If your device does not provide intensities, please leave the array empty
 
-    msg.width = nGoodPoints;
-    modifier.resize(nGoodPoints);
+    for(uint32_t i = 0; i<angSteps; ++i)
+    {
+        msg.ranges[i] = distances[i];
+    }
 
-    pointCloudPub.publish(msg);
+    laserScanPub.publish(msg);
 }
 
 void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb)
@@ -400,61 +313,6 @@ void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* 
     }
     
     pointCloudPub.publish(msg);
-}
-
-void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes)
-{
-    Sample sample = mbes->getLastSample();
-    SensorChannel channel = mbes->getSensorChannelDescription(0);
-    std::vector<double> distances = sample.getData();
-
-    float angRange = mbes->getAngleRange();
-    uint32_t angSteps = distances.size();
-
-    sensor_msgs::LaserScan msg;
-    msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = mbes->getName();
-    msg.angle_min = -angRange/2.; // start angle of the scan [rad]
-    msg.angle_max = angRange/2.; // end angle of the scan [rad]
-    msg.angle_increment = angRange/float(angSteps-1); // angular distance between measurements [rad]
-
-    msg.time_increment = 0.; // time between measurements [seconds] - if your scanner is moving, this will be used in interpolating position of 3d points
-    msg.scan_time = 0.; // time between scans [seconds]
-
-    msg.range_min = channel.rangeMin; // minimum range value [m]
-    msg.range_max = channel.rangeMax; // maximum range value [m]
-
-    msg.ranges.resize(angSteps); // range data [m] (Note: values < range_min or > range_max should be discarded)
-    msg.intensities.resize(0); // intensity data [device-specific units].  If your device does not provide intensities, please leave the array empty
-
-    for(uint32_t i = 0; i<angSteps; ++i)
-    {
-        msg.ranges[i] = distances[i];
-    }
-
-    laserScanPub.publish(msg);
-}
-
-void ROSInterface::PublishFLS(ros::Publisher& sonarDisplayPub, FLS* fls)
-{
-    //Publish image message
-    sensor_msgs::Image img;
-    img.header.stamp = ros::Time::now();
-    img.header.frame_id = fls->getName();
-	fls->getDisplayResolution(img.width, img.height);
-	img.encoding = "rgb8";
-	img.is_bigendian = 0;
-    img.step = img.width*3;
-    img.data.resize(img.width*img.height*3);
-    //Copy image data
-    uint8_t* data = (uint8_t*)fls->getDisplayDataPointer();
-    for(uint32_t r = 0; r<img.height; ++r) //Every row of image
-    {
-		uint8_t* srcRow = data + r*img.step; 
-		uint8_t* dstRow = img.data.data() + (img.height-1-r) * img.step; 
-		memcpy(dstRow, srcRow, img.step);
-    }
-    sonarDisplayPub.publish(img);
 }
 
 void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
@@ -528,6 +386,103 @@ void ROSInterface::PublishUSBL(ros::Publisher& usblPub, USBL* usbl)
     }
 
     usblPub.publish(msg);
+}
+
+std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> ROSInterface::GenerateCameraMsgPrototypes(Camera* cam, bool depth)
+{
+    //Image message
+    sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
+    img->header.frame_id = cam->getName();
+	cam->getResolution(img->width, img->height);
+	img->encoding = depth ? "32FC1" : "rgb8";
+	img->is_bigendian = 0;
+    img->step = img->width * (depth ? sizeof(float) : 3);
+    img->data.resize(img->step * img->height);
+
+	//Camera info message
+	sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
+	info->header.frame_id = cam->getName();
+    info->width = img->width;
+    info->height = img->height;
+    info->binning_x = 0;
+    info->binning_y = 0;
+    //Distortion
+    info->distortion_model = "plumb_bob";
+    info->D.resize(5, 0.0);
+    //Rectification (for stereo only)
+    info->R[0] = 1.0;
+    info->R[4] = 1.0;
+    info->R[8] = 1.0;
+    //Intrinsic
+    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
+    info->K[2] = (double)info->width/2.0; //cx
+    info->K[5] = (double)info->height/2.0; //cy
+    info->K[0] = info->K[2]/tanhfov2; //fx
+    info->K[4] = info->K[5]/tanvfov2; //fy 
+    info->K[8] = 1.0;
+    //Projection
+    info->P[2] = info->K[2]; //cx'
+    info->P[6] = info->K[5]; //cy'
+    info->P[0] = info->K[0]; //fx';
+    info->P[5] = info->K[4]; //fy';
+    info->P[3] = 0.0; //Tx - position of second camera from stereo pair
+    info->P[7] = 0.0; //Ty;
+    info->P[10] = 1.0;
+    //ROI
+    info->roi.x_offset = 0;
+    info->roi.y_offset = 0;
+    info->roi.height = info->height;
+    info->roi.width = info->width;
+    info->roi.do_rectify = false;
+	
+    return std::make_pair(img, info);
+}
+
+std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateFLSMsgPrototypes(FLS* fls)
+{
+    //Image message
+    sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
+    img->header.frame_id = fls->getName();
+    fls->getResolution(img->width, img->height);
+    img->encoding = "32FC1";
+    img->is_bigendian = 0;
+    img->step = img->width * sizeof(float);
+    img->data.resize(img->step * img->height);
+
+    //Display message
+    sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
+    disp->header.frame_id = fls->getName();
+	fls->getDisplayResolution(disp->width, disp->height);
+	disp->encoding = "rgb8";
+	disp->is_bigendian = 0;
+    disp->step = disp->width * 3;
+    disp->data.resize(disp->step * disp->height);
+    
+    return std::make_pair(img, disp);
+}
+
+std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateSSSMsgPrototypes(SSS* sss)
+{
+    //Image message
+    sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
+    img->header.frame_id = sss->getName();
+    sss->getResolution(img->width, img->height);
+    img->encoding = "32FC1";
+    img->is_bigendian = 0;
+    img->step = img->width * sizeof(float);
+    img->data.resize(img->step * img->height);
+
+    //Display message
+    sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
+    disp->header.frame_id = sss->getName();
+	sss->getDisplayResolution(disp->width, disp->height);
+	disp->encoding = "rgb8";
+	disp->is_bigendian = 0;
+    disp->step = disp->width * 3;
+    disp->data.resize(disp->step * disp->height);
+    
+    return std::make_pair(img, disp);
 }
 
 }
