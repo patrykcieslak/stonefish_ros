@@ -180,15 +180,15 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     {
         switch(act->getType())
         {
-            case ActuatorType::ACTUATOR_THRUSTER:
+            case ActuatorType::THRUSTER:
                 ++nThrusters;
                 break;
 
-            case ActuatorType::ACTUATOR_PROPELLER:
+            case ActuatorType::PROPELLER:
                 ++nPropellers;
                 break;
 
-            case ActuatorType::ACTUATOR_SERVO:
+            case ActuatorType::SERVO:
                 ++nServos;
                 break;
 
@@ -205,7 +205,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         aID = 0;
         while((act = robot->getActuator(aID++)) != NULL)
         {
-            if(act->getType() == ActuatorType::ACTUATOR_SERVO)
+            if(act->getType() == ActuatorType::SERVO)
                 rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = Scalar(0);
         }
     }

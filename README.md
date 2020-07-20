@@ -4,7 +4,7 @@ This package delivers a ROS interface for the _Stonefish_ library. It also inclu
 
 ### Installation
 
-1. Install the open-source [Stonefish](https://github.com/patrykcieslak/stonefish) library.
+1. Install the open-source [Stonefish](https://github.com/patrykcieslak/stonefish) library (>=0.9).
 2. Install the open-source ROS package [cola2_msgs](https://bitbucket.org/iquarobotics/cola2_msgs).
 3. Clone the *stonefish_ros* package to your catkin workspace.
 4. Compile the workspace.
@@ -30,7 +30,7 @@ If you find this software useful in your research, please cite:
    doi={10.1109/OCEANSE.2019.8867434}}
 ```
 ### Funding
-This work was part of a project titled ”Force/position control system to enable compliant manipulation from a floating I-AUV”, which received funding from the European Community H2020 Programme, under the Marie Sklodowska-Curie grant agreement no. 750063. The work is continued under a project titled ”EU Marine Robots”, which received funding from the European Community H2020 Programme, grant agreement no. 731103.
+This work was part of a project titled ”Force/position control system to enable compliant manipulation from a floating I-AUV”, which received funding from the European Community H2020 Programme, under the Marie Sklodowska-Curie grant agreement no. 750063. The work was continued under a project titled ”EU Marine Robots”, which received funding from the European Community H2020 Programme, grant agreement no. 731103.
 
 ### License
 This is free software, published under the General Public License v3.0.

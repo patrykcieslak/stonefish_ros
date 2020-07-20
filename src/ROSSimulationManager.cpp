@@ -52,7 +52,7 @@ namespace sf
 {
 
 ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath) 
-	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE, FluidDynamicsType::GEOMETRY_BASED), scnFilePath(scenarioFilePath), nh("~")
+	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE), scnFilePath(scenarioFilePath), nh("~")
 {
     srvECurrents = nh.advertiseService("enable_currents", &ROSSimulationManager::EnableCurrents, this);
     srvDCurrents = nh.advertiseService("disable_currents", &ROSSimulationManager::DisableCurrents, this);
@@ -113,42 +113,42 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         if(!sensor->isNewDataAvailable())
             continue;
 
-        if(sensor->getType() != SensorType::SENSOR_VISION)
+        if(sensor->getType() != SensorType::VISION)
         {
             if(pubs.find(sensor->getName()) == pubs.end())
                 continue;
 
             switch(((ScalarSensor*)sensor)->getScalarSensorType())
             {
-                case ScalarSensorType::SENSOR_ODOM:
+                case ScalarSensorType::ODOM:
                     ROSInterface::PublishOdometry(pubs[sensor->getName()], (Odometry*)sensor);
                     break;
 
-                case ScalarSensorType::SENSOR_IMU:
+                case ScalarSensorType::IMU:
                     ROSInterface::PublishIMU(pubs[sensor->getName()], (IMU*)sensor);
                     break;
 
-                case ScalarSensorType::SENSOR_DVL:
+                case ScalarSensorType::DVL:
                     ROSInterface::PublishDVL(pubs[sensor->getName()], pubs[sensor->getName() + "/altitude"], (DVL*)sensor);
                     break;
 
-                case ScalarSensorType::SENSOR_GPS:
+                case ScalarSensorType::GPS:
                     ROSInterface::PublishGPS(pubs[sensor->getName()], (GPS*)sensor);
                     break;
 
-                case ScalarSensorType::SENSOR_PRESSURE:
+                case ScalarSensorType::PRESSURE:
                     ROSInterface::PublishPressure(pubs[sensor->getName()], (Pressure*)sensor);
                     break;
 
-                case ScalarSensorType::SENSOR_FT:
+                case ScalarSensorType::FT:
                     ROSInterface::PublishForceTorque(pubs[sensor->getName()], (ForceTorque*)sensor);
                     break;
 
-                case ScalarSensorType::SENSOR_ENCODER:
+                case ScalarSensorType::ENCODER:
                     ROSInterface::PublishEncoder(pubs[sensor->getName()], (RotaryEncoder*)sensor);
                     break;
 
-                case ScalarSensorType::SENSOR_MULTIBEAM:
+                case ScalarSensorType::MULTIBEAM:
                     ROSInterface::PublishLaserScan(pubs[sensor->getName()], (Multibeam*)sensor);
                     break;
 
@@ -173,7 +173,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
         switch(comm->getType())
         {
-            case COMM_ACOUSTIC:
+            case CommType::ACOUSTIC:
                 ROSInterface::PublishUSBL(pubs[comm->getName()], (USBL*)comm);
                 comm->MarkDataOld();
                 break;
@@ -227,7 +227,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
         while((actuator = rosRobots[i]->robot->getActuator(aID++)) != NULL)
         {
-            if(actuator->getType() == ActuatorType::ACTUATOR_SERVO)
+            if(actuator->getType() == ActuatorType::SERVO)
             {
                 srv = (Servo*)actuator;
                 msg.name[sID] = srv->getJointName();
@@ -256,16 +256,16 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         {
             switch(actuator->getType())
             {
-                case ActuatorType::ACTUATOR_THRUSTER:
+                case ActuatorType::THRUSTER:
                     ((Thruster*)actuator)->setSetpoint(rosRobots[i]->thrusterSetpoints[thID++]);
                     //ROS_INFO("[Thruster %d] Setpoint: %1.3lf Omega: %1.3lf Thrust: %1.3lf", thID, ((Thruster*)actuator)->getSetpoint(), ((Thruster*)actuator)->getOmega(), ((Thruster*)actuator)->getThrust());
                     break;
 
-                case ActuatorType::ACTUATOR_PROPELLER:
+                case ActuatorType::PROPELLER:
                     ((Propeller*)actuator)->setSetpoint(rosRobots[i]->propellerSetpoints[propID++]);
                     break;
 
-                case ActuatorType::ACTUATOR_SERVO:
+                case ActuatorType::SERVO:
                 {
                     Scalar setpoint = rosRobots[i]->servoSetpoints.at(((Servo*)actuator)->getJointName());
                     
@@ -282,7 +282,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
                     break;
 
-                case ActuatorType::ACTUATOR_VBS:
+                case ActuatorType::VBS:
                 {
                     if(pubs.find(actuator->getName()) != pubs.end())
                     {
