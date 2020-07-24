@@ -4,7 +4,7 @@ This package delivers a ROS interface for the _Stonefish_ library. It also inclu
 
 ### Installation
 
-1. Install the open-source [Stonefish](https://github.com/patrykcieslak/stonefish) library (>=0.9).
+1. Install the open-source [Stonefish](https://github.com/patrykcieslak/stonefish) library (*the same version as the ROS package!*).
 2. Install the open-source ROS package [cola2_msgs](https://bitbucket.org/iquarobotics/cola2_msgs).
 3. Clone the *stonefish_ros* package to your catkin workspace.
 4. Compile the workspace.
