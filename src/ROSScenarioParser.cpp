@@ -35,6 +35,7 @@
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
+#include <Stonefish/sensors/vision/MSIS.h>
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -342,6 +343,15 @@ bool ROSScenarioParser::ParseSensor(XMLElement* element, Robot* robot)
         sss->InstallNewDataHandler(std::bind(&ROSSimulationManager::SSSScanReady, sim, std::placeholders::_1));
         sonarMsgProto[sensorName] = ROSInterface::GenerateSSSMsgPrototypes(sss);
         srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(topicStr + "/settings", SSSService(sss));
+        pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
+        pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
+    }
+    else if(typeStr == "msis")
+    {
+        MSIS* msis = (MSIS*)robot->getSensor(sensorName);
+        msis->InstallNewDataHandler(std::bind(&ROSSimulationManager::MSISScanReady, sim, std::placeholders::_1));
+        sonarMsgProto[sensorName] = ROSInterface::GenerateMSISMsgPrototypes(msis);
+        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings2::Request, stonefish_ros::SonarSettings2::Response>(topicStr + "/settings", MSISService(msis));
         pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
         pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
     }

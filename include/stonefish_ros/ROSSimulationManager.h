@@ -39,6 +39,7 @@
 #include <cola2_msgs/Setpoints.h>
 #include <std_srvs/Trigger.h>
 #include <stonefish_ros/SonarSettings.h>
+#include <stonefish_ros/SonarSettings2.h>
 
 namespace sf
 {
@@ -47,6 +48,7 @@ namespace sf
 	class Multibeam2;
 	class FLS;
 	class SSS;
+	class MSIS;
 
 	struct ROSRobot
 	{
@@ -81,6 +83,7 @@ namespace sf
 		virtual void Multibeam2ScanReady(Multibeam2* mb);
 		virtual void FLSScanReady(FLS* fls);
 		virtual void SSSScanReady(SSS* sss);
+		virtual void MSISScanReady(MSIS* sss);
 
 	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
@@ -167,6 +170,16 @@ namespace sf
 	
 	private:
 		SSS* sss;
+	};
+
+	class MSISService
+	{
+	public:
+		MSISService(MSIS* msis);
+		bool operator()(stonefish_ros::SonarSettings2::Request& req, stonefish_ros::SonarSettings2::Response& res);
+	
+	private:
+		MSIS* msis;
 	};
 }
 

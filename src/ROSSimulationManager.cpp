@@ -41,6 +41,7 @@
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
+#include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/actuators/Thruster.h>
@@ -369,6 +370,23 @@ void ROSSimulationManager::SSSScanReady(SSS* sss)
     pubs[sss->getName() + "/display"].publish(disp);
 }
 
+void ROSSimulationManager::MSISScanReady(MSIS* msis)
+{
+    //Fill in the data message
+    sensor_msgs::ImagePtr img = sonarMsgPrototypes[msis->getName()].first;
+    img->header.stamp = ros::Time::now();
+    memcpy(img->data.data(), (float*)msis->getImageDataPointer(), img->step * img->height); 
+    
+    //Fill in the display message
+    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[msis->getName()].second;
+    disp->header.stamp = img->header.stamp;
+    memcpy(disp->data.data(), (uint8_t*)msis->getDisplayDataPointer(), disp->step * disp->height);
+
+    //Publish messages
+    pubs[msis->getName()].publish(img);
+    pubs[msis->getName() + "/display"].publish(disp);
+}
+
 void ROSSimulationManager::Multibeam2ScanReady(Multibeam2* mb)
 {
     ROSInterface::PublishPointCloud(pubs[mb->getName()], mb);
@@ -518,6 +536,33 @@ bool SSSService::operator()(stonefish_ros::SonarSettings::Request& req, stonefis
         sss->setRangeMax(req.range_max);
         sss->setRangeMin(req.range_min);
         sss->setGain(req.gain);
+        res.success = true;
+        res.message = "New sonar settings applied.";
+    }
+    return true;
+}
+
+MSISService::MSISService(MSIS* msis) : msis(msis)
+{
+}
+
+bool MSISService::operator()(stonefish_ros::SonarSettings2::Request& req, stonefish_ros::SonarSettings2::Response& res)
+{
+    if(req.range_min <= 0 || req.range_max <= 0 || req.gain <= 0 
+       || req.range_min >= req.range_max
+       || req.rotation_min < -180.0
+       || req.rotation_max > 180.0
+       || req.rotation_min >= req.rotation_max)
+    {
+        res.success = false;
+        res.message = "Wrong sonar settings!";
+    }
+    else
+    {
+        msis->setRangeMax(req.range_max);
+        msis->setRangeMin(req.range_min);
+        msis->setGain(req.gain);
+        msis->setRotationLimits(req.rotation_min, req.rotation_max);
         res.success = true;
         res.message = "New sonar settings applied.";
     }

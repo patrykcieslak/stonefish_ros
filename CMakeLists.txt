@@ -20,6 +20,7 @@ pkg_check_modules(Stonefish REQUIRED stonefish>=0.9.0)
 add_service_files(
    FILES
    SonarSettings.srv
+   SonarSettings2.srv
 )
 
 generate_messages(

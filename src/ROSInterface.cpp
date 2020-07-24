@@ -39,6 +39,7 @@
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
+#include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
 
@@ -477,6 +478,29 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateSS
     sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
     disp->header.frame_id = sss->getName();
 	sss->getDisplayResolution(disp->width, disp->height);
+	disp->encoding = "rgb8";
+	disp->is_bigendian = 0;
+    disp->step = disp->width * 3;
+    disp->data.resize(disp->step * disp->height);
+    
+    return std::make_pair(img, disp);
+}
+
+std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateMSISMsgPrototypes(MSIS* msis)
+{
+    //Image message
+    sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
+    img->header.frame_id = msis->getName();
+    msis->getResolution(img->width, img->height);
+    img->encoding = "32FC1";
+    img->is_bigendian = 0;
+    img->step = img->width * sizeof(float);
+    img->data.resize(img->step * img->height);
+
+    //Display message
+    sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
+    disp->header.frame_id = msis->getName();
+	msis->getDisplayResolution(disp->width, disp->height);
 	disp->encoding = "rgb8";
 	disp->is_bigendian = 0;
     disp->step = disp->width * 3;
