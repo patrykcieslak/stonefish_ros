@@ -149,9 +149,13 @@ bool ROSScenarioParser::ReplaceROSVars(XMLNode* node)
     return true;
 }
 
-bool ROSScenarioParser::PreProcess(XMLNode* root)
+bool ROSScenarioParser::PreProcess(XMLNode* root, const std::map<std::string, std::string>& args)
 {
-    return ReplaceROSVars(root);
+    //First replace ROS variables to support them inside include arguments
+    if(!ReplaceROSVars(root))
+        return false;
+    //Then process include arguments
+    return ScenarioParser::PreProcess(root, args);
 }
 
 bool ROSScenarioParser::ParseRobot(XMLElement* element)
