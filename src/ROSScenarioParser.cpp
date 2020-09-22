@@ -53,6 +53,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
+#include <stonefish_ros/ThrusterState.h>
 
 #include <ros/package.h>
 
@@ -108,9 +109,8 @@ std::string ROSScenarioParser::SubstituteROSVars(const std::string& value)
             }
             replacedValue += param;
         }
-        else 
+        else //Command unsupported
         {
-            ROS_ERROR("Scenario parser(ROS): substitution command '%s' not currently supported!", results[0].c_str());
             return value;
         }
 
@@ -243,7 +243,11 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     //Generate publishers
     if((item = element->FirstChildElement("ros_publisher")) != nullptr)
     {
+        const char* topicThrust = nullptr;
         const char* topicSrv = nullptr;
+
+        if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThrust) == XML_SUCCESS)
+            pubs[robot->getName() + "/thrusters"] = nh.advertise<stonefish_ros::ThrusterState>(std::string(topicThrust), 10);
 
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
             pubs[robot->getName() + "/servos"] = nh.advertise<sensor_msgs::JointState>(std::string(topicSrv), 10);

@@ -26,6 +26,7 @@
 #include "stonefish_ros/ROSSimulationManager.h"
 #include "stonefish_ros/ROSScenarioParser.h"
 #include "stonefish_ros/ROSInterface.h"
+#include "stonefish_ros/ThrusterState.h"
 
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
@@ -209,40 +210,75 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
-        if(rosRobots[i]->servoSetpoints.size() == 0 
-           || pubs.find(rosRobots[i]->robot->getName() + "/servos") == pubs.end())
-            continue;
-
-        unsigned int aID = 0;
-        unsigned int sID = 0;
-        Actuator* actuator;
-        Servo* srv;
-
-        sensor_msgs::JointState msg;
-        msg.header.stamp = ros::Time::now();
-        msg.header.frame_id = rosRobots[i]->robot->getName();
-        msg.name.resize(rosRobots[i]->servoSetpoints.size());
-        msg.position.resize(rosRobots[i]->servoSetpoints.size());
-        msg.velocity.resize(rosRobots[i]->servoSetpoints.size());
-        msg.effort.resize(rosRobots[i]->servoSetpoints.size());
-
-        while((actuator = rosRobots[i]->robot->getActuator(aID++)) != NULL)
+        if(rosRobots[i]->servoSetpoints.size() != 0 
+           && pubs.find(rosRobots[i]->robot->getName() + "/servos") != pubs.end())
         {
-            if(actuator->getType() == ActuatorType::SERVO)
-            {
-                srv = (Servo*)actuator;
-                msg.name[sID] = srv->getJointName();
-                msg.position[sID] = srv->getPosition();
-                msg.velocity[sID] = srv->getVelocity();
-                msg.effort[sID] = srv->getEffort();
-                ++sID;
+            unsigned int aID = 0;
+            unsigned int sID = 0;
+            Actuator* actuator;
+            Servo* srv;
 
-                if(sID == rosRobots[i]->servoSetpoints.size())
-                    break;
+            sensor_msgs::JointState msg;
+            msg.header.stamp = ros::Time::now();
+            msg.header.frame_id = rosRobots[i]->robot->getName();
+            msg.name.resize(rosRobots[i]->servoSetpoints.size());
+            msg.position.resize(rosRobots[i]->servoSetpoints.size());
+            msg.velocity.resize(rosRobots[i]->servoSetpoints.size());
+            msg.effort.resize(rosRobots[i]->servoSetpoints.size());
+
+            while((actuator = rosRobots[i]->robot->getActuator(aID++)) != NULL)
+            {
+                if(actuator->getType() == ActuatorType::SERVO)
+                {
+                    srv = (Servo*)actuator;
+                    msg.name[sID] = srv->getJointName();
+                    msg.position[sID] = srv->getPosition();
+                    msg.velocity[sID] = srv->getVelocity();
+                    msg.effort[sID] = srv->getEffort();
+                    ++sID;
+
+                    if(sID == rosRobots[i]->servoSetpoints.size())
+                        break;
+                }
             }
+
+            pubs[rosRobots[i]->robot->getName() + "/servos"].publish(msg);
         }
 
-        pubs[rosRobots[i]->robot->getName() + "/servos"].publish(msg);
+        if(rosRobots[i]->thrusterSetpoints.size() != 0 
+           && pubs.find(rosRobots[i]->robot->getName() + "/thrusters") != pubs.end())
+        {
+            unsigned int aID = 0;
+            unsigned int thID = 0;
+            Actuator* actuator;
+            Thruster* th;
+
+            stonefish_ros::ThrusterState msg;
+            msg.header.stamp = ros::Time::now();
+            msg.header.frame_id = rosRobots[i]->robot->getName();
+            msg.setpoint.resize(rosRobots[i]->thrusterSetpoints.size());
+            msg.rpm.resize(rosRobots[i]->thrusterSetpoints.size());
+            msg.thrust.resize(rosRobots[i]->thrusterSetpoints.size());
+            msg.torque.resize(rosRobots[i]->thrusterSetpoints.size());
+
+            while((actuator = rosRobots[i]->robot->getActuator(aID++)) != NULL)
+            {
+                if(actuator->getType() == ActuatorType::THRUSTER)
+                {
+                    th = (Thruster*)actuator;
+                    msg.setpoint[thID] = th->getSetpoint();
+                    msg.rpm[thID] = th->getOmega()/(Scalar(2)*M_PI)*Scalar(60);
+                    msg.thrust[thID] = th->getThrust();
+                    msg.torque[thID] = th->getTorque();
+                    ++thID;
+
+                    if(thID == rosRobots[i]->thrusterSetpoints.size())
+                        break;
+                }
+            }
+
+            pubs[rosRobots[i]->robot->getName() + "/thrusters"].publish(msg);
+        }
     }
 
     //////////////////////////////////////////////ACTUATORS//////////////////////////////////////////
@@ -259,7 +295,6 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             {
                 case ActuatorType::THRUSTER:
                     ((Thruster*)actuator)->setSetpoint(rosRobots[i]->thrusterSetpoints[thID++]);
-                    //ROS_INFO("[Thruster %d] Setpoint: %1.3lf Omega: %1.3lf Thrust: %1.3lf", thID, ((Thruster*)actuator)->getSetpoint(), ((Thruster*)actuator)->getOmega(), ((Thruster*)actuator)->getThrust());
                     break;
 
                 case ActuatorType::PROPELLER:

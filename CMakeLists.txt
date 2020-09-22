@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
   sensor_msgs
+  std_msgs
   std_srvs
   roscpp
   roslib
@@ -13,18 +14,23 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
 )
 
-find_package(Bullet REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(Stonefish REQUIRED stonefish>=0.9.0)
+pkg_check_modules(Stonefish REQUIRED stonefish>=1.1.0)
+
+add_message_files(
+  FILES
+  ThrusterState.msg
+)
 
 add_service_files(
-   FILES
-   SonarSettings.srv
-   SonarSettings2.srv
+  FILES
+  SonarSettings.srv
+  SonarSettings2.srv
 )
 
 generate_messages(
   DEPENDENCIES
+  std_msgs
 )
 
 set(CMAKE_CXX_STANDARD 14)
@@ -36,13 +42,14 @@ catkin_package(
   CATKIN_DEPENDS cola2_msgs 
                  geometry_msgs 
                  nav_msgs 
-                 sensor_msgs 
+                 sensor_msgs
+                 std_msgs 
                  std_srvs 
                  roscpp
                  roslib
                  tf 
                  tf_conversions
-  DEPENDS BULLET Stonefish
+  DEPENDS Stonefish
 )
 
 include_directories(
@@ -57,8 +64,8 @@ src/ROSInterface.cpp
 src/ROSSimulationManager.cpp
 src/ROSScenarioParser.cpp
 )
-target_link_libraries(stonefish_ros ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES})
+target_link_libraries(stonefish_ros ${catkin_LIBRARIES} ${Stonefish_LIBRARIES})
 
 #Universal simulator with XML parser
 add_executable(parsed_simulator src/parsed_simulator.cpp)
-target_link_libraries(parsed_simulator ${catkin_LIBRARIES} ${BULLET_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
+target_link_libraries(parsed_simulator ${catkin_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)

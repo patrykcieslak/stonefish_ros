@@ -1,37 +1,22 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
 	<name>stonefish_ros</name>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 	<description>The stonefish_ros package</description>
+	<author email="patryk.cieslak@udg.edu">Patryk Cieslak</author>
 	<maintainer email="patryk.cieslak@udg.edu">Patryk Cieslak</maintainer>
 	<license>GPL-3.0</license>
 
-	<author email="patryk.cieslak@udg.edu">Patryk Cieslak</author>
-
 	<buildtool_depend>catkin</buildtool_depend>
-	<build_depend>roscpp</build_depend>
-	<build_depend>roslib</build_depend>
-	<build_depend>cola2_msgs</build_depend>
-	<build_depend>geometry_msgs</build_depend>
-	<build_depend>nav_msgs</build_depend>
-	<build_depend>sensor_msgs</build_depend>
-	<build_depend>std_srvs</build_depend>
-	<build_depend>tf</build_depend>
-	<build_depend>tf_conversions</build_depend>
-	<build_depend>Bullet</build_depend>
-	<build_depend>Stonefish</build_depend>
-	
-	<run_depend>roscpp</run_depend>
-	<run_depend>roslib</run_depend>
-	<run_depend>cola2_msgs</run_depend>
-	<run_depend>geometry_msgs</run_depend>
-	<run_depend>nav_msgs</run_depend>
-	<run_depend>sensor_msgs</run_depend>
-	<run_depend>std_srvs</run_depend>
-	<run_depend>tf</run_depend>
-	<run_depend>tf_conversions</run_depend>
-	<run_depend>Bullet</run_depend>
-	<run_depend>Stonefish</run_depend>
-  <export>
-  </export>
+	<depend>roscpp</depend>
+	<depend>roslib</depend>
+	<depend>cola2_msgs</depend>
+	<depend>geometry_msgs</depend>
+	<depend>nav_msgs</depend>
+	<depend>sensor_msgs</depend>
+	<depend>std_msgs</depend>
+	<depend>std_srvs</depend>
+	<depend>tf</depend>
+	<depend>tf_conversions</depend>
+	<depend>Stonefish</depend>
 </package>
