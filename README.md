@@ -12,7 +12,7 @@ This package delivers a ROS interface for the _Stonefish_ library. It also inclu
 ### Launching
 
 To run the standard simulator node you have to include the 'simulator.launch' file in your own launch file, overriding the default arguments.
-This package does not include any examples of usage. The best way to learn how to use this package is to install the [stonefish_cirs](https://github.com/patrykcieslak/stonefish_cirs) package, containing multiple fully working examples of robots.
+This package does not include any examples of usage. The best way to learn how to use this package is to install the [cola2_stonefish](https://bitbucket.org/udg_cirs/cola2_stonefish) package, containing multiple, fully working examples of robots, developed by the CIRS Laboratory (University of Girona, Spain).
 
 ### Credits
 This software was written and is continuously developed by Patryk Cieślak.
