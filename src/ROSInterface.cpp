@@ -446,9 +446,9 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateFL
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
     img->header.frame_id = fls->getName();
     fls->getResolution(img->width, img->height);
-    img->encoding = "32FC1";
+    img->encoding = "mono8";
     img->is_bigendian = 0;
-    img->step = img->width * sizeof(float);
+    img->step = img->width;
     img->data.resize(img->step * img->height);
 
     //Display message
@@ -469,9 +469,9 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateSS
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
     img->header.frame_id = sss->getName();
     sss->getResolution(img->width, img->height);
-    img->encoding = "32FC1";
+    img->encoding = "mono8";
     img->is_bigendian = 0;
-    img->step = img->width * sizeof(float);
+    img->step = img->width;
     img->data.resize(img->step * img->height);
 
     //Display message
@@ -492,9 +492,9 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateMS
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
     img->header.frame_id = msis->getName();
     msis->getResolution(img->width, img->height);
-    img->encoding = "32FC1";
+    img->encoding = "mono8";
     img->is_bigendian = 0;
-    img->step = img->width * sizeof(float);
+    img->step = img->width;
     img->data.resize(img->step * img->height);
 
     //Display message

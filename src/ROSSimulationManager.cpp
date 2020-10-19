@@ -376,7 +376,7 @@ void ROSSimulationManager::FLSScanReady(FLS* fls)
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[fls->getName()].first;
     img->header.stamp = ros::Time::now();
-    memcpy(img->data.data(), (float*)fls->getImageDataPointer(), img->step * img->height); 
+    memcpy(img->data.data(), (uint8_t*)fls->getImageDataPointer(), img->step * img->height); 
     
     //Fill in the display message
     sensor_msgs::ImagePtr disp = sonarMsgPrototypes[fls->getName()].second;
@@ -393,7 +393,7 @@ void ROSSimulationManager::SSSScanReady(SSS* sss)
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[sss->getName()].first;
     img->header.stamp = ros::Time::now();
-    memcpy(img->data.data(), (float*)sss->getImageDataPointer(), img->step * img->height); 
+    memcpy(img->data.data(), (uint8_t*)sss->getImageDataPointer(), img->step * img->height); 
     
     //Fill in the display message
     sensor_msgs::ImagePtr disp = sonarMsgPrototypes[sss->getName()].second;
@@ -410,7 +410,7 @@ void ROSSimulationManager::MSISScanReady(MSIS* msis)
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[msis->getName()].first;
     img->header.stamp = ros::Time::now();
-    memcpy(img->data.data(), (float*)msis->getImageDataPointer(), img->step * img->height); 
+    memcpy(img->data.data(), (uint8_t*)msis->getImageDataPointer(), img->step * img->height); 
     
     //Fill in the display message
     sensor_msgs::ImagePtr disp = sonarMsgPrototypes[msis->getName()].second;
