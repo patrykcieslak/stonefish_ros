@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(stonefish_ros)
 
 find_package(catkin REQUIRED COMPONENTS
+  message_generation
   cola2_msgs
   geometry_msgs
   nav_msgs
@@ -49,6 +50,7 @@ catkin_package(
                  roslib
                  tf 
                  tf_conversions
+		 message_runtime
   DEPENDS Stonefish
 )
 
@@ -64,6 +66,7 @@ src/ROSInterface.cpp
 src/ROSSimulationManager.cpp
 src/ROSScenarioParser.cpp
 )
+add_dependencies(stonefish_ros ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(stonefish_ros ${catkin_LIBRARIES} ${Stonefish_LIBRARIES})
 
 #Universal simulator with XML parser
