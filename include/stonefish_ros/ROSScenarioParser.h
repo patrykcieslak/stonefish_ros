@@ -42,8 +42,8 @@ namespace sf
         virtual bool PreProcess(XMLNode* root, 
                                 const std::map<std::string, std::string>& args = std::map<std::string, std::string>());
         virtual bool ParseRobot(XMLElement* element);
-        virtual bool ParseSensor(XMLElement* element, Robot* robot);
         virtual bool ParseActuator(XMLElement* element, Robot* robot);
+        virtual Sensor* ParseSensor(XMLElement* element, const std::string& namePrefix);
         virtual bool ParseComm(XMLElement* element, Robot* robot = nullptr);
         virtual bool ParseContact(XMLElement* element);
 
