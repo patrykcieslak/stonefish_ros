@@ -20,6 +20,7 @@ pkg_check_modules(Stonefish REQUIRED stonefish>=1.2.0)
 
 add_message_files(
   FILES
+  Int32Stamped.msg
   ThrusterState.msg
 )
 

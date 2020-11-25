@@ -40,7 +40,6 @@
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/comms/Comm.h>
 #include <std_msgs/Float64.h>
-#include <std_msgs/UInt32.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>
@@ -58,6 +57,7 @@
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
 #include <stonefish_ros/ThrusterState.h>
+#include <stonefish_ros/Int32Stamped.h>
 
 #include <ros/package.h>
 
@@ -305,7 +305,7 @@ bool ROSScenarioParser::ParseAnimated(XMLElement* element)
             return true;
         }
         pubs[nameStr + "/odometry"] = nh.advertise<nav_msgs::Odometry>(std::string(topic), 10);
-        pubs[nameStr + "/iteration"] = nh.advertise<std_msgs::UInt32>(std::string(topic) + "/iteration", 10);
+        pubs[nameStr + "/iteration"] = nh.advertise<stonefish_ros::Int32Stamped>(std::string(topic) + "/iteration", 10);
     }
     
     return true;

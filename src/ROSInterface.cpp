@@ -44,7 +44,6 @@
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/entities/AnimatedEntity.h>
 
-#include <std_msgs/UInt32.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>
@@ -62,6 +61,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Float32Stamped.h>
+#include <stonefish_ros/Int32Stamped.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -421,8 +421,9 @@ void ROSInterface::PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& 
     odom.publish(msg);
 
     //Iteration message
-    std_msgs::UInt32 msg2;
-    msg2.data = tr->getPlaybackIteration();
+    stonefish_ros::Int32Stamped msg2;
+    msg2.header = msg.header;
+    msg2.data = (int32_t)tr->getPlaybackIteration();
     iter.publish(msg2);
 }
 
