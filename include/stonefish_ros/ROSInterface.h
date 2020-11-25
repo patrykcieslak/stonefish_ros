@@ -49,6 +49,7 @@ namespace sf
     class MSIS;
     class Contact;
     class USBL;
+    class AnimatedEntity;
 
     class ROSInterface
     {
@@ -65,6 +66,7 @@ namespace sf
         static void PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb);
         static void PublishContact(ros::Publisher& contactPub, Contact* cnt);
         static void PublishUSBL(ros::Publisher& usblPub, USBL* usbl);
+        static void PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim);
 
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateFLSMsgPrototypes(FLS* fls);

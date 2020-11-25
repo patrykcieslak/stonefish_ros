@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSScenarioParser__
@@ -42,9 +42,10 @@ namespace sf
         virtual bool PreProcess(XMLNode* root, 
                                 const std::map<std::string, std::string>& args = std::map<std::string, std::string>());
         virtual bool ParseRobot(XMLElement* element);
+        virtual bool ParseAnimated(XMLElement* element);
         virtual bool ParseActuator(XMLElement* element, Robot* robot);
         virtual Sensor* ParseSensor(XMLElement* element, const std::string& namePrefix);
-        virtual bool ParseComm(XMLElement* element, Robot* robot = nullptr);
+        virtual Comm* ParseComm(XMLElement* element, const std::string& namePrefix);
         virtual bool ParseContact(XMLElement* element);
 
     private:

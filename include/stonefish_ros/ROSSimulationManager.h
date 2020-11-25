@@ -36,6 +36,7 @@
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
+#include <nav_msgs/Odometry.h>
 #include <cola2_msgs/Setpoints.h>
 #include <std_srvs/Trigger.h>
 #include <stonefish_ros/SonarSettings.h>
@@ -49,6 +50,7 @@ namespace sf
 	class FLS;
 	class SSS;
 	class MSIS;
+	class ManualTrajectory;
 
 	struct ROSRobot
 	{
@@ -150,6 +152,16 @@ namespace sf
 
 	private:
 		VariableBuoyancy* act;
+	};
+
+	class TrajectoryCallback
+	{
+	public:
+		TrajectoryCallback(ManualTrajectory* tr);
+		void operator()(const nav_msgs::OdometryConstPtr& msg);
+
+	private:
+		ManualTrajectory* tr;
 	};
 
 	class FLSService

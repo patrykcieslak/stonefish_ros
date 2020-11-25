@@ -54,6 +54,7 @@ int main(int argc, char **argv)
         s.atmosphere = sf::RenderQuality::LOW;
         s.ocean = sf::RenderQuality::LOW;
         s.aa = sf::RenderQuality::LOW;
+        s.ssr = sf::RenderQuality::DISABLED;
     }
     else if(quality == "high")
     {
@@ -62,6 +63,7 @@ int main(int argc, char **argv)
         s.atmosphere = sf::RenderQuality::HIGH;
         s.ocean = sf::RenderQuality::HIGH;
         s.aa = sf::RenderQuality::HIGH;
+        s.ssr = sf::RenderQuality::HIGH;
     }
     else // "medium"
     {
@@ -70,6 +72,7 @@ int main(int argc, char **argv)
         s.atmosphere = sf::RenderQuality::MEDIUM;
         s.ocean = sf::RenderQuality::MEDIUM;
         s.aa = sf::RenderQuality::MEDIUM;
+        s.ssr = sf::RenderQuality::MEDIUM;
     }
 
     sf::HelperSettings h;

@@ -29,6 +29,8 @@
 #include "stonefish_ros/ThrusterState.h"
 
 #include <Stonefish/core/Robot.h>
+#include <Stonefish/entities/AnimatedEntity.h>
+#include <Stonefish/entities/animation/ManualTrajectory.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/IMU.h>
@@ -175,13 +177,27 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
         switch(comm->getType())
         {
-            case CommType::ACOUSTIC:
+            case CommType::USBL:
                 ROSInterface::PublishUSBL(pubs[comm->getName()], (USBL*)comm);
                 comm->MarkDataOld();
                 break;
             
             default:
                 break;
+        }
+    }
+
+    //////////////////////////////////////TRAJECTORIES/////////////////////////////////////////////
+    id = 0;
+    Entity* ent;
+    while((ent = getEntity(id++)) != NULL)
+    {
+        if(ent->getType() == EntityType::ANIMATED)
+        {
+            if(pubs.find(ent->getName() + "/odometry") == pubs.end())
+                continue;
+
+            ROSInterface::PublishTrajectoryState(pubs[ent->getName() + "/odometry"], pubs[ent->getName() + "/iteration"], (AnimatedEntity*)ent);
         }
     }
 
@@ -531,6 +547,22 @@ VBSCallback::VBSCallback(VariableBuoyancy* act) : act(act)
 void VBSCallback::operator()(const std_msgs::Float64ConstPtr& msg)
 {   
     act->setFlowRate(msg->data);
+}
+
+TrajectoryCallback::TrajectoryCallback(ManualTrajectory* tr) : tr(tr)
+{
+}
+
+void TrajectoryCallback::operator()(const nav_msgs::OdometryConstPtr& msg)
+{
+    Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, 
+                    msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
+    Vector3 p(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+    Vector3 v(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
+    Vector3 omega(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z);
+    tr->setTransform(Transform(q, p));
+    tr->setLinearVelocity(v);
+    tr->setAngularVelocity(omega);
 }
 
 FLSService::FLSService(FLS* fls) : fls(fls)

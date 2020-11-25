@@ -42,7 +42,9 @@
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
+#include <Stonefish/entities/AnimatedEntity.h>
 
+#include <std_msgs/UInt32.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>
@@ -387,6 +389,41 @@ void ROSInterface::PublishUSBL(ros::Publisher& usblPub, USBL* usbl)
     }
 
     usblPub.publish(msg);
+}
+
+void ROSInterface::PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim)
+{
+    Trajectory* tr = anim->getTrajectory();
+    Transform T = tr->getInterpolatedTransform();
+    Vector3 p = T.getOrigin();
+    Quaternion q = T.getRotation();
+    Vector3 v = tr->getInterpolatedLinearVelocity();
+    Vector3 omega = tr->getInterpolatedAngularVelocity();
+
+    //Odometry message
+    nav_msgs::Odometry msg;
+    msg.header.frame_id = "world_ned";
+    msg.header.stamp = ros::Time::now();
+    msg.child_frame_id = anim->getName();
+    msg.pose.pose.position.x = p.x();
+    msg.pose.pose.position.y = p.y();
+    msg.pose.pose.position.z = p.z();
+    msg.pose.pose.orientation.x = q.x();
+    msg.pose.pose.orientation.y = q.y();
+    msg.pose.pose.orientation.z = q.z();
+    msg.pose.pose.orientation.w = q.w();
+    msg.twist.twist.linear.x = v.x();
+    msg.twist.twist.linear.y = v.y();
+    msg.twist.twist.linear.z = v.z();
+    msg.twist.twist.angular.x = omega.x();
+    msg.twist.twist.angular.y = omega.y();
+    msg.twist.twist.angular.z = omega.z();
+    odom.publish(msg);
+
+    //Iteration message
+    std_msgs::UInt32 msg2;
+    msg2.data = tr->getPlaybackIteration();
+    iter.publish(msg2);
 }
 
 std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> ROSInterface::GenerateCameraMsgPrototypes(Camera* cam, bool depth)

@@ -28,6 +28,7 @@
 #include "stonefish_ros/ROSInterface.h"
 
 #include <Stonefish/core/Robot.h>
+#include <Stonefish/entities/AnimatedEntity.h>
 #include <Stonefish/actuators/Actuator.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/sensors/ScalarSensor.h>
@@ -37,7 +38,9 @@
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/vision/MSIS.h>
+#include <Stonefish/comms/Comm.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/UInt32.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>
@@ -258,6 +261,56 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     return true;
 }
 
+bool ROSScenarioParser::ParseAnimated(XMLElement* element)
+{
+    if(!ScenarioParser::ParseAnimated(element))
+        return false;
+
+    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+    ros::NodeHandle& nh = sim->getNodeHandle();
+    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+    std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+
+    //Get name
+    const char* name = nullptr;
+    element->QueryStringAttribute("name", &name);
+    std::string nameStr(name);
+
+    //Get type of trajectory
+    const char* type;
+    XMLElement* item = element->FirstChildElement("trajectory");
+    item->QueryStringAttribute("type", &type);
+    std::string typeStr(type);
+
+    if(typeStr == "manual") //Position of animated body set by a message
+    {
+        //Get topic group name
+        const char* topic = nullptr;
+        if((item = element->FirstChildElement("ros_subscriber")) == nullptr 
+            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        {
+            return true;
+        }
+        AnimatedEntity* anim = (AnimatedEntity*)sim->getEntity(nameStr);
+        if(anim != nullptr)
+            subs[nameStr + "/odometry"] = nh.subscribe<nav_msgs::Odometry>(std::string(topic), 1, TrajectoryCallback((ManualTrajectory*)anim->getTrajectory()));
+    }
+    else //State of the trajectory published with a message
+    {
+        //Get topic group name
+        const char* topic = nullptr;
+        if((item = element->FirstChildElement("ros_publisher")) == nullptr 
+            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        {
+            return true;
+        }
+        pubs[nameStr + "/odometry"] = nh.advertise<nav_msgs::Odometry>(std::string(topic), 10);
+        pubs[nameStr + "/iteration"] = nh.advertise<std_msgs::UInt32>(std::string(topic) + "/iteration", 10);
+    }
+    
+    return true;
+}
+
 bool ROSScenarioParser::ParseActuator(XMLElement* element, Robot* robot)
 {
     if(!ScenarioParser::ParseActuator(element, robot))
@@ -458,35 +511,39 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
     return sens;
 }
 
-bool ROSScenarioParser::ParseComm(XMLElement* element, Robot* robot)
+Comm* ROSScenarioParser::ParseComm(XMLElement* element, const std::string& namePrefix)
 {
-    if(!ScenarioParser::ParseComm(element, robot))
-        return false;
-
-    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-    ros::NodeHandle& nh = sim->getNodeHandle();
-    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-    
-    const char* name = nullptr;
-    const char* type = nullptr;
-    element->QueryStringAttribute("name", &name);
-    element->QueryStringAttribute("type", &type);
-    std::string commName = robot != nullptr ?  robot->getName() + "/" + std::string(name) : std::string(name);
-    std::string typeStr(type);
-
-    //Publish info
-    if(typeStr == "usbl")
+    Comm* comm = ScenarioParser::ParseComm(element, namePrefix);
+    if(comm != nullptr)
     {
+        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+        ros::NodeHandle& nh = sim->getNodeHandle();
+        std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+        std::string commName = comm->getName();
+        
+        //Publishing info
         XMLElement* item;
-        const char* pubTopic = nullptr;
-        if((item = element->FirstChildElement("ros_publisher")) != nullptr 
-            && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+        const char* topic = nullptr;
+        if((item = element->FirstChildElement("ros_publisher")) == nullptr 
+            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
         {
-            pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(std::string(pubTopic), 10);
+            return comm;
+        }
+        
+        std::string topicStr(topic);
+
+        //Generate publishers for different comm types
+        switch(comm->getType())
+        {
+            case CommType::USBL:
+                pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(topicStr, 10);
+                break;
+
+            default:
+                break;   
         }
     }
-    
-    return true;
+    return comm;
 }
 
 bool ROSScenarioParser::ParseContact(XMLElement* element)
