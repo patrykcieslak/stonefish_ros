@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(Stonefish REQUIRED stonefish>=1.1.0)
+pkg_check_modules(Stonefish REQUIRED stonefish>=1.2.0)
 
 add_message_files(
   FILES
@@ -34,7 +34,7 @@ generate_messages(
   std_msgs
 )
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 add_compile_options(${Stonefish_CFLAGS})
 
 catkin_package(
