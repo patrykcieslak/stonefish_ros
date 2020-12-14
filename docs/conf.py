@@ -20,7 +20,7 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = u'stonefish_ros'
+project = u'Stonefish ROS'
 copyright = u'2020, Patryk Cieślak'
 author = u'Patryk Cieślak'
 
