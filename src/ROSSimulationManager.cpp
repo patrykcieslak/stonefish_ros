@@ -66,6 +66,11 @@ ROSSimulationManager::~ROSSimulationManager()
 {
 }
 
+uint64_t ROSSimulationManager::getSimulationClock()
+{
+    return ros::Time::now().toNSec()/1000;
+}
+
 ros::NodeHandle& ROSSimulationManager::getNodeHandle()
 {
     return nh;

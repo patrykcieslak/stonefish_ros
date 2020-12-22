@@ -32,12 +32,14 @@ int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "parsed_simulator", ros::init_options::NoSigintHandler);
 
+    //Check number of command line arguments
 	if(argc < 7)
 	{
-		ROS_FATAL("Not enough command line parameters provided!");
+		ROS_FATAL("Not enough command line arguments provided!");
 		return 1;
 	}
 
+    //Parse arguments
     std::string dataDirPath = std::string(argv[1]) + "/";
     std::string scenarioPath(argv[2]);
     sf::Scalar rate = atof(argv[3]);
@@ -84,7 +86,7 @@ int main(int argc, char **argv)
     h.showForces = false;
 	
 	sf::ROSSimulationManager manager(rate, scenarioPath);
-	sf::GraphicalSimulationApp app("Stonefish Simulator", dataDirPath, s, h, &manager); 
+    sf::GraphicalSimulationApp app("Stonefish Simulator", dataDirPath, s, h, &manager); 
 	app.Run();
 
 	return 0;

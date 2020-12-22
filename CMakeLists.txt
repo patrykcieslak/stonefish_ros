@@ -51,7 +51,7 @@ catkin_package(
                  roslib
                  tf 
                  tf_conversions
-		 message_runtime
+		             message_runtime
   DEPENDS Stonefish
 )
 
@@ -70,6 +70,9 @@ src/ROSScenarioParser.cpp
 add_dependencies(stonefish_ros ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(stonefish_ros ${catkin_LIBRARIES} ${Stonefish_LIBRARIES})
 
-#Universal simulator with XML parser
+#Universal simulators with XML parser
 add_executable(parsed_simulator src/parsed_simulator.cpp)
 target_link_libraries(parsed_simulator ${catkin_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
+
+add_executable(parsed_simulator_nogpu src/parsed_simulator_nogpu.cpp)
+target_link_libraries(parsed_simulator_nogpu ${catkin_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)

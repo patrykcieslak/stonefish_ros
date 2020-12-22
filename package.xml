@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
 	<name>stonefish_ros</name>
-	<version>1.1.0</version>
+	<version>1.2.0</version>
 	<description>The stonefish_ros package</description>
 	<author email="patryk.cieslak@udg.edu">Patryk Cieslak</author>
 	<maintainer email="patryk.cieslak@udg.edu">Patryk Cieslak</maintainer>

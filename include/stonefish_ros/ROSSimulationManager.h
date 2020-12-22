@@ -77,6 +77,7 @@ namespace sf
 	    virtual ~ROSSimulationManager();
 
 		virtual void BuildScenario();
+
 	    void AddROSRobot(ROSRobot* robot);
 
 		virtual void SimulationStepCompleted(Scalar timeStep);		
@@ -90,6 +91,7 @@ namespace sf
 	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
+		virtual uint64_t getSimulationClock();
 	    ros::NodeHandle& getNodeHandle();
 	    std::map<std::string, ros::ServiceServer>& getServiceServers();
 		std::map<std::string, ros::Publisher>& getPublishers();

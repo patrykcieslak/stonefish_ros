@@ -1,0 +1,6 @@
+<launch>
+    <arg name="simulation_data" default=""/> <!-- path to the data directory -->
+    <arg name="scenario_description" default=""/> <!-- path to the scenario description -->
+    <arg name="simulation_rate" default="500"/> <!-- number of simulation steps per second -->
+    <node name="stonefish_simulator" pkg="stonefish_ros" type="parsed_simulator_nogpu" args="$(arg simulation_data) $(arg scenario_description) $(arg simulation_rate)" output="screen"/>
+</launch>
