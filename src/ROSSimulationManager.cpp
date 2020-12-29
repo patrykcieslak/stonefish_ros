@@ -71,6 +71,11 @@ uint64_t ROSSimulationManager::getSimulationClock()
     return ros::Time::now().toNSec()/1000;
 }
 
+void ROSSimulationManager::SimulationClockSleep(uint64_t us)
+{
+    ros::Duration(0, (int32_t)us*1000).sleep();
+}
+
 ros::NodeHandle& ROSSimulationManager::getNodeHandle()
 {
     return nh;

@@ -92,6 +92,7 @@ namespace sf
 		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
 		virtual uint64_t getSimulationClock();
+		virtual void SimulationClockSleep(uint64_t us);
 	    ros::NodeHandle& getNodeHandle();
 	    std::map<std::string, ros::ServiceServer>& getServiceServers();
 		std::map<std::string, ros::Publisher>& getPublishers();
