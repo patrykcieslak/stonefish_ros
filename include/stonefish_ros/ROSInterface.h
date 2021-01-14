@@ -34,6 +34,8 @@
 
 namespace sf
 {
+    class Accelerometer;
+    class Gyroscope;
     class IMU;
     class Pressure;
     class DVL;
@@ -55,6 +57,8 @@ namespace sf
     {
     public:
         static void PublishTF(tf::TransformBroadcaster& broadcaster, const Transform& T, const ros::Time& t, const std::string &frame_id, const std::string &child_frame_id);
+        static void PublishAccelerometer(ros::Publisher& pub, Accelerometer* acc);
+        static void PublishGyroscope(ros::Publisher& pub, Gyroscope* gyro);
         static void PublishIMU(ros::Publisher& pub, IMU* imu);
         static void PublishPressure(ros::Publisher& pub, Pressure* press);
         static void PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* dvl);

@@ -33,6 +33,8 @@
 #include <Stonefish/entities/animation/ManualTrajectory.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
+#include <Stonefish/sensors/scalar/Accelerometer.h>
+#include <Stonefish/sensors/scalar/Gyroscope.h>
 #include <Stonefish/sensors/scalar/IMU.h>
 #include <Stonefish/sensors/scalar/GPS.h>
 #include <Stonefish/sensors/scalar/ForceTorque.h>
@@ -51,6 +53,8 @@
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/utils/SystemUtil.hpp>
+
+#include <ros/file_log.h>
 
 namespace sf
 {
@@ -108,8 +112,23 @@ std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& 
 
 void ROSSimulationManager::BuildScenario()
 {
+    //Run parser
     ROSScenarioParser parser(this);
-    parser.Parse(scnFilePath);
+    bool success = parser.Parse(scnFilePath);
+
+    //Save log
+    std::string logFilePath = ros::file_log::getLogDirectory() + "/stonefish_ros_parser.log";
+    bool success2 = parser.SaveLog(logFilePath);
+    
+    if(!success)
+    {
+        ROS_ERROR("Parsing of scenario file '%s' failed!", scnFilePath.c_str());
+        if(success2)
+            ROS_ERROR("For more information check the parser log file '%s'.", logFilePath.c_str());
+    }
+
+    if(!success2)
+        ROS_ERROR("Parser log file '%s' could not be saved!", logFilePath.c_str());
 }
 
 void ROSSimulationManager::AddROSRobot(ROSRobot* robot)
@@ -134,12 +153,20 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
             switch(((ScalarSensor*)sensor)->getScalarSensorType())
             {
-                case ScalarSensorType::ODOM:
-                    ROSInterface::PublishOdometry(pubs[sensor->getName()], (Odometry*)sensor);
+                case ScalarSensorType::ACC:
+                    ROSInterface::PublishAccelerometer(pubs[sensor->getName()], (Accelerometer*)sensor);
+                    break;
+
+                case ScalarSensorType::GYRO:
+                    ROSInterface::PublishGyroscope(pubs[sensor->getName()], (Gyroscope*)sensor);
                     break;
 
                 case ScalarSensorType::IMU:
                     ROSInterface::PublishIMU(pubs[sensor->getName()], (IMU*)sensor);
+                    break;
+
+                case ScalarSensorType::ODOM:
+                    ROSInterface::PublishOdometry(pubs[sensor->getName()], (Odometry*)sensor);
                     break;
 
                 case ScalarSensorType::DVL:

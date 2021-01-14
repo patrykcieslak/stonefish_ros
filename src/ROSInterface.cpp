@@ -26,6 +26,8 @@
 #include "stonefish_ros/ROSInterface.h"
 
 #include <Stonefish/sensors/Sample.h>
+#include <Stonefish/sensors/scalar/Accelerometer.h>
+#include <Stonefish/sensors/scalar/Gyroscope.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/IMU.h>
@@ -54,6 +56,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/LaserScan.h>
+#include <geometry_msgs/AccelWithCovarianceStamped.h>
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <nav_msgs/Odometry.h>
@@ -79,17 +83,59 @@ void ROSInterface::PublishTF(tf::TransformBroadcaster& broadcaster, const Transf
     broadcaster.sendTransform(tf::StampedTransform(TF, t, frame_id, child_frame_id));
 }
 
+void ROSInterface::PublishAccelerometer(ros::Publisher& pub, Accelerometer* acc)
+{
+    Sample s = acc->getLastSample();
+    Vector3 accelStdDev = Vector3(acc->getSensorChannelDescription(0).stdDev, 
+                                  acc->getSensorChannelDescription(1).stdDev,
+                                  acc->getSensorChannelDescription(2).stdDev);
+    
+    geometry_msgs::AccelWithCovarianceStamped msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = acc->getName();
+    msg.accel.accel.linear.x = s.getValue(0);
+    msg.accel.accel.linear.y = s.getValue(1);
+    msg.accel.accel.linear.z = s.getValue(2);
+    msg.accel.covariance[0] = accelStdDev.getX() * accelStdDev.getX();
+    msg.accel.covariance[7] = accelStdDev.getY() * accelStdDev.getY();
+    msg.accel.covariance[14] = accelStdDev.getZ() * accelStdDev.getZ();
+    pub.publish(msg);
+}
+
+void ROSInterface::PublishGyroscope(ros::Publisher& pub, Gyroscope* gyro)
+{
+    Sample s = gyro->getLastSample();
+    Vector3 avelocityStdDev = Vector3(gyro->getSensorChannelDescription(0).stdDev, 
+                                      gyro->getSensorChannelDescription(1).stdDev,
+                                      gyro->getSensorChannelDescription(2).stdDev);
+
+    geometry_msgs::TwistWithCovarianceStamped msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = gyro->getName();
+    msg.twist.twist.angular.x = s.getValue(0);
+    msg.twist.twist.angular.y = s.getValue(1);
+    msg.twist.twist.angular.z = s.getValue(2);
+    msg.twist.covariance[21] = avelocityStdDev.getX() * avelocityStdDev.getX();
+    msg.twist.covariance[28] = avelocityStdDev.getY() * avelocityStdDev.getY();
+    msg.twist.covariance[35] = avelocityStdDev.getZ() * avelocityStdDev.getZ();
+    pub.publish(msg);
+}
+
 void ROSInterface::PublishIMU(ros::Publisher& pub, IMU* imu)
 {
     Sample s = imu->getLastSample();
     Vector3 rpy = Vector3(s.getValue(0), s.getValue(1), s.getValue(2));
     Quaternion quat(rpy.z(), rpy.y(), rpy.x());
-        
-    Scalar oVariance = imu->getSensorChannelDescription(0).stdDev;
-    oVariance *= oVariance; //Variance is square of standard deviation
-    Scalar vVariance = imu->getSensorChannelDescription(3).stdDev;
-    vVariance *= vVariance; //Variance is square of standard deviation
-
+    Vector3 angleStdDev = Vector3(imu->getSensorChannelDescription(0).stdDev,
+                                  imu->getSensorChannelDescription(1).stdDev,
+                                  imu->getSensorChannelDescription(2).stdDev);
+    Vector3 avelocityStdDev = Vector3(imu->getSensorChannelDescription(3).stdDev,
+                                      imu->getSensorChannelDescription(4).stdDev,
+                                      imu->getSensorChannelDescription(5).stdDev);
+    Vector3 accStdDev = Vector3(imu->getSensorChannelDescription(6).stdDev,
+                                imu->getSensorChannelDescription(7).stdDev,
+                                imu->getSensorChannelDescription(8).stdDev);
+    //Variance is sigma^2!
     sensor_msgs::Imu msg;
     msg.header.stamp = ros::Time::now();    
     msg.header.frame_id = imu->getName();
@@ -97,15 +143,21 @@ void ROSInterface::PublishIMU(ros::Publisher& pub, IMU* imu)
     msg.orientation.y = quat.y();
     msg.orientation.z = quat.z();
     msg.orientation.w = quat.w();
-    msg.orientation_covariance[0] = oVariance;
-    msg.orientation_covariance[4] = oVariance;
-    msg.orientation_covariance[8] = oVariance;
+    msg.orientation_covariance[0] = angleStdDev.getX() * angleStdDev.getX();
+    msg.orientation_covariance[4] = angleStdDev.getY() * angleStdDev.getY();
+    msg.orientation_covariance[8] = angleStdDev.getZ() * angleStdDev.getZ();
     msg.angular_velocity.x = s.getValue(3);
     msg.angular_velocity.y = s.getValue(4);
     msg.angular_velocity.z = s.getValue(5);
-    msg.angular_velocity_covariance[0] = vVariance;
-    msg.angular_velocity_covariance[4] = vVariance;
-    msg.angular_velocity_covariance[8] = vVariance;
+    msg.angular_velocity_covariance[0] = avelocityStdDev.getX() * avelocityStdDev.getX();
+    msg.angular_velocity_covariance[4] = avelocityStdDev.getY() * avelocityStdDev.getY();
+    msg.angular_velocity_covariance[8] = avelocityStdDev.getZ() * avelocityStdDev.getZ();
+    msg.linear_acceleration.x = s.getValue(6);
+    msg.linear_acceleration.y = s.getValue(7);
+    msg.linear_acceleration.z = s.getValue(8);
+    msg.linear_acceleration_covariance[0] = accStdDev.getX() * accStdDev.getX();
+    msg.linear_acceleration_covariance[4] = accStdDev.getY() * accStdDev.getY();
+    msg.linear_acceleration_covariance[8] = accStdDev.getZ() * accStdDev.getZ();
     pub.publish(msg);
 }
 

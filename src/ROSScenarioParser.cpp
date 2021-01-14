@@ -50,6 +50,8 @@
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/JointState.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/AccelWithCovarianceStamped.h>
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <visualization_msgs/Marker.h>
@@ -383,6 +385,14 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
             {
                 switch(((ScalarSensor*)sens)->getScalarSensorType())
                 {
+                    case ScalarSensorType::ACC:
+                        pubs[sensorName] = nh.advertise<geometry_msgs::AccelWithCovarianceStamped>(topicStr, queueSize);
+                        break;
+
+                    case ScalarSensorType::GYRO:
+                        pubs[sensorName] = nh.advertise<geometry_msgs::TwistWithCovarianceStamped>(topicStr, queueSize);
+                        break;
+
                     case ScalarSensorType::IMU:
                         pubs[sensorName] = nh.advertise<sensor_msgs::Imu>(topicStr, queueSize);
                         break;
