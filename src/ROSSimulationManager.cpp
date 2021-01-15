@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2021 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSSimulationManager.h"
@@ -584,6 +584,32 @@ VBSCallback::VBSCallback(VariableBuoyancy* act) : act(act)
 void VBSCallback::operator()(const std_msgs::Float64ConstPtr& msg)
 {   
     act->setFlowRate(msg->data);
+}
+
+SensorOriginCallback::SensorOriginCallback(Sensor* sens) : sens(sens)
+{
+}
+
+void SensorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& msg)
+{
+    Transform T;
+    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
+    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
+
+    switch(sens->getType())
+    {
+        case SensorType::LINK:
+            ((LinkSensor*)sens)->setRelativeSensorFrame(T);
+            break;
+
+        case SensorType::VISION:
+            ((VisionSensor*)sens)->setRelativeSensorFrame(T);
+            break;
+        
+        default:
+            ROS_WARN_STREAM("Live update of origin frame of sensor '" << sens->getName() << "' not supported!");
+            break;
+    }
 }
 
 TrajectoryCallback::TrajectoryCallback(ManualTrajectory* tr) : tr(tr)
