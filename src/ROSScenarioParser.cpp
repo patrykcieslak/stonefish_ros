@@ -30,6 +30,7 @@
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/entities/AnimatedEntity.h>
 #include <Stonefish/actuators/Actuator.h>
+#include <Stonefish/actuators/Light.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/sensors/ScalarSensor.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
@@ -316,43 +317,61 @@ bool ROSScenarioParser::ParseAnimated(XMLElement* element)
     return true;
 }
 
-bool ROSScenarioParser::ParseActuator(XMLElement* element, Robot* robot)
+Actuator* ROSScenarioParser::ParseActuator(XMLElement* element, const std::string& namePrefix)
 {
-    if(!ScenarioParser::ParseActuator(element, robot))
-        return false;
-
-    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-    ros::NodeHandle& nh = sim->getNodeHandle();
-    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-    std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
-
-    //Actuator info
-    const char* name = nullptr;
-    const char* type = nullptr;
-    element->QueryStringAttribute("name", &name);
-    element->QueryStringAttribute("type", &type);
-    std::string actuatorName = robot->getName() + "/" + std::string(name);
-    std::string typeStr(type);
-
-    //Publish and subscribe info
-    if(typeStr == "vbs")
+    Actuator* act = ScenarioParser::ParseActuator(element, namePrefix);
+    if(act != nullptr)
     {
+        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+        ros::NodeHandle& nh = sim->getNodeHandle();
+        std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+        std::string actuatorName = act->getName();
         XMLElement* item;
-        const char* pubTopic = nullptr;
-        const char* subTopic = nullptr;
-        if((item = element->FirstChildElement("ros_publisher")) != nullptr 
-            && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+        //Actuator specific handling
+        switch(act->getType())
         {
-            pubs[actuatorName] = nh.advertise<std_msgs::Float64>(std::string(pubTopic), 10);
+            case ActuatorType::VBS:
+            {
+                const char* pubTopic = nullptr;
+                const char* subTopic = nullptr;
+                if((item = element->FirstChildElement("ros_publisher")) != nullptr 
+                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+                {
+                    pubs[actuatorName] = nh.advertise<std_msgs::Float64>(std::string(pubTopic), 10);
+                }
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                    && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
+                {
+                    subs[actuatorName] = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, VBSCallback((VariableBuoyancy*)act));
+                }
+            } 
+                break;
+        
+            default:
+                break;
         }
-        if((item = element->FirstChildElement("ros_subscriber")) != nullptr
-            && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
+        //Handling of online origin updates
+        switch(act->getType())
         {
-            subs[actuatorName] = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, VBSCallback((VariableBuoyancy*)robot->getActuator(actuatorName)));
+            case ActuatorType::THRUSTER:
+            case ActuatorType::PROPELLER:
+            case ActuatorType::VBS:
+            {
+                const char* originTopic = nullptr;
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr 
+                    && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
+                {
+                    subs[actuatorName] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), 1, ActuatorOriginCallback(act));
+                }
+            }
+                break;
+            
+            default:
+                break;
         }
     }
-
-    return true;
+    return act;
 }
 
 Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& namePrefix)
@@ -586,6 +605,27 @@ Comm* ROSScenarioParser::ParseComm(XMLElement* element, const std::string& nameP
         }
     }
     return comm;
+}
+
+Light* ROSScenarioParser::ParseLight(XMLElement* element, const std::string& namePrefix)
+{
+    Light* l = ScenarioParser::ParseLight(element, namePrefix);
+    if(l != nullptr)
+    {
+        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+        ros::NodeHandle& nh = sim->getNodeHandle();
+        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+        XMLElement* item;
+        
+        //Online update of light origin frame
+        const char* originTopic = nullptr;
+        if((item = element->FirstChildElement("ros_subscriber")) != nullptr 
+            && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
+        {
+            subs[l->getName()] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), 1, ActuatorOriginCallback(l));
+        }
+    }
+    return l;
 }
 
 bool ROSScenarioParser::ParseContact(XMLElement* element)

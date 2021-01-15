@@ -586,6 +586,31 @@ void VBSCallback::operator()(const std_msgs::Float64ConstPtr& msg)
     act->setFlowRate(msg->data);
 }
 
+ActuatorOriginCallback::ActuatorOriginCallback(Actuator* act) : act(act)
+{
+}
+
+void ActuatorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& msg)
+{
+    Transform T;
+    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
+    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
+
+    switch(act->getType())
+    {
+        case ActuatorType::THRUSTER:
+        case ActuatorType::PROPELLER:
+        case ActuatorType::VBS:
+        case ActuatorType::LIGHT:
+            ((LinkActuator*)act)->setRelativeActuatorFrame(T);
+            break;
+
+        default:
+            ROS_WARN_STREAM("Live update of origin frame of actuator '" << act->getName() << "' not supported!");
+            break;
+    }
+}
+
 SensorOriginCallback::SensorOriginCallback(Sensor* sens) : sens(sens)
 {
 }

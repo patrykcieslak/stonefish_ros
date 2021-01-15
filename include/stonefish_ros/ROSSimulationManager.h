@@ -168,6 +168,16 @@ namespace sf
 		ManualTrajectory* tr;
 	};
 
+	class ActuatorOriginCallback
+	{
+	public:
+		ActuatorOriginCallback(Actuator* act);
+		void operator()(const geometry_msgs::TransformConstPtr& msg);
+
+	private:
+		Actuator* act;
+	};
+
 	class SensorOriginCallback
 	{
 	public:

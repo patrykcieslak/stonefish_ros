@@ -43,9 +43,10 @@ namespace sf
                                 const std::map<std::string, std::string>& args = std::map<std::string, std::string>());
         virtual bool ParseRobot(XMLElement* element);
         virtual bool ParseAnimated(XMLElement* element);
-        virtual bool ParseActuator(XMLElement* element, Robot* robot);
+        virtual Actuator* ParseActuator(XMLElement* element, const std::string& namePrefix);
         virtual Sensor* ParseSensor(XMLElement* element, const std::string& namePrefix);
         virtual Comm* ParseComm(XMLElement* element, const std::string& namePrefix);
+        virtual Light* ParseLight(XMLElement* element, const std::string& namePrefix);
         virtual bool ParseContact(XMLElement* element);
 
     private:
