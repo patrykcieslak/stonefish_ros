@@ -29,6 +29,8 @@
 
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/entities/AnimatedEntity.h>
+#include <Stonefish/entities/forcefields/Uniform.h>
+#include <Stonefish/entities/forcefields/Jet.h>
 #include <Stonefish/actuators/Actuator.h>
 #include <Stonefish/actuators/Light.h>
 #include <Stonefish/actuators/Servo.h>
@@ -166,6 +168,49 @@ bool ROSScenarioParser::PreProcess(XMLNode* root, const std::map<std::string, st
         return false;
     //Then process include arguments
     return ScenarioParser::PreProcess(root, args);
+}
+
+VelocityField* ROSScenarioParser::ParseVelocityField(XMLElement* element)
+{
+    VelocityField* vf = ScenarioParser::ParseVelocityField(element);
+    if(vf != nullptr)
+    {
+        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+        ros::NodeHandle& nh = sim->getNodeHandle();
+        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+        XMLElement* item;
+
+        switch(vf->getType())
+        {
+            case VelocityFieldType::UNIFORM:
+            {
+                const char* subTopic = nullptr;
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                   && item->QueryStringAttribute("velocity", &subTopic) == XML_SUCCESS)
+                {
+                    subs["vf"+std::to_string(ros::Time::now().toNSec())]  //Unique subscriber key string
+                        = nh.subscribe<geometry_msgs::Vector3>(std::string(subTopic), 1, UniformVFCallback((Uniform*)vf));
+                }
+            }
+                break;
+
+            case VelocityFieldType::JET:
+            {
+                const char* subTopic = nullptr;
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                   && item->QueryStringAttribute("outlet_velocity", &subTopic) == XML_SUCCESS)
+                {
+                    subs["vf"+std::to_string(ros::Time::now().toNSec())]  //Unique subscriber key string
+                        = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, JetVFCallback((Jet*)vf));
+                }
+            }
+                break;
+
+            default:
+                break;
+        }
+    }
+    return vf;
 }
 
 bool ROSScenarioParser::ParseRobot(XMLElement* element)

@@ -33,6 +33,7 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/Float64.h>
+#include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Transform.h>
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/Image.h>
@@ -52,6 +53,8 @@ namespace sf
 	class SSS;
 	class MSIS;
 	class ManualTrajectory;
+	class Uniform;
+	class Jet;
 
 	struct ROSRobot
 	{
@@ -115,6 +118,26 @@ namespace sf
 	};
 
 	//Callback functors
+	class UniformVFCallback
+	{
+	public:
+		UniformVFCallback(Uniform* vf);
+		void operator()(const geometry_msgs::Vector3ConstPtr& msg);
+
+	private:
+		Uniform* vf;
+	};
+
+	class JetVFCallback
+	{
+	public:
+		JetVFCallback(Jet* vf);
+		void operator()(const std_msgs::Float64ConstPtr& msg);
+
+	private:
+		Jet* vf;
+	};
+
 	class ThrustersCallback
 	{
 	public: 

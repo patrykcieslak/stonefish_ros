@@ -31,6 +31,8 @@
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/entities/AnimatedEntity.h>
 #include <Stonefish/entities/animation/ManualTrajectory.h>
+#include <Stonefish/entities/forcefields/Uniform.h>
+#include <Stonefish/entities/forcefields/Jet.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/Accelerometer.h>
@@ -496,6 +498,24 @@ bool ROSSimulationManager::DisableCurrents(std_srvs::Trigger::Request &req, std_
     return true;
 }
 
+UniformVFCallback::UniformVFCallback(Uniform* vf) : vf(vf)
+{
+}
+
+void UniformVFCallback::operator()(const geometry_msgs::Vector3ConstPtr& msg)
+{
+    vf->setVelocity(Vector3(msg->x, msg->y, msg->z));
+}
+
+JetVFCallback::JetVFCallback(Jet* vf) : vf(vf)
+{
+}
+
+void JetVFCallback::operator()(const std_msgs::Float64ConstPtr& msg)
+{
+    vf->setOutletVelocity(msg->data);
+}
+
 ThrustersCallback::ThrustersCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)
 {
 }
@@ -530,7 +550,6 @@ void PropellersCallback::operator()(const cola2_msgs::SetpointsConstPtr& msg)
 
 ServosCallback::ServosCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)
 {
-
 }
 
 void ServosCallback::operator()(const sensor_msgs::JointStateConstPtr& msg)

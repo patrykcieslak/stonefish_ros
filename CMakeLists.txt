@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(Stonefish REQUIRED stonefish>=1.2.0)
+pkg_check_modules(Stonefish REQUIRED stonefish>=1.3.0)
 
 add_message_files(
   FILES

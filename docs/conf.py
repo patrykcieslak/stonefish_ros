@@ -21,13 +21,13 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = u'Stonefish ROS'
-copyright = u'2020, Patryk Cieślak'
+copyright = u'2021, Patryk Cieślak'
 author = u'Patryk Cieślak'
 
 # The short X.Y version
-version = u'1.2'
+version = u'1.3'
 # The full version, including alpha/beta/rc tags
-release = u'1.2.0'
+release = u'1.3.0'
 
 
 # -- General configuration ---------------------------------------------------
