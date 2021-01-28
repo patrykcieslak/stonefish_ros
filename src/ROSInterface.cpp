@@ -175,10 +175,16 @@ void ROSInterface::PublishPressure(ros::Publisher& pub, Pressure* press)
 
 void ROSInterface::PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* dvl)
 {
+    //Get data
     Sample s = dvl->getLastSample();
+    unsigned short status = (unsigned short)trunc(s.getValue(7));
     Scalar vVariance = dvl->getSensorChannelDescription(0).stdDev;
     vVariance *= vVariance; //Variance is square of standard deviation
-
+    Vector3 velMax;
+    Scalar altMin, altMax;
+    dvl->getRange(velMax, altMin, altMax);
+    Scalar beamAngle = dvl->getBeamSpreadAngle();
+    //Publish DVL message
     cola2_msgs::DVL msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = dvl->getName();
@@ -188,17 +194,17 @@ void ROSInterface::PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* 
     msg.velocity_covariance[0] = vVariance;
     msg.velocity_covariance[4] = vVariance;
     msg.velocity_covariance[8] = vVariance;
-    msg.altitude = s.getValue(3);
+    msg.altitude = (status == 0 || status == 2) ? s.getValue(3) : -1.0;
     pub.publish(msg);
-
+    //Publish range message
     sensor_msgs::Range msg2;
     msg2.header.stamp = ros::Time::now();
     msg2.header.frame_id = dvl->getName() + "_altitude";
     msg2.radiation_type = msg2.ULTRASOUND;
-    msg2.field_of_view = 0.2;
-    msg2.min_range = 0.5;
-    msg2.max_range = 80.0;
-    msg2.range = s.getValue(3);
+    msg2.field_of_view = beamAngle;
+    msg2.min_range = altMin;
+    msg2.max_range = altMax;
+    msg2.range = msg.altitude;
     altPub.publish(msg2);
 }
 
