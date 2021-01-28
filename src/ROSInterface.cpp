@@ -175,30 +175,95 @@ void ROSInterface::PublishPressure(ros::Publisher& pub, Pressure* press)
 
 void ROSInterface::PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* dvl)
 {
+    //Get data
     Sample s = dvl->getLastSample();
+    unsigned short status = (unsigned short)trunc(s.getValue(7));
     Scalar vVariance = dvl->getSensorChannelDescription(0).stdDev;
     vVariance *= vVariance; //Variance is square of standard deviation
+    Scalar wvVariance = dvl->getSensorChannelDescription(4).stdDev;
+    wvVariance *= wvVariance;
+    Vector3 velMax;
+    Scalar altMin, altMax;
+    dvl->getRange(velMax, altMin, altMax);
+    Scalar beamAngle = dvl->getBeamSpreadAngle();
 
+    //Publish DVL message
     cola2_msgs::DVL msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = dvl->getName();
-    msg.velocity.x = s.getValue(0);
-    msg.velocity.y = s.getValue(1);
-    msg.velocity.z = s.getValue(2);
-    msg.velocity_covariance[0] = vVariance;
-    msg.velocity_covariance[4] = vVariance;
-    msg.velocity_covariance[8] = vVariance;
-    msg.altitude = s.getValue(3);
+
+    /*
+        Status:
+        0 - bottom ping only
+        1 - water ping only
+        2 - bottom and water ping
+        3 - no ping at all
+    */
+    switch(status)
+    {
+        case 0:
+            msg.bottom.velocity.x = s.getValue(0);
+            msg.bottom.velocity.y = s.getValue(1);
+            msg.bottom.velocity.z = s.getValue(2);
+            msg.bottom.velocity_covariance[0] = vVariance;
+            msg.bottom.velocity_covariance[4] = vVariance;
+            msg.bottom.velocity_covariance[8] = vVariance;
+            msg.water.velocity_covariance[0] = -1.0;
+            msg.water.velocity_covariance[4] = -1.0;
+            msg.water.velocity_covariance[8] = -1.0;
+            break;
+
+        case 1:
+            msg.water.velocity.x = s.getValue(4);
+            msg.water.velocity.y = s.getValue(5);
+            msg.water.velocity.z = s.getValue(6);
+            msg.water.velocity_covariance[0] = wvVariance;
+            msg.water.velocity_covariance[4] = wvVariance;
+            msg.water.velocity_covariance[8] = wvVariance;
+            msg.bottom.velocity_covariance[0] = -1.0;
+            msg.bottom.velocity_covariance[4] = -1.0;
+            msg.bottom.velocity_covariance[8] = -1.0;
+            break;
+
+        case 2:
+            msg.bottom.velocity.x = s.getValue(0);
+            msg.bottom.velocity.y = s.getValue(1);
+            msg.bottom.velocity.z = s.getValue(2);
+            msg.bottom.velocity_covariance[0] = vVariance;
+            msg.bottom.velocity_covariance[4] = vVariance;
+            msg.bottom.velocity_covariance[8] = vVariance;
+            msg.water.velocity.x = s.getValue(4);
+            msg.water.velocity.y = s.getValue(5);
+            msg.water.velocity.z = s.getValue(6);
+            msg.water.velocity_covariance[0] = wvVariance;
+            msg.water.velocity_covariance[4] = wvVariance;
+            msg.water.velocity_covariance[8] = wvVariance;
+            break;
+
+        case 3:
+        default:
+            msg.bottom.velocity_covariance[0] = -1.0;
+            msg.bottom.velocity_covariance[4] = -1.0;
+            msg.bottom.velocity_covariance[8] = -1.0;
+            msg.water.velocity_covariance[0] = -1.0;
+            msg.water.velocity_covariance[4] = -1.0;
+            msg.water.velocity_covariance[8] = -1.0;
+            break;
+    }
+    
+    msg.altitude = (status == 0 || status == 2) ? s.getValue(3) : -1.0;
+    msg.sound_speed = SOUND_VELOCITY_WATER;
     pub.publish(msg);
 
+    //Publish range message
     sensor_msgs::Range msg2;
     msg2.header.stamp = ros::Time::now();
     msg2.header.frame_id = dvl->getName() + "_altitude";
     msg2.radiation_type = msg2.ULTRASOUND;
-    msg2.field_of_view = 0.2;
-    msg2.min_range = 0.5;
-    msg2.max_range = 80.0;
-    msg2.range = s.getValue(3);
+    msg2.field_of_view = beamAngle;
+    msg2.min_range = altMin;
+    msg2.max_range = altMax;
+    msg2.range = msg.altitude;
     altPub.publish(msg2);
 }
 
