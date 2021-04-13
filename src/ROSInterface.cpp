@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2020 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2021 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSInterface.h"
@@ -36,6 +36,7 @@
 #include <Stonefish/sensors/scalar/RotaryEncoder.h>
 #include <Stonefish/sensors/scalar/Odometry.h>
 #include <Stonefish/sensors/scalar/Multibeam.h>
+#include <Stonefish/sensors/scalar/Profiler.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
@@ -291,37 +292,54 @@ void ROSInterface::PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes)
+void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
 {
-    Sample sample = mbes->getLastSample();
-    SensorChannel channel = mbes->getSensorChannelDescription(0);
-    std::vector<double> distances = sample.getData();
+    Sample sample = mb->getLastSample();
+    SensorChannel channel = mb->getSensorChannelDescription(0);
+    std::vector<Scalar> distances = sample.getData();
 
-    float angRange = mbes->getAngleRange();
+    Scalar angRange = mb->getAngleRange();
     uint32_t angSteps = distances.size();
 
     sensor_msgs::LaserScan msg;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = mbes->getName();
-    msg.angle_min = -angRange/2.; // start angle of the scan [rad]
-    msg.angle_max = angRange/2.; // end angle of the scan [rad]
-    msg.angle_increment = angRange/float(angSteps-1); // angular distance between measurements [rad]
-
-    msg.time_increment = 0.; // time between measurements [seconds] - if your scanner is moving, this will be used in interpolating position of 3d points
-    msg.scan_time = 0.; // time between scans [seconds]
-
+    msg.header.frame_id = mb->getName();
+    
+    msg.angle_min = -angRange/Scalar(2); // start angle of the scan [rad]
+    msg.angle_max = angRange/Scalar(2); // end angle of the scan [rad]
+    msg.angle_increment = angRange/Scalar(angSteps-1); // angular distance between measurements [rad]
     msg.range_min = channel.rangeMin; // minimum range value [m]
     msg.range_max = channel.rangeMax; // maximum range value [m]
-
+    msg.time_increment = 0.; // time between measurements [seconds] - if your scanner is moving, this will be used in interpolating position of 3d points
+    msg.scan_time = 0.; // time between scans [seconds]
+    
     msg.ranges.resize(angSteps); // range data [m] (Note: values < range_min or > range_max should be discarded)
-    msg.intensities.resize(0); // intensity data [device-specific units].  If your device does not provide intensities, please leave the array empty
-
     for(uint32_t i = 0; i<angSteps; ++i)
-    {
         msg.ranges[i] = distances[i];
-    }
 
-    laserScanPub.publish(msg);
+    pub.publish(msg);
+}
+
+void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
+{
+    Sample sample = prof->getLastSample(); // {angle, range} pair
+    SensorChannel channel = prof->getSensorChannelDescription(1); // range channel
+
+    sensor_msgs::LaserScan msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = prof->getName();
+    
+    msg.angle_min = msg.angle_max = sample.getValue(0); // only one measurement
+    msg.range_min = channel.rangeMin; // minimum range value [m]
+    msg.range_max = channel.rangeMax; // maximum range value [m]
+    msg.angle_increment = 0.;
+    msg.time_increment = 0.;
+    msg.scan_time = 0.;
+    
+    msg.ranges.resize(1);
+    msg.ranges[0] = sample.getValue(1);
+
+    pub.publish(msg);
 }
 
 void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb)
@@ -376,7 +394,7 @@ void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* 
     pointCloudPub.publish(msg);
 }
 
-void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
+void ROSInterface::PublishContact(ros::Publisher& pub, Contact* cnt)
 {
     if(cnt->getHistory().size() == 0)
         return;
@@ -409,10 +427,10 @@ void ROSInterface::PublishContact(ros::Publisher& contactPub, Contact* cnt)
     msg.color.g = 1.0;
     msg.color.b = 0.0;
     msg.color.a = 1.0;
-    contactPub.publish(msg);
+    pub.publish(msg);
 }
 
-void ROSInterface::PublishUSBL(ros::Publisher& usblPub, USBL* usbl)
+void ROSInterface::PublishUSBL(ros::Publisher& pub, USBL* usbl)
 {
     std::map<uint64_t, std::pair<Scalar, Vector3>>& transPos = usbl->getTransponderPositions();
     if(transPos.size() == 0)
@@ -446,7 +464,7 @@ void ROSInterface::PublishUSBL(ros::Publisher& usblPub, USBL* usbl)
         msg.markers.push_back(marker);    
     }
 
-    usblPub.publish(msg);
+    pub.publish(msg);
 }
 
 void ROSInterface::PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim)

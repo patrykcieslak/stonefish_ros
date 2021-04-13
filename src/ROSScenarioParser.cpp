@@ -510,6 +510,7 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         break;
 
                     case ScalarSensorType::MULTIBEAM:
+                    case ScalarSensorType::PROFILER:
                         pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
                         break;
 

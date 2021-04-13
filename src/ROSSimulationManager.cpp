@@ -192,7 +192,11 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                     break;
 
                 case ScalarSensorType::MULTIBEAM:
-                    ROSInterface::PublishLaserScan(pubs[sensor->getName()], (Multibeam*)sensor);
+                    ROSInterface::PublishMultibeam(pubs[sensor->getName()], (Multibeam*)sensor);
+                    break;
+
+                case ScalarSensorType::PROFILER:
+                    ROSInterface::PublishProfiler(pubs[sensor->getName()], (Profiler*)sensor);
                     break;
 
                 default:

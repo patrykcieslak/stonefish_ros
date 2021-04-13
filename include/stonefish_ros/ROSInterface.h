@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2020 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2021 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSInterface__
@@ -45,6 +45,7 @@ namespace sf
     class RotaryEncoder;
     class Camera;
     class Multibeam;
+    class Profiler;
     class Multibeam2;
     class FLS;
     class SSS;
@@ -66,12 +67,13 @@ namespace sf
         static void PublishOdometry(ros::Publisher& pub, Odometry* odom);
         static void PublishForceTorque(ros::Publisher& pub, ForceTorque* ft);
         static void PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc);
-        static void PublishLaserScan(ros::Publisher& laserScanPub, Multibeam* mbes);
-        static void PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb);
-        static void PublishContact(ros::Publisher& contactPub, Contact* cnt);
-        static void PublishUSBL(ros::Publisher& usblPub, USBL* usbl);
+        static void PublishMultibeam(ros::Publisher& pub, Multibeam* mb);
+        static void PublishProfiler(ros::Publisher& pub, Profiler* prof);
+        static void PublishPointCloud(ros::Publisher& pub, Multibeam2* mb);
+        static void PublishContact(ros::Publisher& pub, Contact* cnt);
+        static void PublishUSBL(ros::Publisher& pub, USBL* usbl);
         static void PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim);
-
+        
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateFLSMsgPrototypes(FLS* fls);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateSSSMsgPrototypes(SSS* sss);
