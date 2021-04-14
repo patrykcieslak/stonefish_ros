@@ -322,22 +322,25 @@ void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
 
 void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
 {
-    Sample sample = prof->getLastSample(); // {angle, range} pair
+    const std::vector<Sample>* hist = prof->getHistory();
     SensorChannel channel = prof->getSensorChannelDescription(1); // range channel
 
     sensor_msgs::LaserScan msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = prof->getName();
     
-    msg.angle_min = msg.angle_max = sample.getValue(0); // only one measurement
+    msg.angle_min = hist->front().getValue(0);
+    msg.angle_max = hist->back().getValue(0);
     msg.range_min = channel.rangeMin; // minimum range value [m]
     msg.range_max = channel.rangeMax; // maximum range value [m]
-    msg.angle_increment = 0.;
-    msg.time_increment = 0.;
-    msg.scan_time = 0.;
+    msg.angle_increment = hist->size() == 1 ? 0.0 : hist->at(1).getValue(0) - hist->at(0).getValue(0);
+    msg.time_increment = hist->size() == 1 ? 0.0 : hist->at(1).getTimestamp() - hist->at(0).getTimestamp();
+    msg.scan_time = hist->back().getTimestamp() - hist->front().getTimestamp();
     
-    msg.ranges.resize(1);
-    msg.ranges[0] = sample.getValue(1);
+    msg.ranges.resize(hist->size());
+    
+    for(size_t i=0; i<hist->size(); ++i)
+        msg.ranges[i] = hist->at(i).getValue(1);
 
     pub.publish(msg);
 }
