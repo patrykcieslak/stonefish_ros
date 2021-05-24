@@ -337,10 +337,25 @@ void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
     msg.time_increment = hist->size() == 1 ? 0.0 : hist->at(1).getTimestamp() - hist->at(0).getTimestamp();
     msg.scan_time = hist->back().getTimestamp() - hist->front().getTimestamp();
     
-    msg.ranges.resize(hist->size());
-    
-    for(size_t i=0; i<hist->size(); ++i)
-        msg.ranges[i] = hist->at(i).getValue(1);
+    if(hist->size() == 1) // RVIZ does not display LaserScan with one range
+    {
+        msg.ranges.resize(2);
+        msg.intensities.resize(2);
+        msg.ranges[0] = hist->front().getValue(1);
+        msg.intensities[0] = msg.ranges[0] == msg.range_max ? 0.1 : 1.0;
+        msg.ranges[1] = msg.ranges[0];
+        msg.intensities[1] = msg.intensities[0];
+    }
+    else
+    {
+        msg.ranges.resize(hist->size());
+        msg.intensities.resize(hist->size());
+        for(size_t i=0; i<hist->size(); ++i)
+        {
+            msg.ranges[i] = hist->at(i).getValue(1);
+            msg.intensities[i] = msg.ranges[i] == msg.range_max ? 0.1 : 1.0;
+        }
+    }
 
     pub.publish(msg);
 }
