@@ -63,13 +63,15 @@ namespace sf
 		bool publishBaseLinkTransform;
 		std::vector<Scalar> thrusterSetpoints;
 		std::vector<Scalar> propellerSetpoints;
+		std::vector<Scalar> rudderSetpoints;
 		std::map<std::string, Scalar> servoSetpoints;
 
-		ROSRobot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers) 
+		ROSRobot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers, unsigned int nRudders=0) 
 			: robot(robot), servoVelocityMode(true), publishBaseLinkTransform(false)
 		{
 			thrusterSetpoints = std::vector<Scalar>(nThrusters, Scalar(0));
 			propellerSetpoints = std::vector<Scalar>(nPropellers, Scalar(0));
+			rudderSetpoints = std::vector<Scalar>(nRudders, Scalar(0));
 		} 
 	};
 
@@ -153,6 +155,17 @@ namespace sf
 	{
 	public: 
 		PropellersCallback(ROSSimulationManager* sm, ROSRobot* robot);
+		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
+
+	private:
+		ROSSimulationManager* sm;
+		ROSRobot* robot;
+	};
+
+	class RuddersCallback
+	{
+	public: 
+		RuddersCallback(ROSSimulationManager* sm, ROSRobot* robot);
 		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
 
 	private:

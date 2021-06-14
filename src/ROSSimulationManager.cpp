@@ -53,6 +53,7 @@
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
+#include <Stonefish/actuators/Rudder.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/utils/SystemUtil.hpp>
 
@@ -347,6 +348,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         Actuator* actuator;
         unsigned int thID = 0;
         unsigned int propID = 0;
+        unsigned int rudderID = 0;
         
         while((actuator = rosRobots[i]->robot->getActuator(aID++)) != NULL)
         {
@@ -358,6 +360,10 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
                 case ActuatorType::PROPELLER:
                     ((Propeller*)actuator)->setSetpoint(rosRobots[i]->propellerSetpoints[propID++]);
+                    break;
+
+                case ActuatorType::RUDDER:
+                    ((Rudder*)actuator)->setSetpoint(rosRobots[i]->rudderSetpoints[rudderID++]);
                     break;
 
                 case ActuatorType::SERVO:
@@ -550,6 +556,22 @@ void PropellersCallback::operator()(const cola2_msgs::SetpointsConstPtr& msg)
 
     for(size_t i=0; i<robot->propellerSetpoints.size(); ++i)
         robot->propellerSetpoints[i] = msg->setpoints[i];   
+}
+
+RuddersCallback::RuddersCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)
+{
+}
+
+void RuddersCallback::operator()(const cola2_msgs::SetpointsConstPtr& msg)
+{
+    if(msg->setpoints.size() != robot->rudderSetpoints.size())
+    {
+        ROS_ERROR_STREAM("Wrong number of rudder setpoints for robot: " << robot->robot->getName());
+        return;
+    }
+
+    for(size_t i=0; i<robot->rudderSetpoints.size(); ++i)
+        robot->rudderSetpoints[i] = msg->setpoints[i];   
 }
 
 ServosCallback::ServosCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)
