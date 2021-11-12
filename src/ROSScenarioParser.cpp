@@ -64,6 +64,8 @@
 #include <cola2_msgs/Setpoints.h>
 #include <stonefish_ros/ThrusterState.h>
 #include <stonefish_ros/Int32Stamped.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
 
 #include <ros/package.h>
 
@@ -519,6 +521,9 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         break;
 
                     case ScalarSensorType::MULTIBEAM:
+                        pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
+                        pubs[sensorName + "_scan"] = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>(topicStr + "_scan", 1);
+                        break;
                     case ScalarSensorType::PROFILER:
                         pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
                         break;

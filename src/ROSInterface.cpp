@@ -67,6 +67,9 @@
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Float32Stamped.h>
 #include <stonefish_ros/Int32Stamped.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl_ros/point_cloud.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -292,7 +295,7 @@ void ROSInterface::PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
+void ROSInterface::PublishMultibeam(ros::Publisher& ls_pub, ros::Publisher& pc_pub, Multibeam* mb)
 {
     Sample sample = mb->getLastSample();
     SensorChannel channel = mb->getSensorChannelDescription(0);
@@ -301,23 +304,54 @@ void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
     Scalar angRange = mb->getAngleRange();
     uint32_t angSteps = distances.size();
 
-    sensor_msgs::LaserScan msg;
-    msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = mb->getName();
-    
-    msg.angle_min = -angRange/Scalar(2); // start angle of the scan [rad]
-    msg.angle_max = angRange/Scalar(2); // end angle of the scan [rad]
-    msg.angle_increment = angRange/Scalar(angSteps-1); // angular distance between measurements [rad]
-    msg.range_min = channel.rangeMin; // minimum range value [m]
-    msg.range_max = channel.rangeMax; // maximum range value [m]
-    msg.time_increment = 0.; // time between measurements [seconds] - if your scanner is moving, this will be used in interpolating position of 3d points
-    msg.scan_time = 0.; // time between scans [seconds]
-    
-    msg.ranges.resize(angSteps); // range data [m] (Note: values < range_min or > range_max should be discarded)
-    for(uint32_t i = 0; i<angSteps; ++i)
-        msg.ranges[i] = distances[i];
+    sensor_msgs::LaserScan ls_msg;
+    ls_msg.header.stamp = ros::Time::now();
+    ls_msg.header.frame_id = mb->getName();
 
-    pub.publish(msg);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pc_msg(new pcl::PointCloud<pcl::PointXYZ>);
+    pc_msg->header.frame_id = mb->getName();
+    pc_msg->height = pc_msg->width = 1;
+
+    ls_msg.angle_min = -angRange / Scalar(2);                  // start angle of the scan [rad]
+    ls_msg.angle_max = angRange / Scalar(2);                   // end angle of the scan [rad]
+    ls_msg.angle_increment = angRange / Scalar(angSteps - 1);  // angular distance between measurements [rad]
+    ls_msg.range_min = channel.rangeMin;                       // minimum range value [m]
+    ls_msg.range_max = channel.rangeMax;                       // maximum range value [m]
+    ls_msg.time_increment = 0.;  // time between measurements [seconds] - if your scanner is moving, this will be used in
+                                 // interpolating position of 3d points
+    ls_msg.scan_time = 0.;       // time between scans [seconds]
+
+    ls_msg.ranges.resize(angSteps);  // range data [m] (Note: values < range_min or > range_max should be discarded)
+    for (uint32_t i = 0; i < angSteps; ++i)
+    {
+      ls_msg.ranges[i] = distances[i];
+
+      if (distances[i] < channel.rangeMax && distances[i] > channel.rangeMin)
+      {  // Only publish good points
+        double angle = ls_msg.angle_min + i * ls_msg.angle_increment;
+        pcl::PointXYZ pt;
+        pt.y = sin(angle) * ls_msg.ranges[i];
+        pt.x = cos(angle) * ls_msg.ranges[i];
+        pt.z = 0.0;
+        pc_msg->push_back(pt);
+      }
+    }
+
+    ls_pub.publish(ls_msg);
+    pcl_conversions::toPCL(ls_msg.header.stamp, pc_msg->header.stamp);
+    pc_msg->header.seq = ls_msg.header.seq;
+    try
+    {
+      pc_pub.publish(pc_msg);
+    }
+    catch (ros::serialization::StreamOverrunException& soe)
+    {
+      ROS_ERROR_STREAM("Stream overrun exception while publishing multibeam data: " << soe.what());
+    }
+    catch (std::runtime_error& e)
+    {
+      ROS_ERROR_STREAM("Runtime error whle publishing multibeam data: " << e.what());
+    }
 }
 
 void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)

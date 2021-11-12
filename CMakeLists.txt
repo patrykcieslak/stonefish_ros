@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   tf
   tf_conversions
+  pcl_conversions
+  pcl_ros
 )
 
 find_package(PkgConfig REQUIRED)

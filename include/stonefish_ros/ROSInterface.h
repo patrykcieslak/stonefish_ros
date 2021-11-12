@@ -67,7 +67,7 @@ namespace sf
         static void PublishOdometry(ros::Publisher& pub, Odometry* odom);
         static void PublishForceTorque(ros::Publisher& pub, ForceTorque* ft);
         static void PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc);
-        static void PublishMultibeam(ros::Publisher& pub, Multibeam* mb);
+        static void PublishMultibeam(ros::Publisher& ls_pub, ros::Publisher& pc_pub, Multibeam* mb);
         static void PublishProfiler(ros::Publisher& pub, Profiler* prof);
         static void PublishPointCloud(ros::Publisher& pub, Multibeam2* mb);
         static void PublishContact(ros::Publisher& pub, Contact* cnt);
