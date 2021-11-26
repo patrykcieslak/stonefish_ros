@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   tf
   tf_conversions
+  pcl_ros
+  pcl_conversions
 )
 
 find_package(PkgConfig REQUIRED)
@@ -52,6 +54,8 @@ catkin_package(
                  tf 
                  tf_conversions
 		             message_runtime
+                 pcl_conversions
+                 pcl_ros
   DEPENDS Stonefish
 )
 

@@ -32,6 +32,7 @@
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/IMU.h>
 #include <Stonefish/sensors/scalar/GPS.h>
+#include <Stonefish/sensors/scalar/INS.h>
 #include <Stonefish/sensors/scalar/ForceTorque.h>
 #include <Stonefish/sensors/scalar/RotaryEncoder.h>
 #include <Stonefish/sensors/scalar/Odometry.h>
@@ -46,6 +47,9 @@
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/entities/AnimatedEntity.h>
+#include <Stonefish/core/SimulationApp.h>
+#include <Stonefish/core/SimulationManager.h>
+#include <Stonefish/core/NED.h>
 
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -54,8 +58,6 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/JointState.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/AccelWithCovarianceStamped.h>
 #include <geometry_msgs/TwistWithCovarianceStamped.h>
@@ -64,8 +66,12 @@
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl_ros/point_cloud.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Float32Stamped.h>
+#include <cola2_msgs/NavSts.h>
 #include <stonefish_ros/Int32Stamped.h>
 
 #include <Eigen/Core>
@@ -174,17 +180,13 @@ void ROSInterface::PublishPressure(ros::Publisher& pub, Pressure* press)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* dvl)
+void ROSInterface::PublishDVL(ros::Publisher& pub, DVL* dvl)
 {
     //Get data
     Sample s = dvl->getLastSample();
     unsigned short status = (unsigned short)trunc(s.getValue(7));
     Scalar vVariance = dvl->getSensorChannelDescription(0).stdDev;
     vVariance *= vVariance; //Variance is square of standard deviation
-    Vector3 velMax;
-    Scalar altMin, altMax;
-    dvl->getRange(velMax, altMin, altMax);
-    Scalar beamAngle = dvl->getBeamSpreadAngle();
     //Publish DVL message
     cola2_msgs::DVL msg;
     msg.header.stamp = ros::Time::now();
@@ -197,16 +199,27 @@ void ROSInterface::PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* 
     msg.velocity_covariance[8] = vVariance;
     msg.altitude = (status == 0 || status == 2) ? s.getValue(3) : -1.0;
     pub.publish(msg);
+}
+
+void ROSInterface::PublishDVLAltitude(ros::Publisher& pub, DVL* dvl)
+{
+    //Get data
+    Sample s = dvl->getLastSample();
+    unsigned short status = (unsigned short)trunc(s.getValue(7));
+    Vector3 velMax;
+    Scalar altMin, altMax;
+    dvl->getRange(velMax, altMin, altMax);
+    Scalar beamAngle = dvl->getBeamSpreadAngle();
     //Publish range message
-    sensor_msgs::Range msg2;
-    msg2.header.stamp = ros::Time::now();
-    msg2.header.frame_id = dvl->getName() + "_altitude";
-    msg2.radiation_type = msg2.ULTRASOUND;
-    msg2.field_of_view = beamAngle;
-    msg2.min_range = altMin;
-    msg2.max_range = altMax;
-    msg2.range = msg.altitude;
-    altPub.publish(msg2);
+    sensor_msgs::Range msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = dvl->getName() + "_altitude";
+    msg.radiation_type = msg.ULTRASOUND;
+    msg.field_of_view = beamAngle;
+    msg.min_range = altMin;
+    msg.max_range = altMax;
+    msg.range = (status == 0 || status == 2) ? s.getValue(3) : -1.0;
+    pub.publish(msg);
 }
 
 void ROSInterface::PublishGPS(ros::Publisher& pub, GPS* gps)
@@ -259,6 +272,60 @@ void ROSInterface::PublishOdometry(ros::Publisher& pub, Odometry* odom)
     msg.twist.twist.angular.x = s.getValue(10);
     msg.twist.twist.angular.y = s.getValue(11);
     msg.twist.twist.angular.z = s.getValue(12);
+    pub.publish(msg);
+}
+
+
+void ROSInterface::PublishINS(ros::Publisher& pub, INS* ins)
+{
+    Scalar lat, lon, h;
+    SimulationApp::getApp()->getSimulationManager()->getNED()->Ned2Geodetic(0.0, 0.0, 0.0, lat, lon, h);
+
+    Sample s = ins->getLastSample();
+    cola2_msgs::NavSts msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = ins->getName();
+    msg.position.north = s.getValue(0);
+    msg.position.east = s.getValue(1);
+    msg.position.depth = s.getValue(2);
+    msg.altitude = s.getValue(3);
+    msg.global_position.latitude = s.getValue(4);
+    msg.global_position.longitude = s.getValue(5);
+    msg.origin.latitude = lat;
+    msg.origin.longitude = lon;
+    msg.body_velocity.x = s.getValue(6);
+    msg.body_velocity.y = s.getValue(7);
+    msg.body_velocity.z = s.getValue(8);
+    msg.orientation.roll = s.getValue(9);
+    msg.orientation.pitch = s.getValue(10);
+    msg.orientation.yaw = s.getValue(11);
+    msg.orientation_rate.roll = s.getValue(12);
+    msg.orientation_rate.pitch = s.getValue(13);
+    msg.orientation_rate.yaw = s.getValue(14);
+    pub.publish(msg);
+}
+
+void ROSInterface::PublishINSOdometry(ros::Publisher& pub, INS* ins)
+{
+    Sample s = ins->getLastSample();
+    nav_msgs::Odometry msg;
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = "world_ned";
+    msg.child_frame_id = ins->getName();
+    msg.pose.pose.position.x = s.getValue(0);
+    msg.pose.pose.position.y = s.getValue(1);
+    msg.pose.pose.position.z = s.getValue(2);
+    msg.twist.twist.linear.x = s.getValue(6);
+    msg.twist.twist.linear.y = s.getValue(7);
+    msg.twist.twist.linear.z = s.getValue(8);
+    Quaternion q(s.getValue(11), s.getValue(10), s.getValue(9));
+    msg.pose.pose.orientation.x = q.x();
+    msg.pose.pose.orientation.y = q.y();
+    msg.pose.pose.orientation.z = q.z();
+    msg.pose.pose.orientation.w = q.w();
+    msg.twist.twist.angular.x = s.getValue(12);
+    msg.twist.twist.angular.y = s.getValue(13);
+    msg.twist.twist.angular.z = s.getValue(14);
     pub.publish(msg);
 }
 
@@ -320,6 +387,46 @@ void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
     pub.publish(msg);
 }
 
+void ROSInterface::PublishMultibeamPCL(ros::Publisher& pub, Multibeam* mb)
+{
+    Sample sample = mb->getLastSample();
+    SensorChannel channel = mb->getSensorChannelDescription(0);
+    std::vector<Scalar> distances = sample.getData();
+    Scalar angRange = mb->getAngleRange();
+    size_t angSteps = distances.size();
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr msg(new pcl::PointCloud<pcl::PointXYZ>);
+    msg->header.frame_id = mb->getName();
+    msg->height = msg->width = 1;
+    Scalar angleMin = -angRange / Scalar(2);                  // start angle of the scan [rad]
+    Scalar angleIncrement = angRange / Scalar(angSteps - 1);  // angular distance between measurements [rad]
+
+    for(size_t i = 0; i < angSteps; ++i)
+        if(distances[i] < channel.rangeMax && distances[i] > channel.rangeMin) // Only publish good points
+        {  
+            double angle = angleMin + i * angleIncrement;
+            pcl::PointXYZ pt;
+            pt.y = btSin(angle) * distances[i];
+            pt.x = btCos(angle) * distances[i];
+            pt.z = 0.0;
+            msg->push_back(pt);
+        }
+
+    pcl_conversions::toPCL(ros::Time::now(), msg->header.stamp);
+    try
+    {
+        pub.publish(msg);
+    }
+    catch (ros::serialization::StreamOverrunException& soe)
+    {
+        ROS_ERROR_STREAM("Stream overrun exception while publishing multibeam data: " << soe.what());
+    }
+    catch (std::runtime_error& e)
+    {
+        ROS_ERROR_STREAM("Runtime error whle publishing multibeam data: " << e.what());
+    }
+}
+
 void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
 {
     const std::vector<Sample>* hist = prof->getHistory();
@@ -360,33 +467,19 @@ void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* mb)
+void ROSInterface::PublishMultibeam2(ros::Publisher& pub, Multibeam2* mb)
 {
-    uint32_t hRes, vRes, nPoints;
+    uint32_t hRes, vRes;
     mb->getResolution(hRes, vRes);
-    nPoints = hRes * vRes;
     glm::vec2 range = mb->getRangeLimits();
     float hFovRad = mb->getHorizontalFOV()/180.f*M_PI;
     float vFovRad = mb->getVerticalFOV()/180.f*M_PI; 
     float hStepAngleRad = hFovRad/(float)(hRes-1);
     float vStepAngleRad = vFovRad/(float)(vRes-1);
 
-    sensor_msgs::PointCloud2 msg;
-    msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = mb->getName();
-    msg.height = 1;
-    msg.width = nPoints;
-
-    sensor_msgs::PointCloud2Modifier modifier(msg);
-    modifier.setPointCloud2Fields(3, "x", 1, sensor_msgs::PointField::FLOAT32,
-                                     "y", 1, sensor_msgs::PointField::FLOAT32,
-                                     "z", 1, sensor_msgs::PointField::FLOAT32);
-    modifier.setPointCloud2FieldsByString(1, "xyz");
-    modifier.resize(nPoints);
-
-    sensor_msgs::PointCloud2Iterator<float> iterX(msg, "x");
-    sensor_msgs::PointCloud2Iterator<float> iterY(msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iterZ(msg, "z");
+    pcl::PointCloud<pcl::PointXYZ>::Ptr msg(new pcl::PointCloud<pcl::PointXYZ>);
+    msg->header.frame_id = mb->getName();
+    msg->height = msg->width = 1;
 
     float* data = (float*)mb->getRangeDataPointer();
 
@@ -395,21 +488,36 @@ void ROSInterface::PublishPointCloud(ros::Publisher& pointCloudPub, Multibeam2* 
         uint32_t offset = v*hRes;
         float hAngleRad = -hFovRad/2.f + (0.5f/hRes*hFovRad);
         float vAngleRad = vFovRad/2.f - ((0.5f+v)/vRes*vFovRad);
+        
         for(uint32_t h=0; h<hRes; ++h)
         {
             float depth = data[offset + h];
-            Eigen::Vector3f mbPoint = Eigen::Vector3f(tanf(hAngleRad), tanf(vAngleRad), 1.f).normalized() * depth;
-            *iterX = mbPoint.x();
-    		*iterY = mbPoint.y();
-    		*iterZ = mbPoint.z();
-    		++iterX;
-    		++iterY;
-    		++iterZ;
+            if(depth > range.x && depth < range.y) // Only publish good points
+            {
+                Eigen::Vector3f mbPoint = Eigen::Vector3f(tanf(hAngleRad), tanf(vAngleRad), 1.f).normalized() * depth;
+                pcl::PointXYZ pt;
+                pt.x = mbPoint.x();
+                pt.y = mbPoint.y();
+                pt.z = mbPoint.z();
+                msg->push_back(pt);
+            }
             hAngleRad += hStepAngleRad;
         }
     }
     
-    pointCloudPub.publish(msg);
+    pcl_conversions::toPCL(ros::Time::now(), msg->header.stamp);
+    try
+    {
+        pub.publish(msg);
+    }
+    catch (ros::serialization::StreamOverrunException& soe)
+    {
+        ROS_ERROR_STREAM("Stream overrun exception while publishing multibeam data: " << soe.what());
+    }
+    catch (std::runtime_error& e)
+    {
+        ROS_ERROR_STREAM("Runtime error whle publishing multibeam data: " << e.what());
+    }
 }
 
 void ROSInterface::PublishContact(ros::Publisher& pub, Contact* cnt)

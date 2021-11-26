@@ -50,7 +50,6 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/JointState.h>
 #include <nav_msgs/Odometry.h>
@@ -60,8 +59,11 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
 #include <cola2_msgs/DVL.h>
 #include <cola2_msgs/Setpoints.h>
+#include <cola2_msgs/NavSts.h>
 #include <stonefish_ros/ThrusterState.h>
 #include <stonefish_ros/Int32Stamped.h>
 
@@ -498,11 +500,12 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         pubs[sensorName] = nh.advertise<cola2_msgs::DVL>(topicStr, queueSize);
 
                         //Second topic with altitude
-                        std::string altTopicStr = topicStr + "/altitude"; 
                         const char* altTopic = nullptr; 
                         if(item->QueryStringAttribute("altitude_topic", &altTopic) == XML_SUCCESS)
-                            altTopicStr = std::string(altTopic);
-                        pubs[sensorName + "/altitude"] = nh.advertise<sensor_msgs::Range>(altTopicStr, queueSize);
+                        {
+                            std::string altTopicStr = std::string(altTopic);
+                            pubs[sensorName + "/altitude"] = nh.advertise<sensor_msgs::Range>(altTopicStr, queueSize);
+                        }
                     }
                         break;
 
@@ -514,11 +517,38 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         pubs[sensorName] = nh.advertise<sensor_msgs::FluidPressure>(topicStr, queueSize);
                         break;
 
+                    case ScalarSensorType::INS:
+                    {
+                        pubs[sensorName] = nh.advertise<cola2_msgs::NavSts>(topicStr, queueSize);
+
+                        //Second topic with odometry
+                        const char* odomTopic = nullptr; 
+                        if(item->QueryStringAttribute("odometry_topic", &odomTopic) == XML_SUCCESS)
+                        {
+                            std::string odomTopicStr = std::string(odomTopic);
+                            pubs[sensorName + "/odometry"] = nh.advertise<nav_msgs::Odometry>(odomTopicStr, queueSize);
+                        }
+                    }
+                        break;
+
                     case ScalarSensorType::ODOM:
                         pubs[sensorName] = nh.advertise<nav_msgs::Odometry>(topicStr, queueSize);
                         break;
 
                     case ScalarSensorType::MULTIBEAM:
+                    {
+                        pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
+
+                        //Second topic with point cloud
+                        const char* pclTopic = nullptr; 
+                        if(item->QueryStringAttribute("pcl_topic", &pclTopic) == XML_SUCCESS)
+                        {
+                            std::string pclTopicStr = std::string(pclTopic);
+                            pubs[sensorName + "/pcl"] = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>(pclTopicStr, queueSize);
+                        }
+                    }
+                        break;
+
                     case ScalarSensorType::PROFILER:
                         pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
                         break;
@@ -564,7 +594,7 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
 
                     case VisionSensorType::MULTIBEAM2:
                     {
-                        pubs[sensorName] = nh.advertise<sensor_msgs::PointCloud2>(topicStr, queueSize);
+                        pubs[sensorName] = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>(topicStr, queueSize);
                         Multibeam2* mb = (Multibeam2*)sens;
                         mb->InstallNewDataHandler(std::bind(&ROSSimulationManager::Multibeam2ScanReady, sim, std::placeholders::_1));
                     }

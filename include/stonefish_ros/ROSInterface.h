@@ -40,6 +40,7 @@ namespace sf
     class Pressure;
     class DVL;
     class GPS;
+    class INS;
     class Odometry;
     class ForceTorque;
     class RotaryEncoder;
@@ -62,14 +63,18 @@ namespace sf
         static void PublishGyroscope(ros::Publisher& pub, Gyroscope* gyro);
         static void PublishIMU(ros::Publisher& pub, IMU* imu);
         static void PublishPressure(ros::Publisher& pub, Pressure* press);
-        static void PublishDVL(ros::Publisher& pub, ros::Publisher& altPub, DVL* dvl);
+        static void PublishDVL(ros::Publisher& pub, DVL* dvl);
+        static void PublishDVLAltitude(ros::Publisher& pub, DVL* dvl);
         static void PublishGPS(ros::Publisher& pub, GPS* gps);
         static void PublishOdometry(ros::Publisher& pub, Odometry* odom);
+        static void PublishINS(ros::Publisher& pub, INS* ins);
+        static void PublishINSOdometry(ros::Publisher& pub, INS* ins);
         static void PublishForceTorque(ros::Publisher& pub, ForceTorque* ft);
         static void PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc);
         static void PublishMultibeam(ros::Publisher& pub, Multibeam* mb);
+        static void PublishMultibeamPCL(ros::Publisher& pub, Multibeam* mb);
         static void PublishProfiler(ros::Publisher& pub, Profiler* prof);
-        static void PublishPointCloud(ros::Publisher& pub, Multibeam2* mb);
+        static void PublishMultibeam2(ros::Publisher& pub, Multibeam2* mb);
         static void PublishContact(ros::Publisher& pub, Contact* cnt);
         static void PublishUSBL(ros::Publisher& pub, USBL* usbl);
         static void PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim);

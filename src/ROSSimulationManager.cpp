@@ -157,47 +157,63 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             switch(((ScalarSensor*)sensor)->getScalarSensorType())
             {
                 case ScalarSensorType::ACC:
-                    ROSInterface::PublishAccelerometer(pubs[sensor->getName()], (Accelerometer*)sensor);
+                    ROSInterface::PublishAccelerometer(pubs.at(sensor->getName()), (Accelerometer*)sensor);
                     break;
 
                 case ScalarSensorType::GYRO:
-                    ROSInterface::PublishGyroscope(pubs[sensor->getName()], (Gyroscope*)sensor);
+                    ROSInterface::PublishGyroscope(pubs.at(sensor->getName()), (Gyroscope*)sensor);
                     break;
 
                 case ScalarSensorType::IMU:
-                    ROSInterface::PublishIMU(pubs[sensor->getName()], (IMU*)sensor);
+                    ROSInterface::PublishIMU(pubs.at(sensor->getName()), (IMU*)sensor);
                     break;
 
                 case ScalarSensorType::ODOM:
-                    ROSInterface::PublishOdometry(pubs[sensor->getName()], (Odometry*)sensor);
+                    ROSInterface::PublishOdometry(pubs.at(sensor->getName()), (Odometry*)sensor);
                     break;
 
                 case ScalarSensorType::DVL:
-                    ROSInterface::PublishDVL(pubs[sensor->getName()], pubs[sensor->getName() + "/altitude"], (DVL*)sensor);
+                {
+                    ROSInterface::PublishDVL(pubs.at(sensor->getName()), (DVL*)sensor);
+                    if(pubs.find(sensor->getName() + "/altitude") != pubs.end())
+                        ROSInterface::PublishDVLAltitude(pubs.at(sensor->getName() + "/altitude"), (DVL*)sensor);
+                }
+                    break;
+
+                case ScalarSensorType::INS:
+                {
+                    ROSInterface::PublishINS(pubs.at(sensor->getName()), (INS*)sensor);
+                    if(pubs.find(sensor->getName() + "/odometry") != pubs.end())
+                        ROSInterface::PublishINSOdometry(pubs.at(sensor->getName() + "/odometry"), (INS*)sensor);                    
+                }
                     break;
 
                 case ScalarSensorType::GPS:
-                    ROSInterface::PublishGPS(pubs[sensor->getName()], (GPS*)sensor);
+                    ROSInterface::PublishGPS(pubs.at(sensor->getName()), (GPS*)sensor);
                     break;
 
                 case ScalarSensorType::PRESSURE:
-                    ROSInterface::PublishPressure(pubs[sensor->getName()], (Pressure*)sensor);
+                    ROSInterface::PublishPressure(pubs.at(sensor->getName()), (Pressure*)sensor);
                     break;
 
                 case ScalarSensorType::FT:
-                    ROSInterface::PublishForceTorque(pubs[sensor->getName()], (ForceTorque*)sensor);
+                    ROSInterface::PublishForceTorque(pubs.at(sensor->getName()), (ForceTorque*)sensor);
                     break;
 
                 case ScalarSensorType::ENCODER:
-                    ROSInterface::PublishEncoder(pubs[sensor->getName()], (RotaryEncoder*)sensor);
+                    ROSInterface::PublishEncoder(pubs.at(sensor->getName()), (RotaryEncoder*)sensor);
                     break;
 
                 case ScalarSensorType::MULTIBEAM:
-                    ROSInterface::PublishMultibeam(pubs[sensor->getName()], (Multibeam*)sensor);
+                {
+                    ROSInterface::PublishMultibeam(pubs.at(sensor->getName()), (Multibeam*)sensor);
+                    if(pubs.find(sensor->getName() + "/pcl") != pubs.end())
+                        ROSInterface::PublishMultibeamPCL(pubs.at(sensor->getName() + "/pcl"), (Multibeam*)sensor);                    
+                }
                     break;
 
                 case ScalarSensorType::PROFILER:
-                    ROSInterface::PublishProfiler(pubs[sensor->getName()], (Profiler*)sensor);
+                    ROSInterface::PublishProfiler(pubs.at(sensor->getName()), (Profiler*)sensor);
                     break;
 
                 default:
@@ -222,7 +238,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         switch(comm->getType())
         {
             case CommType::USBL:
-                ROSInterface::PublishUSBL(pubs[comm->getName()], (USBL*)comm);
+                ROSInterface::PublishUSBL(pubs.at(comm->getName()), (USBL*)comm);
                 comm->MarkDataOld();
                 break;
             
@@ -241,7 +257,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             if(pubs.find(ent->getName() + "/odometry") == pubs.end())
                 continue;
 
-            ROSInterface::PublishTrajectoryState(pubs[ent->getName() + "/odometry"], pubs[ent->getName() + "/iteration"], (AnimatedEntity*)ent);
+            ROSInterface::PublishTrajectoryState(pubs.at(ent->getName() + "/odometry"), pubs.at(ent->getName() + "/iteration"), (AnimatedEntity*)ent);
         }
     }
 
@@ -302,7 +318,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
             }
 
-            pubs[rosRobots[i]->robot->getName() + "/servos"].publish(msg);
+            pubs.at(rosRobots[i]->robot->getName() + "/servos").publish(msg);
         }
 
         if(rosRobots[i]->thrusterSetpoints.size() != 0 
@@ -337,7 +353,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
             }
 
-            pubs[rosRobots[i]->robot->getName() + "/thrusters"].publish(msg);
+            pubs.at(rosRobots[i]->robot->getName() + "/thrusters").publish(msg);
         }
     }
 
@@ -389,7 +405,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                     {
                         std_msgs::Float64 msg;
                         msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
-                        pubs[actuator->getName()].publish(msg);
+                        pubs.at(actuator->getName()).publish(msg);
                     }
                 }
                     break;
@@ -415,8 +431,8 @@ void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
     info->header.stamp = img->header.stamp;
     
     //Publish messages
-    pubs[cam->getName()].publish(img);
-    pubs[cam->getName() + "/info"].publish(info);
+    pubs.at(cam->getName()).publish(img);
+    pubs.at(cam->getName() + "/info").publish(info);
 }
 
 
@@ -432,8 +448,8 @@ void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
     info->header.stamp = img->header.stamp;
     
     //Publish messages
-    pubs[cam->getName()].publish(img);
-    pubs[cam->getName() + "/info"].publish(info);
+    pubs.at(cam->getName()).publish(img);
+    pubs.at(cam->getName() + "/info").publish(info);
 }
 
 void ROSSimulationManager::FLSScanReady(FLS* fls)
@@ -449,8 +465,8 @@ void ROSSimulationManager::FLSScanReady(FLS* fls)
     memcpy(disp->data.data(), (uint8_t*)fls->getDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
-    pubs[fls->getName()].publish(img);
-    pubs[fls->getName() + "/display"].publish(disp);
+    pubs.at(fls->getName()).publish(img);
+    pubs.at(fls->getName() + "/display").publish(disp);
 }
 
 void ROSSimulationManager::SSSScanReady(SSS* sss)
@@ -466,8 +482,8 @@ void ROSSimulationManager::SSSScanReady(SSS* sss)
     memcpy(disp->data.data(), (uint8_t*)sss->getDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
-    pubs[sss->getName()].publish(img);
-    pubs[sss->getName() + "/display"].publish(disp);
+    pubs.at(sss->getName()).publish(img);
+    pubs.at(sss->getName() + "/display").publish(disp);
 }
 
 void ROSSimulationManager::MSISScanReady(MSIS* msis)
@@ -483,13 +499,13 @@ void ROSSimulationManager::MSISScanReady(MSIS* msis)
     memcpy(disp->data.data(), (uint8_t*)msis->getDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
-    pubs[msis->getName()].publish(img);
-    pubs[msis->getName() + "/display"].publish(disp);
+    pubs.at(msis->getName()).publish(img);
+    pubs.at(msis->getName() + "/display").publish(disp);
 }
 
 void ROSSimulationManager::Multibeam2ScanReady(Multibeam2* mb)
 {
-    ROSInterface::PublishPointCloud(pubs[mb->getName()], mb);
+    ROSInterface::PublishMultibeam2(pubs.at(mb->getName()), mb);
 }
 
 bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
