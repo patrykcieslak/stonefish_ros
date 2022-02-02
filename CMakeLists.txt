@@ -24,6 +24,7 @@ add_message_files(
   FILES
   Int32Stamped.msg
   ThrusterState.msg
+  BeaconInfo.msg
 )
 
 add_service_files(
@@ -35,6 +36,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  geometry_msgs
 )
 
 set(CMAKE_CXX_STANDARD 17)

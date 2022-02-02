@@ -238,7 +238,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         switch(comm->getType())
         {
             case CommType::USBL:
-                ROSInterface::PublishUSBL(pubs.at(comm->getName()), (USBL*)comm);
+                ROSInterface::PublishUSBL(pubs.at(comm->getName()), pubs.at(comm->getName() + "/beacon_info"), (USBL*)comm);
                 comm->MarkDataOld();
                 break;
             

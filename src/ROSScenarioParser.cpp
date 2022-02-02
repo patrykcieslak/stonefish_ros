@@ -66,6 +66,7 @@
 #include <cola2_msgs/NavSts.h>
 #include <stonefish_ros/ThrusterState.h>
 #include <stonefish_ros/Int32Stamped.h>
+#include <stonefish_ros/BeaconInfo.h>
 
 #include <ros/package.h>
 
@@ -682,7 +683,10 @@ Comm* ROSScenarioParser::ParseComm(XMLElement* element, const std::string& nameP
         switch(comm->getType())
         {
             case CommType::USBL:
+            {
                 pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(topicStr, 10);
+                pubs[commName + "/beacon_info"] = nh.advertise<stonefish_ros::BeaconInfo>(topicStr + "/beacon_info", 10);
+            }
                 break;
 
             default:

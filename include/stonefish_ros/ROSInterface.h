@@ -76,7 +76,7 @@ namespace sf
         static void PublishProfiler(ros::Publisher& pub, Profiler* prof);
         static void PublishMultibeam2(ros::Publisher& pub, Multibeam2* mb);
         static void PublishContact(ros::Publisher& pub, Contact* cnt);
-        static void PublishUSBL(ros::Publisher& pub, USBL* usbl);
+        static void PublishUSBL(ros::Publisher& pub, ros::Publisher& pub_info, USBL* usbl);
         static void PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim);
         
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth);

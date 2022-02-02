@@ -73,6 +73,7 @@
 #include <cola2_msgs/Float32Stamped.h>
 #include <cola2_msgs/NavSts.h>
 #include <stonefish_ros/Int32Stamped.h>
+#include <stonefish_ros/BeaconInfo.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -397,6 +398,7 @@ void ROSInterface::PublishMultibeamPCL(ros::Publisher& pub, Multibeam* mb)
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr msg(new pcl::PointCloud<pcl::PointXYZ>);
     msg->header.frame_id = mb->getName();
+    msg->header.seq = sample.getId(); // In this message it does not increase automatically
     msg->height = msg->width = 1;
     Scalar angleMin = -angRange / Scalar(2);                  // start angle of the scan [rad]
     Scalar angleIncrement = angRange / Scalar(angSteps - 1);  // angular distance between measurements [rad]
@@ -556,16 +558,21 @@ void ROSInterface::PublishContact(ros::Publisher& pub, Contact* cnt)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishUSBL(ros::Publisher& pub, USBL* usbl)
+void ROSInterface::PublishUSBL(ros::Publisher& pub, ros::Publisher& pub_info, USBL* usbl)
 {
-    std::map<uint64_t, std::pair<Scalar, Vector3>>& transPos = usbl->getTransponderPositions();
-    if(transPos.size() == 0)
+    std::map<uint64_t, BeaconInfo>& beacons = usbl->getBeaconInfo();
+    if(beacons.size() == 0)
         return;   
 
     visualization_msgs::MarkerArray msg;
     visualization_msgs::Marker marker;
+    stonefish_ros::BeaconInfo info;
+    
     marker.header.frame_id = usbl->getName();
     marker.header.stamp = ros::Time::now();
+    info.header.frame_id = marker.header.frame_id;
+    info.header.stamp = marker.header.stamp;
+
     marker.ns = usbl->getName();
     marker.type = visualization_msgs::Marker::SPHERE;
     marker.action = visualization_msgs::Marker::ADD;
@@ -579,17 +586,29 @@ void ROSInterface::PublishUSBL(ros::Publisher& pub, USBL* usbl)
     marker.pose.orientation.z = 0.0;
     marker.pose.orientation.w = 1.0;
 
-    std::map<uint64_t, std::pair<Scalar, Vector3>>::iterator it;
-    for(it = transPos.begin(); it!=transPos.end(); ++it)
+    for(auto it = beacons.begin(); it!=beacons.end(); ++it)
     {
         marker.id = it->first;
-        Vector3 pos = it->second.second;
+        Vector3 pos = it->second.relPos;
         marker.pose.position.x = pos.getX();
         marker.pose.position.y = pos.getY();
         marker.pose.position.z = pos.getZ();
         msg.markers.push_back(marker);    
-    }
 
+        info.beacon_id = it->first;
+        info.range = it->second.range;
+        info.azimuth = it->second.azimuth;
+        info.elevation = it->second.elevation;
+        info.relative_position.x = it->second.relPos.getX();
+        info.relative_position.y = it->second.relPos.getY();
+        info.relative_position.z = it->second.relPos.getZ();
+        info.local_orientation.x = it->second.localOri.getX();
+        info.local_orientation.y = it->second.localOri.getY();
+        info.local_orientation.z = it->second.localOri.getZ();
+        info.local_orientation.w = it->second.localOri.getW();
+        info.local_depth = it->second.localDepth;
+        pub_info.publish(info);
+    }
     pub.publish(msg);
 }
 
