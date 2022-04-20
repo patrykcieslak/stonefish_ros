@@ -210,13 +210,13 @@ void ROSInterface::PublishDVLAltitude(ros::Publisher& pub, DVL* dvl)
     Vector3 velMax;
     Scalar altMin, altMax;
     dvl->getRange(velMax, altMin, altMax);
-    Scalar beamAngle = dvl->getBeamSpreadAngle();
+    Scalar beamAngle = dvl->getBeamAngle();
     //Publish range message
     sensor_msgs::Range msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = dvl->getName() + "_altitude";
     msg.radiation_type = msg.ULTRASOUND;
-    msg.field_of_view = beamAngle;
+    msg.field_of_view = beamAngle*2;
     msg.min_range = altMin;
     msg.max_range = altMax;
     msg.range = (status == 0 || status == 2) ? s.getValue(3) : -1.0;
