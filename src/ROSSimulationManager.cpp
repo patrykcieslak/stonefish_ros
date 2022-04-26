@@ -134,6 +134,28 @@ void ROSSimulationManager::BuildScenario()
         ROS_ERROR("Parser log file '%s' could not be saved!", logFilePath.c_str());
 }
 
+void ROSSimulationManager::DestroyScenario()
+{
+    //Destroy ROS components
+    for(auto it = srvs.begin(); it != srvs.end(); ++it)
+        it->second.shutdown();
+    for(auto it = pubs.begin(); it != pubs.end(); ++it)
+        it->second.shutdown();
+    for(auto it = subs.begin(); it != subs.end(); ++it)
+        it->second.shutdown();
+    srvs.clear();
+    pubs.clear();
+    subs.clear();
+    cameraMsgPrototypes.clear();
+    sonarMsgPrototypes.clear();
+    for(size_t i = 0; i<rosRobots.size(); ++i)
+        delete rosRobots[i];
+    rosRobots.clear();
+
+    //Destroy simulation entities
+    SimulationManager::DestroyScenario();
+}
+
 void ROSSimulationManager::AddROSRobot(ROSRobot* robot)
 {
     rosRobots.push_back(robot);

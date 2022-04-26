@@ -83,6 +83,7 @@ namespace sf
 	    virtual ~ROSSimulationManager();
 
 		virtual void BuildScenario();
+		virtual void DestroyScenario();
 
 	    void AddROSRobot(ROSRobot* robot);
 
