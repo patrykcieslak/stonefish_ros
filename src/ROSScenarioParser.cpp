@@ -43,6 +43,7 @@
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/comms/Comm.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <geometry_msgs/Transform.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -274,7 +275,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         while((act = robot->getActuator(aID++)) != NULL)
         {
             if(act->getType() == ActuatorType::SERVO)
-                rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = Scalar(0);
+                rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = std::pair(ServoControlMode::VELOCITY_CTRL, Scalar(0));
         }
     }
 
@@ -307,6 +308,45 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             subs[robot->getName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(sim, rosRobot));
     }
 
+    //Parse all defined joint groups
+    if(nServos > 0)
+    {
+        std::vector<std::string> jointNames;
+        const char* jgTopic = nullptr;
+        const char* jgMode = nullptr;
+        unsigned int jg = 0;
+        ServoControlMode mode;
+
+        for(item = element->FirstChildElement("ros_joint_group_subscriber"); item != nullptr; item = item->NextSiblingElement("ros_joint_group_subscriber"))
+        {
+            if(item->QueryStringAttribute("topic", &jgTopic) == XML_SUCCESS && item->QueryStringAttribute("control_mode", &jgMode) == XML_SUCCESS)
+            {
+                std::string modeStr(jgMode);
+                ROS_INFO_STREAM("Creating joint group subscriber " << modeStr << " " << std::string(jgTopic));
+
+                if(modeStr == "velocity")
+                    mode = ServoControlMode::VELOCITY_CTRL;
+                else if(modeStr == "position")
+                    mode = ServoControlMode::POSITION_CTRL;
+                else
+                    continue; //Skip joint group -> missing parameters
+            }
+
+            for(XMLElement* joint = item->FirstChildElement("joint"); joint != nullptr; joint = joint->NextSiblingElement("joint"))
+            {
+                const char* jgJointName = nullptr;
+                if(joint->QueryStringAttribute("name", &jgJointName) == XML_SUCCESS)
+                    jointNames.push_back(robot->getName() + "/" + std::string(jgJointName));
+            }
+
+            if(jointNames.size() > 0) // Any joints defined?
+            {
+                    subs[robot->getName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(sim, rosRobot, mode, jointNames));
+                    ++jg;
+            }
+        }
+    }   
+    
     //Generate publishers
     if((item = element->FirstChildElement("ros_publisher")) != nullptr)
     {

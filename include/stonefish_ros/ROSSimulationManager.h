@@ -29,10 +29,12 @@
 //Stonefish
 #include <Stonefish/core/SimulationManager.h>
 #include <Stonefish/actuators/VariableBuoyancy.h>
+#include <Stonefish/actuators/Servo.h>
 //ROS
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Transform.h>
 #include <sensor_msgs/JointState.h>
@@ -59,15 +61,14 @@ namespace sf
 	struct ROSRobot
 	{
 		Robot* robot;
-		bool servoVelocityMode;
 		bool publishBaseLinkTransform;
 		std::vector<Scalar> thrusterSetpoints;
 		std::vector<Scalar> propellerSetpoints;
 		std::vector<Scalar> rudderSetpoints;
-		std::map<std::string, Scalar> servoSetpoints;
+		std::map<std::string, std::pair<ServoControlMode, Scalar>> servoSetpoints;
 
 		ROSRobot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers, unsigned int nRudders=0) 
-			: robot(robot), servoVelocityMode(true), publishBaseLinkTransform(false)
+			: robot(robot), publishBaseLinkTransform(false)
 		{
 			thrusterSetpoints = std::vector<Scalar>(nThrusters, Scalar(0));
 			propellerSetpoints = std::vector<Scalar>(nPropellers, Scalar(0));
@@ -183,6 +184,20 @@ namespace sf
 	private:
 		ROSSimulationManager* sm;
 		ROSRobot* robot;
+	};
+
+	class JointGroupCallback
+	{
+	public:
+		JointGroupCallback(ROSSimulationManager* sm, ROSRobot* robot, 
+						   ServoControlMode mode, const std::vector<std::string>& jointNames);
+		void operator()(const std_msgs::Float64MultiArrayConstPtr& msg);
+
+	private:
+		ROSSimulationManager* sm;
+		ROSRobot* robot;
+		ServoControlMode mode;
+		std::vector<std::string> jointNames;
 	};
 
 	class VBSCallback

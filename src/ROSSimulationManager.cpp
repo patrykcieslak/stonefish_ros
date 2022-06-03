@@ -406,17 +406,17 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
                 case ActuatorType::SERVO:
                 {
-                    Scalar setpoint = rosRobots[i]->servoSetpoints.at(((Servo*)actuator)->getJointName());
-                    
-                    if(rosRobots[i]->servoVelocityMode)
+                    std::pair<ServoControlMode, Scalar> setpoint = rosRobots[i]->servoSetpoints.at(((Servo*)actuator)->getJointName());
+               
+                    if(setpoint.first == VELOCITY_CTRL)
                     {
                         ((Servo*)actuator)->setControlMode(ServoControlMode::VELOCITY_CTRL);
-                        ((Servo*)actuator)->setDesiredVelocity(setpoint);
+                        ((Servo*)actuator)->setDesiredVelocity(setpoint.second);
                     }
-                    else
+                    else if(setpoint.first == POSITION_CTRL)
                     {
                         ((Servo*)actuator)->setControlMode(ServoControlMode::POSITION_CTRL);
-                        ((Servo*)actuator)->setDesiredPosition(setpoint);
+                        ((Servo*)actuator)->setDesiredPosition(setpoint.second);
                     }
                 }
                     break;
@@ -626,27 +626,25 @@ void ServosCallback::operator()(const sensor_msgs::JointStateConstPtr& msg)
 
     if(msg->position.size() > 0)
     {
-        robot->servoVelocityMode = false;
-        for(unsigned int i=0; i<msg->position.size(); ++i)
+        for(size_t i=0; i<msg->position.size(); ++i)
         {
-            try
+            try 
             {
-                robot->servoSetpoints.at(msg->name[i]) = msg->position[i];
+                robot->servoSetpoints.at(msg->name[i]) = std::pair<ServoControlMode, Scalar>(ServoControlMode::POSITION_CTRL, msg->position[i]);
             }
-            catch(const std::out_of_range& e)
+            catch(const std::out_of_range& e) 
             {
                 ROS_WARN_STREAM("Invalid joint name in desired joint state message: " << msg->name[i]);
             }
-        }
+        }   
     }
     else if(msg->velocity.size() > 0)
     {
-        robot->servoVelocityMode = true;
-        for(unsigned int i=0; i<msg->velocity.size(); ++i)
+        for(size_t i=0; i<msg->velocity.size(); ++i)
         {
             try
-            {
-                robot->servoSetpoints.at(msg->name[i]) = msg->velocity[i];
+            { 
+                robot->servoSetpoints.at(msg->name[i]) = std::pair<ServoControlMode, Scalar>(ServoControlMode::VELOCITY_CTRL, msg->velocity[i]);
             }
             catch(const std::out_of_range& e)
             {
@@ -657,6 +655,32 @@ void ServosCallback::operator()(const sensor_msgs::JointStateConstPtr& msg)
     else if(msg->effort.size() > 0)
     {
         ROS_ERROR("No effort control mode implemented in simulation!");
+    }
+}
+
+JointGroupCallback::JointGroupCallback(ROSSimulationManager* sm, ROSRobot* robot, ServoControlMode mode, const std::vector<std::string>& jointNames) 
+    : sm(sm), robot(robot), mode(mode), jointNames(jointNames)
+{
+}
+
+void JointGroupCallback::operator()(const std_msgs::Float64MultiArrayConstPtr& msg)
+{
+    if(msg->data.size() != jointNames.size())
+    {
+        ROS_ERROR("Wrong size of joint group message!");
+        return;
+    }
+
+    for(size_t i=0; i<jointNames.size(); ++i)
+    {
+        try 
+        {
+            robot->servoSetpoints.at(jointNames[i]) = std::pair<ServoControlMode, Scalar>(mode, msg->data[i]);
+        }
+        catch(const std::out_of_range& e)
+        {
+            ROS_WARN_STREAM("Invalid joint name: " << jointNames[i]);
+        }
     }
 }
 
