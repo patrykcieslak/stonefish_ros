@@ -387,7 +387,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         unsigned int thID = 0;
         unsigned int propID = 0;
         unsigned int rudderID = 0;
-        
+
         while((actuator = rosRobots[i]->robot->getActuator(aID++)) != NULL)
         {
             switch(actuator->getType())
@@ -681,6 +681,23 @@ void JointGroupCallback::operator()(const std_msgs::Float64MultiArrayConstPtr& m
         {
             ROS_WARN_STREAM("Invalid joint name: " << jointNames[i]);
         }
+    }
+}
+
+JointCallback::JointCallback(ROSSimulationManager* sm, ROSRobot* robot, ServoControlMode mode, const std::string& jointName) 
+    : sm(sm), robot(robot), mode(mode), jointName(jointName)
+{
+}
+
+void JointCallback::operator()(const std_msgs::Float64ConstPtr& msg)
+{
+    try 
+    {
+        robot->servoSetpoints.at(jointName) = std::pair<ServoControlMode, Scalar>(mode, msg->data);
+    }
+    catch(const std::out_of_range& e)
+    {
+        ROS_WARN_STREAM("Invalid joint name: " << jointName);
     }
 }
 

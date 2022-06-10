@@ -200,6 +200,20 @@ namespace sf
 		std::vector<std::string> jointNames;
 	};
 
+	class JointCallback
+	{
+	public:
+		JointCallback(ROSSimulationManager* sm, ROSRobot* robot, 
+					  ServoControlMode mode, const std::string& jointName);
+		void operator()(const std_msgs::Float64ConstPtr& msg);
+
+	private:
+		ROSSimulationManager* sm;
+		ROSRobot* robot;
+		ServoControlMode mode;
+		std::string jointName;
+	};
+
 	class VBSCallback
 	{
 	public: 

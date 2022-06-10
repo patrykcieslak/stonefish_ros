@@ -308,9 +308,10 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             subs[robot->getName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(sim, rosRobot));
     }
 
-    //Parse all defined joint groups
+    //Parse all defined joint groups and single joint subscribers
     if(nServos > 0)
     {
+        //Joint group subscribers
         const char* jgTopic = nullptr;
         const char* jgMode = nullptr;
         unsigned int jg = 0;
@@ -321,14 +322,13 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             if(item->QueryStringAttribute("topic", &jgTopic) == XML_SUCCESS && item->QueryStringAttribute("control_mode", &jgMode) == XML_SUCCESS)
             {
                 std::string modeStr(jgMode);
-                ROS_INFO_STREAM("Creating joint group subscriber " << modeStr << " " << std::string(jgTopic));
-
                 if(modeStr == "velocity")
                     mode = ServoControlMode::VELOCITY_CTRL;
                 else if(modeStr == "position")
                     mode = ServoControlMode::POSITION_CTRL;
                 else
                     continue; //Skip joint group -> missing parameters
+                ROS_INFO_STREAM("Creating joint group subscriber (" << modeStr << ") " << std::string(jgTopic));
             }
             
             std::vector<std::string> jointNames;
@@ -343,6 +343,28 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             {
                     subs[robot->getName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(sim, rosRobot, mode, jointNames));
                     ++jg;
+            }
+        }
+
+        //Single joint subscribers
+        const char* jointName = nullptr;
+        jg = 0;
+        for(item = element->FirstChildElement("ros_joint_subscriber"); item != nullptr; item = item->NextSiblingElement("ros_joint_subscriber"))
+        {
+            if(item->QueryStringAttribute("joint_name", &jointName) == XML_SUCCESS 
+               && item->QueryStringAttribute("topic", &jgTopic) == XML_SUCCESS 
+               && item->QueryStringAttribute("control_mode", &jgMode) == XML_SUCCESS)
+            {
+                std::string modeStr(jgMode);
+                if(modeStr == "velocity")
+                    mode = ServoControlMode::VELOCITY_CTRL;
+                else if(modeStr == "position")
+                    mode = ServoControlMode::POSITION_CTRL;
+                else
+                    continue; //Skip joint group -> missing parameters
+                ROS_INFO_STREAM("Creating joint subscriber (" << modeStr << ") " << std::string(jgTopic));
+                subs[robot->getName() + "/joint" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64>(std::string(jgTopic), 10, JointCallback(sim, rosRobot, mode, robot->getName() + "/" + std::string(jointName)));
+                ++jg;
             }
         }
     }   
