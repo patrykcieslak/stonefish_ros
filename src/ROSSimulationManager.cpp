@@ -667,7 +667,7 @@ void JointGroupCallback::operator()(const std_msgs::Float64MultiArrayConstPtr& m
 {
     if(msg->data.size() != jointNames.size())
     {
-        ROS_ERROR("Wrong size of joint group message!");
+        ROS_ERROR_STREAM("Wrong size of joint group message! Required: " << jointNames.size() << " Received: " << msg->data.size());
         return;
     }
 

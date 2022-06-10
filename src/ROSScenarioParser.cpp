@@ -311,7 +311,6 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     //Parse all defined joint groups
     if(nServos > 0)
     {
-        std::vector<std::string> jointNames;
         const char* jgTopic = nullptr;
         const char* jgMode = nullptr;
         unsigned int jg = 0;
@@ -331,7 +330,8 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                 else
                     continue; //Skip joint group -> missing parameters
             }
-
+            
+            std::vector<std::string> jointNames;
             for(XMLElement* joint = item->FirstChildElement("joint"); joint != nullptr; joint = joint->NextSiblingElement("joint"))
             {
                 const char* jgJointName = nullptr;
