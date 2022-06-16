@@ -1,4 +1,4 @@
-/*    
+/*
     This file is a part of stonefish_ros.
 
     stonefish_ros is free software: you can redistribute it and/or modify
@@ -45,6 +45,7 @@
 #include <std_srvs/Trigger.h>
 #include <stonefish_ros/SonarSettings.h>
 #include <stonefish_ros/SonarSettings2.h>
+#include <image_transport/image_transport.h>
 
 namespace sf
 {
@@ -67,13 +68,13 @@ namespace sf
 		std::vector<Scalar> rudderSetpoints;
 		std::map<std::string, std::pair<ServoControlMode, Scalar>> servoSetpoints;
 
-		ROSRobot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers, unsigned int nRudders=0) 
+		ROSRobot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers, unsigned int nRudders=0)
 			: robot(robot), publishBaseLinkTransform(false)
 		{
 			thrusterSetpoints = std::vector<Scalar>(nThrusters, Scalar(0));
 			propellerSetpoints = std::vector<Scalar>(nPropellers, Scalar(0));
 			rudderSetpoints = std::vector<Scalar>(nRudders, Scalar(0));
-		} 
+		}
 	};
 
 	// A class....
@@ -88,7 +89,7 @@ namespace sf
 
 	    void AddROSRobot(ROSRobot* robot);
 
-		virtual void SimulationStepCompleted(Scalar timeStep);		
+		virtual void SimulationStepCompleted(Scalar timeStep);
 	    virtual void ColorCameraImageReady(ColorCamera* cam);
 	    virtual void DepthCameraImageReady(DepthCamera* cam);
 		virtual void Multibeam2ScanReady(Multibeam2* mb);
@@ -102,8 +103,10 @@ namespace sf
 		virtual uint64_t getSimulationClock();
 		virtual void SimulationClockSleep(uint64_t us);
 	    ros::NodeHandle& getNodeHandle();
+	    image_transport::ImageTransport& getImageTransportHandle();
 	    std::map<std::string, ros::ServiceServer>& getServiceServers();
 		std::map<std::string, ros::Publisher>& getPublishers();
+		std::map<std::string, image_transport::Publisher>& getImagePublishers();
 	    std::map<std::string, ros::Subscriber>& getSubscribers();
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& getCameraMsgPrototypes();
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& getSonarMsgPrototypes();
@@ -111,10 +114,12 @@ namespace sf
 	protected:
 		std::string scnFilePath;
 		ros::NodeHandle nh;
+		image_transport::ImageTransport it;
 		tf::TransformBroadcaster br;
 		ros::ServiceServer srvECurrents, srvDCurrents;
 		std::map<std::string, ros::ServiceServer> srvs;
 		std::map<std::string, ros::Publisher> pubs;
+		std::map<std::string, image_transport::Publisher> img_pubs;
 		std::map<std::string, ros::Subscriber> subs;
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>> cameraMsgPrototypes;
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>> sonarMsgPrototypes;
@@ -144,7 +149,7 @@ namespace sf
 
 	class ThrustersCallback
 	{
-	public: 
+	public:
 		ThrustersCallback(ROSSimulationManager* sm, ROSRobot* robot);
 		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
 
@@ -155,7 +160,7 @@ namespace sf
 
 	class PropellersCallback
 	{
-	public: 
+	public:
 		PropellersCallback(ROSSimulationManager* sm, ROSRobot* robot);
 		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
 
@@ -166,7 +171,7 @@ namespace sf
 
 	class RuddersCallback
 	{
-	public: 
+	public:
 		RuddersCallback(ROSSimulationManager* sm, ROSRobot* robot);
 		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
 
@@ -177,7 +182,7 @@ namespace sf
 
 	class ServosCallback
 	{
-	public: 
+	public:
 		ServosCallback(ROSSimulationManager* sm, ROSRobot* robot);
 		void operator()(const sensor_msgs::JointStateConstPtr& msg);
 
@@ -189,7 +194,7 @@ namespace sf
 	class JointGroupCallback
 	{
 	public:
-		JointGroupCallback(ROSSimulationManager* sm, ROSRobot* robot, 
+		JointGroupCallback(ROSSimulationManager* sm, ROSRobot* robot,
 						   ServoControlMode mode, const std::vector<std::string>& jointNames);
 		void operator()(const std_msgs::Float64MultiArrayConstPtr& msg);
 
@@ -203,7 +208,7 @@ namespace sf
 	class JointCallback
 	{
 	public:
-		JointCallback(ROSSimulationManager* sm, ROSRobot* robot, 
+		JointCallback(ROSSimulationManager* sm, ROSRobot* robot,
 					  ServoControlMode mode, const std::string& jointName);
 		void operator()(const std_msgs::Float64ConstPtr& msg);
 
@@ -216,7 +221,7 @@ namespace sf
 
 	class VBSCallback
 	{
-	public: 
+	public:
 		VBSCallback(VariableBuoyancy* act);
 		void operator()(const std_msgs::Float64ConstPtr& msg);
 
@@ -259,7 +264,7 @@ namespace sf
 	public:
 		FLSService(FLS* fls);
 		bool operator()(stonefish_ros::SonarSettings::Request& req, stonefish_ros::SonarSettings::Response& res);
-	
+
 	private:
 		FLS* fls;
 	};
@@ -269,7 +274,7 @@ namespace sf
 	public:
 		SSSService(SSS* sss);
 		bool operator()(stonefish_ros::SonarSettings::Request& req, stonefish_ros::SonarSettings::Response& res);
-	
+
 	private:
 		SSS* sss;
 	};
@@ -279,7 +284,7 @@ namespace sf
 	public:
 		MSISService(MSIS* msis);
 		bool operator()(stonefish_ros::SonarSettings2::Request& req, stonefish_ros::SonarSettings2::Response& res);
-	
+
 	private:
 		MSIS* msis;
 	};
