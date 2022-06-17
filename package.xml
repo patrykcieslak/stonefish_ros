@@ -22,5 +22,6 @@
 	<depend>tf_conversions</depend>
 	<depend>pcl_conversions</depend>
 	<depend>pcl_ros</depend>
+	<depend>image_transport</depend>
 	<depend>Stonefish</depend>
 </package>

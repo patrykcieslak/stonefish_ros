@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   pcl_ros
   pcl_conversions
+  image_transport
 )
 
 find_package(PkgConfig REQUIRED)
@@ -45,19 +46,20 @@ add_compile_options(${Stonefish_CFLAGS})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES stonefish_ros
-  CATKIN_DEPENDS cola2_msgs 
-                 geometry_msgs 
-                 nav_msgs 
+  CATKIN_DEPENDS cola2_msgs
+                 geometry_msgs
+                 nav_msgs
                  sensor_msgs
-                 std_msgs 
-                 std_srvs 
+                 std_msgs
+                 std_srvs
                  roscpp
                  roslib
-                 tf 
+                 tf
                  tf_conversions
 		             message_runtime
                  pcl_conversions
                  pcl_ros
+                 image_transport
   DEPENDS Stonefish
 )
 
