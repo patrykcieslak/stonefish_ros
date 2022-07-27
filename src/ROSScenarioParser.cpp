@@ -226,6 +226,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     ros::NodeHandle& nh = sim->getNodeHandle();
     std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
     std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+    std::vector<ROSControlInterface*>& cifs = sim->getControlInterfaces();
 
     //Robot info
     const char* name = nullptr;
@@ -268,17 +269,6 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
 
     ROSRobot* rosRobot = new ROSRobot(robot, nThrusters, nPropellers, nRudders);
 
-    //Initialise servo setpoints
-    if(nServos > 0)
-    {
-        aID = 0;
-        while((act = robot->getActuator(aID++)) != NULL)
-        {
-            if(act->getType() == ActuatorType::SERVO)
-                rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = std::pair(ServoControlMode::VELOCITY_CTRL, Scalar(0));
-        }
-    }
-
     //Check if we should publish world_ned -> base_link transform
     XMLElement* item;
     if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
@@ -305,10 +295,19 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             subs[robot->getName() + "/rudders"] = nh.subscribe<cola2_msgs::Setpoints>(std::string(topicRudder), 10, RuddersCallback(sim, rosRobot));
 
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
+        {
             subs[robot->getName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(sim, rosRobot));
+            //Generate setpoint placeholders for the whole system
+            aID = 0;
+            while((act = robot->getActuator(aID++)) != nullptr)
+            {
+                if(act->getType() == ActuatorType::SERVO)
+                    rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = std::pair(ServoControlMode::VELOCITY_CTRL, Scalar(0));
+            }
+        }
     }
 
-    //Parse all defined joint groups and single joint subscribers
+    //Parse all defined joint groups, single joint subscribers and ros control interfaces
     if(nServos > 0)
     {
         //Joint group subscribers
@@ -328,8 +327,9 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                     mode = ServoControlMode::POSITION_CTRL;
                 else
                     continue; //Skip joint group -> missing parameters
-                ROS_INFO_STREAM("Creating joint group subscriber (" << modeStr << ") " << std::string(jgTopic));
             }
+            else
+                continue;
 
             std::vector<std::string> jointNames;
             for(XMLElement* joint = item->FirstChildElement("joint"); joint != nullptr; joint = joint->NextSiblingElement("joint"))
@@ -341,8 +341,9 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
 
             if(jointNames.size() > 0) // Any joints defined?
             {
-                    subs[robot->getName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(sim, rosRobot, mode, jointNames));
-                    ++jg;
+                ROS_INFO_STREAM("Creating joint group subscriber (" << std::string(jgMode) << ") " << std::string(jgTopic));
+                subs[robot->getName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(sim, rosRobot, mode, jointNames));
+                ++jg;
             }
         }
 
@@ -365,6 +366,40 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                 ROS_INFO_STREAM("Creating joint subscriber (" << modeStr << ") " << std::string(jgTopic));
                 subs[robot->getName() + "/joint" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64>(std::string(jgTopic), 10, JointCallback(sim, rosRobot, mode, robot->getName() + "/" + std::string(jointName)));
                 ++jg;
+            }
+        }
+
+        //ROSControl interfaces
+        const char* rcifNamespace = nullptr;
+        const char* rcifType = nullptr;
+
+        for(item = element->FirstChildElement("ros_control_interface"); item != nullptr; item = item->NextSiblingElement("ros_control_interface"))
+        {
+            if(item->QueryStringAttribute("namespace", &rcifNamespace) == XML_SUCCESS && item->QueryStringAttribute("type", &rcifType) == XML_SUCCESS)
+            {
+                std::string typeStr(rcifType);
+                if(typeStr == "velocity")
+                    mode = ServoControlMode::VELOCITY_CTRL;
+                else if(typeStr == "position")
+                    mode = ServoControlMode::POSITION_CTRL;
+                else
+                    continue; //Skip joint group -> missing parameters
+            }
+            else
+                continue;
+
+            std::vector<std::string> jointNames;
+            for(XMLElement* joint = item->FirstChildElement("joint"); joint != nullptr; joint = joint->NextSiblingElement("joint"))
+            {
+                const char* rcifJointName = nullptr;
+                if(joint->QueryStringAttribute("name", &rcifJointName) == XML_SUCCESS)
+                    jointNames.push_back(robot->getName() + "/" + std::string(rcifJointName));
+            }
+
+            if(jointNames.size() > 0) // Any joints defined?
+            {
+                ROS_INFO_STREAM("Creating ros control interface (" << std::string(rcifType) << ") " << std::string(rcifNamespace));
+                cifs.push_back(new ROSControlInterface(robot, jointNames, mode, std::string(rcifNamespace)));
             }
         }
     }

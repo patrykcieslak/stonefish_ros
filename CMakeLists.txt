@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   pcl_conversions
   image_transport
+  controller_manager
 )
 
 find_package(PkgConfig REQUIRED)
@@ -60,6 +61,7 @@ catkin_package(
                  pcl_conversions
                  pcl_ros
                  image_transport
+                 controller_manager
   DEPENDS Stonefish
 )
 
@@ -78,6 +80,7 @@ add_library(stonefish_ros SHARED
 src/ROSInterface.cpp
 src/ROSSimulationManager.cpp
 src/ROSScenarioParser.cpp
+src/ROSControlInterface.cpp
 )
 add_dependencies(stonefish_ros ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(stonefish_ros ${catkin_LIBRARIES} ${Stonefish_LIBRARIES})

@@ -46,6 +46,7 @@
 #include <stonefish_ros/SonarSettings.h>
 #include <stonefish_ros/SonarSettings2.h>
 #include <image_transport/image_transport.h>
+#include "stonefish_ros/ROSControlInterface.h"
 
 namespace sf
 {
@@ -110,20 +111,23 @@ namespace sf
 	    std::map<std::string, ros::Subscriber>& getSubscribers();
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& getCameraMsgPrototypes();
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& getSonarMsgPrototypes();
+		std::vector<ROSControlInterface*>& getControlInterfaces();
 
 	protected:
 		std::string scnFilePath;
 		ros::NodeHandle nh;
+		ros::AsyncSpinner spinner;
 		image_transport::ImageTransport it;
 		tf::TransformBroadcaster br;
 		ros::ServiceServer srvECurrents, srvDCurrents;
 		std::map<std::string, ros::ServiceServer> srvs;
 		std::map<std::string, ros::Publisher> pubs;
-		std::map<std::string, image_transport::Publisher> img_pubs;
+		std::map<std::string, image_transport::Publisher> imgPubs;
 		std::map<std::string, ros::Subscriber> subs;
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>> cameraMsgPrototypes;
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>> sonarMsgPrototypes;
 		std::vector<ROSRobot*> rosRobots;
+		std::vector<ROSControlInterface*> controlIfs;
 	};
 
 	//Callback functors
