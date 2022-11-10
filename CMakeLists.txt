@@ -19,8 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
 )
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(Stonefish REQUIRED stonefish>=1.3.0)
+find_package(Stonefish REQUIRED 1.3.0)
 
 add_message_files(
   FILES
@@ -42,7 +41,6 @@ generate_messages(
 )
 
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options(${Stonefish_CFLAGS})
 
 catkin_package(
   INCLUDE_DIRS include
@@ -62,32 +60,22 @@ catkin_package(
                  pcl_ros
                  image_transport
                  controller_manager
-  DEPENDS Stonefish
-)
-
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${Stonefish_INCLUDE_DIRS}
-)
-
-link_directories(
-  ${Stonefish_LIBRARY_DIRS}
 )
 
 #Library
 add_library(stonefish_ros SHARED
-src/ROSInterface.cpp
-src/ROSSimulationManager.cpp
-src/ROSScenarioParser.cpp
-src/ROSControlInterface.cpp
+  src/ROSInterface.cpp
+  src/ROSSimulationManager.cpp
+  src/ROSScenarioParser.cpp
+  src/ROSControlInterface.cpp
 )
+target_link_libraries(stonefish_ros PUBLIC ${catkin_LIBRARIES} Stonefish::Stonefish)
+target_include_directories(stonefish_ros PUBLIC include ${catkin_INCLUDE_DIRS})
 add_dependencies(stonefish_ros ${${PROJECT_NAME}_EXPORTED_TARGETS})
-target_link_libraries(stonefish_ros ${catkin_LIBRARIES} ${Stonefish_LIBRARIES})
 
 #Universal simulators with XML parser
 add_executable(parsed_simulator src/parsed_simulator.cpp)
-target_link_libraries(parsed_simulator ${catkin_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
+target_link_libraries(parsed_simulator PRIVATE stonefish_ros)
 
 add_executable(parsed_simulator_nogpu src/parsed_simulator_nogpu.cpp)
-target_link_libraries(parsed_simulator_nogpu ${catkin_LIBRARIES} ${Stonefish_LIBRARIES} stonefish_ros)
+target_link_libraries(parsed_simulator_nogpu PRIVATE stonefish_ros)
