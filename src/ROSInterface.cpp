@@ -232,7 +232,7 @@ void ROSInterface::PublishGPS(ros::Publisher& pub, GPS* gps)
     msg.header.frame_id = gps->getName();
     msg.status.service = msg.status.SERVICE_GPS;
 
-    if(s.getValue(1) < Scalar(0)) //Underwater
+    if(s.getValue(0) > Scalar(90) && s.getValue(1) > Scalar(180)) //Underwater
     {
         msg.status.status = msg.status.STATUS_NO_FIX;
         msg.latitude = 0.0;
@@ -367,7 +367,7 @@ void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
     std::vector<Scalar> distances = sample.getData();
 
     Scalar angRange = mb->getAngleRange();
-    uint32_t angSteps = distances.size();
+    size_t angSteps = distances.size();
 
     sensor_msgs::LaserScan msg;
     msg.header.stamp = ros::Time::now();
@@ -381,9 +381,22 @@ void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
     msg.time_increment = 0.; // time between measurements [seconds] - if your scanner is moving, this will be used in interpolating position of 3d points
     msg.scan_time = 0.; // time between scans [seconds]
     
-    msg.ranges.resize(angSteps); // range data [m] (Note: values < range_min or > range_max should be discarded)
-    for(uint32_t i = 0; i<angSteps; ++i)
-        msg.ranges[i] = distances[i];
+    msg.ranges.resize(angSteps); // range data [m]
+    msg.intensities.resize(angSteps); // used to say if measurement is valid
+
+    for(size_t i = 0; i<angSteps; ++i)
+    {
+        if(distances[i] < channel.rangeMax)
+        {
+            msg.ranges[i] = distances[i];
+            msg.intensities[i] = 1.0;
+        }
+        else
+        {
+            msg.ranges[i] = std::numeric_limits<float>::infinity();
+            msg.intensities[i] = 0.0;
+        }
+    }
 
     pub.publish(msg);
 }

@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 27/07/22.
-//  Copyright (c) 2022 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2022-2023 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSControlInterface.h"
@@ -65,15 +65,15 @@ ROSControlInterface::ROSControlInterface(Robot* robot, const std::vector<std::st
     // Connect and register the joint command interfaces
     switch (mode)
     {
-        case ServoControlMode::POSITION_CTRL:
+        case ServoControlMode::POSITION:
         {
             jcif = new hardware_interface::PositionJointInterface();
             registerInterface((hardware_interface::PositionJointInterface*)jcif);
         }
             break;
         
-        case ServoControlMode::VELOCITY_CTRL:
-        case ServoControlMode::TORQUE_CTRL: // Effort interface not implemented at this time!
+        case ServoControlMode::VELOCITY:
+        case ServoControlMode::TORQUE: // Effort interface not implemented at this time!
         {
             jcif = new hardware_interface::VelocityJointInterface();
             registerInterface((hardware_interface::VelocityJointInterface*)jcif);
@@ -117,24 +117,24 @@ void ROSControlInterface::write()
 {
     switch(mode)
     {
-        case ServoControlMode::POSITION_CTRL:
+        case ServoControlMode::POSITION:
         {
             for(size_t i=0; i<actuators.size(); ++i)
             {
                 Servo* srv = (Servo*)robot->getActuator(actuators[i]);
-                srv->setControlMode(ServoControlMode::POSITION_CTRL);
+                srv->setControlMode(ServoControlMode::POSITION);
                 srv->setDesiredPosition(cmd[i]);
             }
         }
         break;
 
-        case ServoControlMode::VELOCITY_CTRL:
-        case ServoControlMode::TORQUE_CTRL:
+        case ServoControlMode::VELOCITY:
+        case ServoControlMode::TORQUE:
         {
             for(size_t i=0; i<actuators.size(); ++i)
             {
                 Servo* srv = (Servo*)robot->getActuator(actuators[i]);
-                srv->setControlMode(ServoControlMode::VELOCITY_CTRL);
+                srv->setControlMode(ServoControlMode::VELOCITY);
                 srv->setDesiredVelocity(cmd[i]);
             }
         }

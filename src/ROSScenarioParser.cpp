@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2021 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2023 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSScenarioParser.h"
@@ -302,7 +302,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             while((act = robot->getActuator(aID++)) != nullptr)
             {
                 if(act->getType() == ActuatorType::SERVO)
-                    rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = std::pair(ServoControlMode::VELOCITY_CTRL, Scalar(0));
+                    rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = std::pair(ServoControlMode::VELOCITY, Scalar(0));
             }
         }
     }
@@ -322,9 +322,9 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             {
                 std::string modeStr(jgMode);
                 if(modeStr == "velocity")
-                    mode = ServoControlMode::VELOCITY_CTRL;
+                    mode = ServoControlMode::VELOCITY;
                 else if(modeStr == "position")
-                    mode = ServoControlMode::POSITION_CTRL;
+                    mode = ServoControlMode::POSITION;
                 else
                     continue; //Skip joint group -> missing parameters
             }
@@ -358,9 +358,9 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             {
                 std::string modeStr(jgMode);
                 if(modeStr == "velocity")
-                    mode = ServoControlMode::VELOCITY_CTRL;
+                    mode = ServoControlMode::VELOCITY;
                 else if(modeStr == "position")
-                    mode = ServoControlMode::POSITION_CTRL;
+                    mode = ServoControlMode::POSITION;
                 else
                     continue; //Skip joint group -> missing parameters
                 ROS_INFO_STREAM("Creating joint subscriber (" << modeStr << ") " << std::string(jgTopic));
@@ -379,9 +379,9 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             {
                 std::string typeStr(rcifType);
                 if(typeStr == "velocity")
-                    mode = ServoControlMode::VELOCITY_CTRL;
+                    mode = ServoControlMode::VELOCITY;
                 else if(typeStr == "position")
-                    mode = ServoControlMode::POSITION_CTRL;
+                    mode = ServoControlMode::POSITION;
                 else
                     continue; //Skip joint group -> missing parameters
             }
