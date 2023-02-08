@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2021 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2023 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSSimulationManager__
@@ -41,7 +41,6 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <nav_msgs/Odometry.h>
-#include <cola2_msgs/Setpoints.h>
 #include <std_srvs/Trigger.h>
 #include <stonefish_ros/SonarSettings.h>
 #include <stonefish_ros/SonarSettings2.h>
@@ -78,7 +77,7 @@ namespace sf
 		}
 	};
 
-	// A class....
+	// A class representing a standard simulation manager with ROS support.
 	class ROSSimulationManager : public SimulationManager
 	{
 	public:
@@ -101,7 +100,7 @@ namespace sf
 	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
-		virtual uint64_t getSimulationClock();
+		virtual uint64_t getSimulationClock() const;
 		virtual void SimulationClockSleep(uint64_t us);
 	    ros::NodeHandle& getNodeHandle();
 	    image_transport::ImageTransport& getImageTransportHandle();
@@ -155,7 +154,7 @@ namespace sf
 	{
 	public:
 		ThrustersCallback(ROSSimulationManager* sm, ROSRobot* robot);
-		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
+		void operator()(const std_msgs::Float64MultiArrayConstPtr& msg);
 
 	private:
 		ROSSimulationManager* sm;
@@ -166,7 +165,7 @@ namespace sf
 	{
 	public:
 		PropellersCallback(ROSSimulationManager* sm, ROSRobot* robot);
-		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
+		void operator()(const std_msgs::Float64MultiArrayConstPtr& msg);
 
 	private:
 		ROSSimulationManager* sm;
@@ -177,7 +176,7 @@ namespace sf
 	{
 	public:
 		RuddersCallback(ROSSimulationManager* sm, ROSRobot* robot);
-		void operator()(const cola2_msgs::SetpointsConstPtr& msg);
+		void operator()(const std_msgs::Float64MultiArrayConstPtr& msg);
 
 	private:
 		ROSSimulationManager* sm;

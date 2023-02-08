@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2021 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2023 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSInterface.h"
@@ -69,9 +69,8 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_ros/point_cloud.h>
-#include <cola2_msgs/DVL.h>
-#include <cola2_msgs/Float32Stamped.h>
-#include <cola2_msgs/NavSts.h>
+#include <stonefish_ros/DVL.h>
+#include <stonefish_ros/INS.h>
 #include <stonefish_ros/Int32Stamped.h>
 #include <stonefish_ros/BeaconInfo.h>
 
@@ -189,7 +188,7 @@ void ROSInterface::PublishDVL(ros::Publisher& pub, DVL* dvl)
     Scalar vVariance = dvl->getSensorChannelDescription(0).stdDev;
     vVariance *= vVariance; //Variance is square of standard deviation
     //Publish DVL message
-    cola2_msgs::DVL msg;
+    stonefish_ros::DVL msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = dvl->getName();
     msg.velocity.x = s.getValue(0);
@@ -283,26 +282,30 @@ void ROSInterface::PublishINS(ros::Publisher& pub, INS* ins)
     SimulationApp::getApp()->getSimulationManager()->getNED()->Ned2Geodetic(0.0, 0.0, 0.0, lat, lon, h);
 
     Sample s = ins->getLastSample();
-    cola2_msgs::NavSts msg;
+    stonefish_ros::INS msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = ins->getName();
-    msg.position.north = s.getValue(0);
-    msg.position.east = s.getValue(1);
-    msg.position.depth = s.getValue(2);
+    
+    msg.latitude = s.getValue(4);
+    msg.longitude = s.getValue(5);
+    msg.origin_latitude = lat;
+    msg.origin_longitude = lon;
+
+    msg.pose.north = s.getValue(0);
+    msg.pose.east = s.getValue(1);
+    msg.pose.down = s.getValue(2);
+    msg.pose.roll = s.getValue(9);
+    msg.pose.pitch = s.getValue(10);
+    msg.pose.yaw = s.getValue(11);
     msg.altitude = s.getValue(3);
-    msg.global_position.latitude = s.getValue(4);
-    msg.global_position.longitude = s.getValue(5);
-    msg.origin.latitude = lat;
-    msg.origin.longitude = lon;
+    
     msg.body_velocity.x = s.getValue(6);
     msg.body_velocity.y = s.getValue(7);
     msg.body_velocity.z = s.getValue(8);
-    msg.orientation.roll = s.getValue(9);
-    msg.orientation.pitch = s.getValue(10);
-    msg.orientation.yaw = s.getValue(11);
-    msg.orientation_rate.roll = s.getValue(12);
-    msg.orientation_rate.pitch = s.getValue(13);
-    msg.orientation_rate.yaw = s.getValue(14);
+    msg.rpy_rate.x = s.getValue(12);
+    msg.rpy_rate.y = s.getValue(13);
+    msg.rpy_rate.z = s.getValue(14);
+
     pub.publish(msg);
 }
 

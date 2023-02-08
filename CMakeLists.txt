@@ -3,7 +3,6 @@ project(stonefish_ros)
 
 find_package(catkin REQUIRED COMPONENTS
   message_generation
-  cola2_msgs
   geometry_msgs
   nav_msgs
   sensor_msgs
@@ -23,6 +22,10 @@ find_package(Stonefish REQUIRED 1.3.0)
 
 add_message_files(
   FILES
+  DVLBeam.msg
+  NEDPose.msg
+  DVL.msg
+  INS.msg
   Int32Stamped.msg
   ThrusterState.msg
   BeaconInfo.msg
@@ -45,8 +48,7 @@ set(CMAKE_CXX_STANDARD 17)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES stonefish_ros
-  CATKIN_DEPENDS cola2_msgs
-                 geometry_msgs
+  CATKIN_DEPENDS geometry_msgs
                  nav_msgs
                  sensor_msgs
                  std_msgs
