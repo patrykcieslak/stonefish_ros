@@ -55,6 +55,7 @@
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Rudder.h>
+#include <Stonefish/actuators/SuctionCup.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/utils/SystemUtil.hpp>
 
@@ -446,6 +447,18 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                     {
                         std_msgs::Float64 msg;
                         msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
+                        it->second.publish(msg);
+                    }
+                }
+                    break;
+
+                case ActuatorType::SUCTION_CUP:
+                {
+                    auto it = pubs.find(actuator->getName());
+                    if(it != pubs.end())
+                    {
+                        std_msgs::Bool msg;
+                        msg.data = ((SuctionCup*)actuator)->getPump();
                         it->second.publish(msg);
                     }
                 }
@@ -902,5 +915,21 @@ bool MSISService::operator()(stonefish_ros::SonarSettings2::Request& req, stonef
     }
     return true;
 }
+
+SuctionCupService::SuctionCupService(SuctionCup* suction) : suction(suction)
+{
+}
+
+bool SuctionCupService::operator()(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+{
+    suction->setPump(req.data);
+    if(req.data)
+        res.message = "Pump turned on.";
+    else 
+        res.message = "Pump turned off.";
+    res.success = true;
+    return true;
+}
+
 
 }

@@ -33,6 +33,7 @@
 //ROS
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <geometry_msgs/Vector3.h>
@@ -42,6 +43,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <nav_msgs/Odometry.h>
 #include <std_srvs/Trigger.h>
+#include <std_srvs/SetBool.h>
 #include <stonefish_ros/SonarSettings.h>
 #include <stonefish_ros/SonarSettings2.h>
 #include <image_transport/image_transport.h>
@@ -55,6 +57,7 @@ namespace sf
 	class FLS;
 	class SSS;
 	class MSIS;
+	class SuctionCup;
 	class ManualTrajectory;
 	class Uniform;
 	class Jet;
@@ -290,6 +293,16 @@ namespace sf
 
 	private:
 		MSIS* msis;
+	};
+
+	class SuctionCupService
+	{
+	public:
+		SuctionCupService(SuctionCup* suction);
+		bool operator()(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
+
+	private:
+		SuctionCup* suction;
 	};
 }
 

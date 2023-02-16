@@ -42,6 +42,7 @@
 #include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/comms/Comm.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <geometry_msgs/Transform.h>
@@ -479,6 +480,7 @@ Actuator* ROSScenarioParser::ParseActuator(XMLElement* element, const std::strin
         ros::NodeHandle& nh = sim->getNodeHandle();
         std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
         std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+        std::map<std::string, ros::ServiceServer>& srvs = sim->getServiceServers();
         std::string actuatorName = act->getName();
         XMLElement* item;
         //Actuator specific handling
@@ -497,6 +499,24 @@ Actuator* ROSScenarioParser::ParseActuator(XMLElement* element, const std::strin
                     && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
                 {
                     subs[actuatorName] = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, VBSCallback((VariableBuoyancy*)act));
+                }
+            }
+                break;
+
+            case ActuatorType::SUCTION_CUP:
+            {
+                const char* pubTopic = nullptr;
+                const char* srvTopic = nullptr;
+                if((item = element->FirstChildElement("ros_publisher")) != nullptr
+                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+                {
+                    pubs[actuatorName] = nh.advertise<std_msgs::Bool>(std::string(pubTopic), 10);
+                }
+                if((item = element->FirstChildElement("ros_service")) != nullptr
+                    && item->QueryStringAttribute("topic", &srvTopic) == XML_SUCCESS)
+                {
+                    SuctionCup* suction = (SuctionCup*)act;
+                    srvs[actuatorName] = nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(std::string(srvTopic), SuctionCupService(suction));
                 }
             }
                 break;
