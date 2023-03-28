@@ -112,7 +112,8 @@ std::string ROSScenarioParser::SubstituteROSVars(const std::string& value)
         }
         else if (results[0] == "param")
         {
-            std::string param;
+            XmlRpc::XmlRpcValue param;
+            std::string paramStr;
             // to get private params, we need to prefix ~ it seems
             if (!results[1].empty() && results[1][0] != '~' && results[1][0] != '/')
             {
@@ -124,7 +125,26 @@ std::string ROSScenarioParser::SubstituteROSVars(const std::string& value)
                 ROS_ERROR("Scenario parser: Could not find parameter '%s'!", results[1].c_str());
                 return value;
             }
-            replacedValue += param;
+            switch(param.getType())
+            {
+                case XmlRpc::XmlRpcValue::TypeDouble:
+                    paramStr = std::to_string(static_cast<double>(param));
+                    break;
+
+                case XmlRpc::XmlRpcValue::TypeInt:
+                    paramStr = std::to_string(static_cast<int>(param));
+                    break;
+
+                case XmlRpc::XmlRpcValue::TypeString:
+                    paramStr = static_cast<std::string>(param);
+                    break;
+
+                default:
+                    log.Print(MessageType::ERROR, "[ROS] Found parameter '%s' of unsupported type!", results[1].c_str());
+                    ROS_ERROR("Scenario parser: Found parameter '%s' of unsupported type!", results[1].c_str());
+                    return value;
+            }
+            replacedValue += paramStr;
         }
         else //Command unsupported
         {
