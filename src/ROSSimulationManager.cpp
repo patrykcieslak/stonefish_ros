@@ -52,6 +52,7 @@
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
+#include <Stonefish/actuators/Push.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Rudder.h>
@@ -406,6 +407,10 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         {
             switch(actuator->getType())
             {
+                case ActuatorType::PUSH:
+                    ((Push*)actuator)->setForce(rosRobots[i]->thrusterSetpoints[thID++]);
+                    break;
+
                 case ActuatorType::THRUSTER:
                     ((Thruster*)actuator)->setSetpoint(rosRobots[i]->thrusterSetpoints[thID++]);
                     break;
@@ -790,6 +795,7 @@ void ActuatorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& 
 
     switch(act->getType())
     {
+        case ActuatorType::PUSH:
         case ActuatorType::THRUSTER:
         case ActuatorType::PROPELLER:
         case ActuatorType::VBS:

@@ -267,6 +267,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         switch(act->getType())
         {
             case ActuatorType::THRUSTER:
+            case ActuatorType::PUSH:
                 ++nThrusters;
                 break;
 
