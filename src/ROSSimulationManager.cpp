@@ -53,6 +53,7 @@
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/actuators/Push.h>
+#include <Stonefish/actuators/SimpleThruster.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Rudder.h>
@@ -366,7 +367,6 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             unsigned int aID = 0;
             unsigned int thID = 0;
             Actuator* actuator;
-            Thruster* th;
             stonefish_ros::ThrusterState msg;
             msg.header.stamp = ros::Time::now();
             msg.header.frame_id = rosRobots[i]->robot->getName();
@@ -379,16 +379,25 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             {
                 if(actuator->getType() == ActuatorType::THRUSTER)
                 {
-                    th = (Thruster*)actuator;
+                    Thruster* th = (Thruster*)actuator;
                     msg.setpoint[thID] = th->getSetpoint();
                     msg.rpm[thID] = th->getOmega()/(Scalar(2)*M_PI)*Scalar(60);
                     msg.thrust[thID] = th->getThrust();
                     msg.torque[thID] = th->getTorque();
-                    ++thID;
-
-                    if(thID == rosRobots[i]->thrusterSetpoints.size())
-                        break;
+                    ++thID;    
                 }
+                else if(actuator->getType() == ActuatorType::SIMPLE_THRUSTER)
+                {
+                    SimpleThruster* th = (SimpleThruster*)actuator;
+                    msg.setpoint[thID] = th->getThrust();
+                    msg.rpm[thID] = Scalar(0);
+                    msg.thrust[thID] = th->getThrust();
+                    msg.torque[thID] = th->getTorque();
+                    ++thID;
+                }
+
+                if(thID == rosRobots[i]->thrusterSetpoints.size())
+                        break;
             }
             pubs.at(rosRobots[i]->robot->getName() + "/thrusters").publish(msg);
         }
@@ -407,8 +416,8 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         {
             switch(actuator->getType())
             {
-                case ActuatorType::PUSH:
-                    ((Push*)actuator)->setForce(rosRobots[i]->thrusterSetpoints[thID++]);
+                case ActuatorType::SIMPLE_THRUSTER:
+                    ((SimpleThruster*)actuator)->setSetpoint(rosRobots[i]->thrusterSetpoints[thID++], Scalar(0));
                     break;
 
                 case ActuatorType::THRUSTER:
@@ -796,6 +805,7 @@ void ActuatorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& 
     switch(act->getType())
     {
         case ActuatorType::PUSH:
+        case ActuatorType::SIMPLE_THRUSTER:
         case ActuatorType::THRUSTER:
         case ActuatorType::PROPELLER:
         case ActuatorType::VBS:

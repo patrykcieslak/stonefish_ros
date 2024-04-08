@@ -266,8 +266,8 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     {
         switch(act->getType())
         {
+            case ActuatorType::SIMPLE_THRUSTER:
             case ActuatorType::THRUSTER:
-            case ActuatorType::PUSH:
                 ++nThrusters;
                 break;
 
@@ -548,6 +548,8 @@ Actuator* ROSScenarioParser::ParseActuator(XMLElement* element, const std::strin
         //Handling of online origin updates
         switch(act->getType())
         {
+            case ActuatorType::PUSH:
+            case ActuatorType::SIMPLE_THRUSTER:
             case ActuatorType::THRUSTER:
             case ActuatorType::PROPELLER:
             case ActuatorType::VBS:
