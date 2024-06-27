@@ -46,6 +46,7 @@
 #include <std_srvs/SetBool.h>
 #include <stonefish_ros/SonarSettings.h>
 #include <stonefish_ros/SonarSettings2.h>
+#include <stonefish_ros/Respawn.h>
 #include <image_transport/image_transport.h>
 #include "stonefish_ros/ROSControlInterface.h"
 
@@ -70,9 +71,11 @@ namespace sf
 		std::vector<Scalar> propellerSetpoints;
 		std::vector<Scalar> rudderSetpoints;
 		std::map<std::string, std::pair<ServoControlMode, Scalar>> servoSetpoints;
+		bool respawnRequested;
+		Transform respawnOrigin;
 
 		ROSRobot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers, unsigned int nRudders=0)
-			: robot(robot), publishBaseLinkTransform(false)
+			: robot(robot), publishBaseLinkTransform(false), respawnRequested(false)
 		{
 			thrusterSetpoints = std::vector<Scalar>(nThrusters, Scalar(0));
 			propellerSetpoints = std::vector<Scalar>(nPropellers, Scalar(0));
@@ -91,6 +94,7 @@ namespace sf
 		virtual void DestroyScenario();
 
 	    void AddROSRobot(ROSRobot* robot);
+	    bool RespawnROSRobot(const std::string& robotName, const Transform& origin);
 
 		virtual void SimulationStepCompleted(Scalar timeStep);
 	    virtual void ColorCameraImageReady(ColorCamera* cam);
@@ -100,9 +104,10 @@ namespace sf
 		virtual void SSSScanReady(SSS* sss);
 		virtual void MSISScanReady(MSIS* sss);
 
-	    bool EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
-		bool DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
-
+	    bool EnableCurrents(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res);
+		bool DisableCurrents(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res);
+		bool RespawnRobot(stonefish_ros::Respawn::Request& req, stonefish_ros::Respawn::Response& res);
+        
 		virtual uint64_t getSimulationClock() const;
 		virtual void SimulationClockSleep(uint64_t us);
 	    ros::NodeHandle& getNodeHandle();
@@ -121,7 +126,7 @@ namespace sf
 		ros::AsyncSpinner spinner;
 		image_transport::ImageTransport it;
 		tf::TransformBroadcaster br;
-		ros::ServiceServer srvECurrents, srvDCurrents;
+		ros::ServiceServer srvECurrents, srvDCurrents, srvRespawn;
 		std::map<std::string, ros::ServiceServer> srvs;
 		std::map<std::string, ros::Publisher> pubs;
 		std::map<std::string, image_transport::Publisher> imgPubs;

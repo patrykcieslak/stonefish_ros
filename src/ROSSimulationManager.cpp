@@ -69,8 +69,7 @@ namespace sf
 ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath)
 	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE), scnFilePath(scenarioFilePath), nh("~"), it(nh), spinner(4)
 {
-    srvECurrents = nh.advertiseService("enable_currents", &ROSSimulationManager::EnableCurrents, this);
-    srvDCurrents = nh.advertiseService("disable_currents", &ROSSimulationManager::DisableCurrents, this);
+    ROSInterface::setTimestampZero(ros::Time::now());
 }
 
 ROSSimulationManager::~ROSSimulationManager()
@@ -152,6 +151,9 @@ void ROSSimulationManager::BuildScenario()
     if(!success2)
         ROS_ERROR("Parser log file '%s' could not be saved!", logFilePath.c_str());
 
+    srvECurrents = nh.advertiseService("enable_currents", &ROSSimulationManager::EnableCurrents, this);
+    srvDCurrents = nh.advertiseService("disable_currents", &ROSSimulationManager::DisableCurrents, this);
+    srvRespawn = nh.advertiseService("respawn_robot", &ROSSimulationManager::RespawnRobot, this);
     spinner.start();
 }
 
@@ -188,6 +190,20 @@ void ROSSimulationManager::DestroyScenario()
 void ROSSimulationManager::AddROSRobot(ROSRobot* robot)
 {
     rosRobots.push_back(robot);
+}
+
+bool ROSSimulationManager::RespawnROSRobot(const std::string& robotName, const Transform& origin)
+{
+    for(size_t i=0; i<rosRobots.size(); ++i)
+    {
+        if(rosRobots[i]->robot->getName() == robotName)
+        {
+            rosRobots[i]->respawnOrigin = origin;
+            rosRobots[i]->respawnRequested = true;
+            return true;
+        }
+    }
+    return false;
 }
 
 void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
@@ -492,6 +508,16 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         controlIfs[i]->write();
     }
 
+    /////////////////////////////////// RESPAWN REQUESTS ///////////////////////////////
+    for(size_t i=0; i<rosRobots.size(); ++i)
+    {
+        if(rosRobots[i]->respawnRequested)
+        {
+            rosRobots[i]->robot->Respawn(this, rosRobots[i]->respawnOrigin);
+            rosRobots[i]->respawnRequested = false;
+        }
+    }    
+
     /////////////////////////////////// DEBUG //////////////////////////////////////////
     auto hydroLambda = [](Robot* r)
     {
@@ -607,7 +633,25 @@ void ROSSimulationManager::Multibeam2ScanReady(Multibeam2* mb)
     ROSInterface::PublishMultibeam2(pubs.at(mb->getName()), mb);
 }
 
-bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+bool ROSSimulationManager::RespawnRobot(stonefish_ros::Respawn::Request& req, stonefish_ros::Respawn::Response& res)
+{
+    Vector3 p(req.origin.position.x, req.origin.position.y, req.origin.position.z);
+    Quaternion q(req.origin.orientation.x, req.origin.orientation.y, req.origin.orientation.z, req.origin.orientation.w);
+    Transform origin(q, p);
+    
+    if(RespawnROSRobot(req.name, origin))
+    {
+        res.message = "Robot respawned.";
+        res.success = true;
+    }
+    else    
+    {
+        res.message = "Robot not found!";
+        res.success= false;
+    }
+}
+        
+bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res)
 {
     getOcean()->EnableCurrents();
     res.message = "Currents simulation enabled.";
@@ -615,7 +659,7 @@ bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request &req, std_s
     return true;
 }
 
-bool ROSSimulationManager::DisableCurrents(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+bool ROSSimulationManager::DisableCurrents(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res)
 {
     getOcean()->DisableCurrents();
     res.message = "Currents simulation disabled.";

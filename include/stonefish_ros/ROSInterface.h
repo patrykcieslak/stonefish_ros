@@ -84,7 +84,11 @@ namespace sf
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateSSSMsgPrototypes(SSS* sss);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateMSISMsgPrototypes(MSIS* msis);
 
+        static void setTimestampZero(const ros::Time& zero);
+
     private:
+        static ros::Time timestamp0;
+
         ROSInterface();
     };
 }

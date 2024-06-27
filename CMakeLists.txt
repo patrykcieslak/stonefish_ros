@@ -33,6 +33,7 @@ add_message_files(
 
 add_service_files(
   FILES
+  Respawn.srv
   SonarSettings.srv
   SonarSettings2.srv
 )
