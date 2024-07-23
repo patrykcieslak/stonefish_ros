@@ -69,7 +69,6 @@ namespace sf
 ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath)
 	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE), scnFilePath(scenarioFilePath), nh("~"), it(nh), spinner(4)
 {
-    ROSInterface::setTimestampZero(ros::Time::now());
 }
 
 ROSSimulationManager::~ROSSimulationManager()
@@ -347,7 +346,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
         if(rosRobots[i]->publishBaseLinkTransform)
-            ROSInterface::PublishTF(br, rosRobots[i]->robot->getTransform(), ros::Time::now(), "world_ned", rosRobots[i]->robot->getName() + "/base_link");
+            ROSInterface::PublishTF(br, rosRobots[i]->robot->getTransform(), ros::Time(getSimulationTime(true)), "world_ned", rosRobots[i]->robot->getName() + "/base_link");
     }
 
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
@@ -359,7 +358,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             Actuator* actuator;
             Servo* srv;
             sensor_msgs::JointState msg;
-            msg.header.stamp = ros::Time::now();
+            msg.header.stamp = ros::Time(getSimulationTime(true));
             msg.header.frame_id = rosRobots[i]->robot->getName();
             
             while((actuator = rosRobots[i]->robot->getActuator(aID++)) != nullptr)
@@ -384,7 +383,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             unsigned int thID = 0;
             Actuator* actuator;
             stonefish_ros::ThrusterState msg;
-            msg.header.stamp = ros::Time::now();
+            msg.header.stamp = ros::Time(getSimulationTime(true));
             msg.header.frame_id = rosRobots[i]->robot->getName();
             msg.setpoint.resize(rosRobots[i]->thrusterSetpoints.size());
             msg.rpm.resize(rosRobots[i]->thrusterSetpoints.size());
@@ -504,7 +503,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     for(size_t i=0; i<controlIfs.size(); ++i)
     {
         controlIfs[i]->read();
-        controlIfs[i]->update(ros::Time::now(), ros::Duration(timeStep));
+        controlIfs[i]->update(ros::Time(getSimulationTime(true)), ros::Duration(timeStep));
         controlIfs[i]->write();
     }
 
@@ -548,7 +547,7 @@ void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->getName()].first;
-    img->header.stamp = ros::Time::now();
+    img->header.stamp = ros::Time(getSimulationTime(true));
     memcpy(img->data.data(), (uint8_t*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -565,7 +564,7 @@ void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->getName()].first;
-    img->header.stamp = ros::Time::now();
+    img->header.stamp = ros::Time(getSimulationTime(true));
     memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -581,7 +580,7 @@ void ROSSimulationManager::FLSScanReady(FLS* fls)
 {
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[fls->getName()].first;
-    img->header.stamp = ros::Time::now();
+    img->header.stamp = ros::Time(getSimulationTime(true));
     memcpy(img->data.data(), (uint8_t*)fls->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
@@ -598,7 +597,7 @@ void ROSSimulationManager::SSSScanReady(SSS* sss)
 {
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[sss->getName()].first;
-    img->header.stamp = ros::Time::now();
+    img->header.stamp = ros::Time(getSimulationTime(true));
     memcpy(img->data.data(), (uint8_t*)sss->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
@@ -615,7 +614,7 @@ void ROSSimulationManager::MSISScanReady(MSIS* msis)
 {
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[msis->getName()].first;
-    img->header.stamp = ros::Time::now();
+    img->header.stamp = ros::Time(getSimulationTime(true));
     memcpy(img->data.data(), (uint8_t*)msis->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
