@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2024 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSSimulationManager.h"
@@ -45,6 +45,9 @@
 #include <Stonefish/sensors/scalar/Odometry.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
+#include <Stonefish/sensors/vision/ThermalCamera.h>
+#include <Stonefish/sensors/vision/OpticalFlowCamera.h>
+#include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/scalar/Multibeam.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
@@ -120,6 +123,11 @@ std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPt
     return cameraMsgPrototypes;
 }
 
+std::map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::getDualImageCameraMsgPrototypes()
+{
+    return dualImageCameraMsgPrototypes;
+}
+
 std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::getSonarMsgPrototypes()
 {
     return sonarMsgPrototypes;
@@ -174,6 +182,7 @@ void ROSSimulationManager::DestroyScenario()
     imgPubs.clear();
     subs.clear();
     cameraMsgPrototypes.clear();
+    dualImageCameraMsgPrototypes.clear();
     sonarMsgPrototypes.clear();
     for(size_t i = 0; i<rosRobots.size(); ++i)
         delete rosRobots[i];
@@ -576,6 +585,55 @@ void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
     pubs.at(cam->getName() + "/info").publish(info);
 }
 
+void ROSSimulationManager::ThermalCameraImageReady(ThermalCamera* cam)
+{
+    //Fill in the image message
+    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->getName()]);
+    img->header.stamp = ros::Time::now();
+    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+
+    //Fill in the info message
+    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->getName()]);
+    info->header.stamp = img->header.stamp;
+
+    //Fill in the display message
+    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->getName()]);
+    img2->header.stamp = img->header.stamp;
+    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+
+    //Publish messages
+    imgPubs.at(cam->getName()).publish(img);
+    pubs.at(cam->getName() + "/info").publish(info);
+    imgPubs.at(cam->getName()+"/display").publish(img2);
+}
+
+void ROSSimulationManager::OpticalFlowCameraImageReady(OpticalFlowCamera* cam)
+{
+    //Fill in the image message
+    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->getName()]);
+    img->header.stamp = ros::Time::now();
+    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+
+    //Fill in the info message
+    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->getName()]);
+    info->header.stamp = img->header.stamp;
+
+    //Fill in the display message
+    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->getName()]);
+    img2->header.stamp = img->header.stamp;
+    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+
+    //Publish messages
+    imgPubs.at(cam->getName()).publish(img);
+    pubs.at(cam->getName() + "/info").publish(info);
+    imgPubs.at(cam->getName()+"/display").publish(img2);
+}
+
+void ROSSimulationManager::EventBasedCameraOutputReady(EventBasedCamera* cam)
+{
+    ROSInterface::PublishEventBasedCamera(pubs.at(cam->getName()), cam);
+}
+
 void ROSSimulationManager::FLSScanReady(FLS* fls)
 {
     //Fill in the data message
@@ -646,8 +704,9 @@ bool ROSSimulationManager::RespawnRobot(stonefish_ros::Respawn::Request& req, st
     else    
     {
         res.message = "Robot not found!";
-        res.success= false;
+        res.success = false;
     }
+    return res.success;
 }
         
 bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res)
