@@ -42,6 +42,7 @@
 #include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/comms/Comm.h>
+#include <Stonefish/joints/FixedJoint.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
@@ -891,6 +892,26 @@ bool ROSScenarioParser::ParseContact(XMLElement* element)
     pubs[contactName] = nh.advertise<visualization_msgs::Marker>(topicStr, 10);
 
     return true;
+}
+
+FixedJoint* ROSScenarioParser::ParseGlue(XMLElement* element)
+{
+    FixedJoint* fix = ScenarioParser::ParseGlue(element);
+
+    XMLElement* item;
+    const char* topic = nullptr;
+
+    if(fix != nullptr
+        && (item = element->FirstChildElement("ros_service")) != nullptr
+        && item->QueryStringAttribute("topic", &topic) == XML_SUCCESS)
+    {
+        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
+        ros::NodeHandle& nh = sim->getNodeHandle();
+        std::map<std::string, ros::ServiceServer>& srvs = sim->getServiceServers();
+        srvs["glue" + std::to_string((size_t)fix)] = nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(std::string(topic), GlueService(sim, fix));
+    }
+
+    return fix;
 }
 
 }

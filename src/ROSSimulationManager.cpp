@@ -59,6 +59,7 @@
 #include <Stonefish/actuators/Rudder.h>
 #include <Stonefish/actuators/SuctionCup.h>
 #include <Stonefish/actuators/Servo.h>
+#include <Stonefish/joints/FixedJoint.h>
 #include <Stonefish/utils/SystemUtil.hpp>
 
 #include <ros/file_log.h>
@@ -990,5 +991,26 @@ bool SuctionCupService::operator()(std_srvs::SetBool::Request& req, std_srvs::Se
     return true;
 }
 
+GlueService::GlueService(ROSSimulationManager* sm, FixedJoint* fix) : sm(sm), fix(fix)
+{
+}
+
+bool GlueService::operator()(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+{
+    if(req.data)
+    {
+        fix->RemoveFromSimulation(sm);
+        fix->UpdateDefinition();
+        fix->AddToSimulation(sm);
+        res.message = "Glue activated.";
+    }
+    else
+    { 
+        fix->RemoveFromSimulation(sm);  
+        res.message = "Glue deactivated.";
+    }
+    res.success = true;
+    return true;
+}
 
 }

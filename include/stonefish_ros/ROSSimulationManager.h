@@ -59,6 +59,7 @@ namespace sf
 	class SSS;
 	class MSIS;
 	class SuctionCup;
+	class FixedJoint;
 	class ManualTrajectory;
 	class Uniform;
 	class Jet;
@@ -308,6 +309,17 @@ namespace sf
 
 	private:
 		SuctionCup* suction;
+	};
+
+	class GlueService
+	{
+	public:
+		GlueService(ROSSimulationManager* sm, FixedJoint* fix);
+		bool operator()(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
+	
+	private:
+		ROSSimulationManager* sm;
+		FixedJoint* fix;
 	};
 }
 

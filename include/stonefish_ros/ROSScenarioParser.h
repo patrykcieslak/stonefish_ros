@@ -49,6 +49,7 @@ namespace sf
         virtual Comm* ParseComm(XMLElement* element, const std::string& namePrefix);
         virtual Light* ParseLight(XMLElement* element, const std::string& namePrefix);
         virtual bool ParseContact(XMLElement* element);
+        virtual FixedJoint* ParseGlue(XMLElement* element);
 
     private:
         std::string SubstituteROSVars(const std::string& value);
