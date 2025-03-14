@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2024 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2025 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSSimulationManager.h"
@@ -47,6 +47,7 @@
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/ThermalCamera.h>
 #include <Stonefish/sensors/vision/OpticalFlowCamera.h>
+#include <Stonefish/sensors/vision/SegmentationCamera.h>
 #include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/scalar/Multibeam.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
@@ -613,6 +614,28 @@ void ROSSimulationManager::OpticalFlowCameraImageReady(OpticalFlowCamera* cam)
     sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->getName()]);
     img->header.stamp = ros::Time::now();
     memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+
+    //Fill in the info message
+    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->getName()]);
+    info->header.stamp = img->header.stamp;
+
+    //Fill in the display message
+    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->getName()]);
+    img2->header.stamp = img->header.stamp;
+    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+
+    //Publish messages
+    imgPubs.at(cam->getName()).publish(img);
+    pubs.at(cam->getName() + "/info").publish(info);
+    imgPubs.at(cam->getName()+"/display").publish(img2);
+}
+
+void ROSSimulationManager::SegmentationCameraImageReady(SegmentationCamera* cam)
+{
+    //Fill in the image message
+    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->getName()]);
+    img->header.stamp = ros::Time::now();
+    memcpy(img->data.data(), (uint16_t*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
     sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->getName()]);

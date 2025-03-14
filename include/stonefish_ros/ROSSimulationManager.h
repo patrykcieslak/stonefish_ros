@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2024 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2025 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSSimulationManager__
@@ -56,6 +56,7 @@ namespace sf
 	class DepthCamera;
 	class ThermalCamera;
 	class OpticalFlowCamera;
+	class SegmentationCamera;
 	class EventBasedCamera;
 	class Multibeam2;
 	class FLS;
@@ -104,6 +105,7 @@ namespace sf
 	    virtual void DepthCameraImageReady(DepthCamera* cam);
 		virtual void ThermalCameraImageReady(ThermalCamera* cam);
 		virtual void OpticalFlowCameraImageReady(OpticalFlowCamera* cam);
+		virtual void SegmentationCameraImageReady(SegmentationCamera* cam);
 		virtual void EventBasedCameraOutputReady(EventBasedCamera* cam);
 		virtual void Multibeam2ScanReady(Multibeam2* mb);
 		virtual void FLSScanReady(FLS* fls);

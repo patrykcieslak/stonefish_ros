@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2024 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2025 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSInterface.h"
@@ -42,6 +42,7 @@
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/ThermalCamera.h>
 #include <Stonefish/sensors/vision/OpticalFlowCamera.h>
+#include <Stonefish/sensors/vision/SegmentationCamera.h>
 #include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
@@ -813,6 +814,67 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 	img->encoding = "32FC2";
 	img->is_bigendian = 0;
     img->step = img->width * 2 * sizeof(float);
+    img->data.resize(img->step * img->height);
+
+	//Camera info message
+	sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
+	info->header.frame_id = cam->getName();
+    info->width = img->width;
+    info->height = img->height;
+    info->binning_x = 0;
+    info->binning_y = 0;
+    //Distortion
+    info->distortion_model = "plumb_bob";
+    info->D.resize(5, 0.0);
+    //Rectification (for stereo only)
+    info->R[0] = 1.0;
+    info->R[4] = 1.0;
+    info->R[8] = 1.0;
+    //Intrinsic
+    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
+    info->K[2] = (double)info->width/2.0; //cx
+    info->K[5] = (double)info->height/2.0; //cy
+    info->K[0] = info->K[2]/tanhfov2; //fx
+    info->K[4] = info->K[5]/tanvfov2; //fy 
+    info->K[8] = 1.0;
+    //Projection
+    info->P[2] = info->K[2]; //cx'
+    info->P[6] = info->K[5]; //cy'
+    info->P[0] = info->K[0]; //fx';
+    info->P[5] = info->K[4]; //fy';
+    info->P[3] = 0.0; //Tx - position of second camera from stereo pair
+    info->P[7] = 0.0; //Ty;
+    info->P[10] = 1.0;
+    //ROI
+    info->roi.x_offset = 0;
+    info->roi.y_offset = 0;
+    info->roi.height = info->height;
+    info->roi.width = info->width;
+    info->roi.do_rectify = false;
+
+    //Display message
+    sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
+    disp->header.frame_id = cam->getName();
+	disp->width = img->width;
+    disp->height = img->height;
+	disp->encoding = "rgb8";
+	disp->is_bigendian = 0;
+    disp->step = disp->width * 3;
+    disp->data.resize(disp->step * disp->height);
+	
+    return std::make_tuple(img, info, disp);
+}
+
+std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr> ROSInterface::GenerateSegmentationCameraMsgPrototypes(SegmentationCamera* cam)
+{
+    //Image message
+    sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
+    img->header.frame_id = cam->getName();
+	cam->getResolution(img->width, img->height);
+	img->encoding = "16UC1";
+	img->is_bigendian = 0;
+    img->step = img->width * sizeof(uint16_t);
     img->data.resize(img->step * img->height);
 
 	//Camera info message

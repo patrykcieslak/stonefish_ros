@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2024 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2025 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSScenarioParser.h"
@@ -39,6 +39,7 @@
 #include <Stonefish/sensors/vision/DepthCamera.h>
 #include <Stonefish/sensors/vision/ThermalCamera.h>
 #include <Stonefish/sensors/vision/OpticalFlowCamera.h>
+#include <Stonefish/sensors/vision/SegmentationCamera.h>
 #include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
@@ -761,6 +762,17 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         OpticalFlowCamera* cam = (OpticalFlowCamera*)sens;
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::OpticalFlowCameraImageReady, sim, std::placeholders::_1));
                         dualCamMsgProto[sensorName] = ROSInterface::GenerateOpticalFlowCameraMsgPrototypes(cam); 
+                    }   
+                        break;
+
+                    case VisionSensorType::SEGMENTATION_CAMERA:
+                    {
+                        img_pubs[sensorName] = it.advertise(topicStr + "/image_raw", queueSize);
+                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
+                        SegmentationCamera* cam = (SegmentationCamera*)sens;
+                        cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::SegmentationCameraImageReady, sim, std::placeholders::_1));
+                        dualCamMsgProto[sensorName] = ROSInterface::GenerateSegmentationCameraMsgPrototypes(cam); 
                     }   
                         break;
 
