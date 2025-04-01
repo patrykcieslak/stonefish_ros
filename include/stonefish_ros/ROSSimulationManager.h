@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2025 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSSimulationManager__
@@ -54,6 +54,10 @@ namespace sf
 {
 	class ColorCamera;
 	class DepthCamera;
+	class ThermalCamera;
+	class OpticalFlowCamera;
+	class SegmentationCamera;
+	class EventBasedCamera;
 	class Multibeam2;
 	class FLS;
 	class SSS;
@@ -100,6 +104,10 @@ namespace sf
 		virtual void SimulationStepCompleted(Scalar timeStep);
 	    virtual void ColorCameraImageReady(ColorCamera* cam);
 	    virtual void DepthCameraImageReady(DepthCamera* cam);
+		virtual void ThermalCameraImageReady(ThermalCamera* cam);
+		virtual void OpticalFlowCameraImageReady(OpticalFlowCamera* cam);
+		virtual void SegmentationCameraImageReady(SegmentationCamera* cam);
+		virtual void EventBasedCameraOutputReady(EventBasedCamera* cam);
 		virtual void Multibeam2ScanReady(Multibeam2* mb);
 		virtual void FLSScanReady(FLS* fls);
 		virtual void SSSScanReady(SSS* sss);
@@ -118,6 +126,7 @@ namespace sf
 		std::map<std::string, image_transport::Publisher>& getImagePublishers();
 	    std::map<std::string, ros::Subscriber>& getSubscribers();
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& getCameraMsgPrototypes();
+		std::map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>>& getDualImageCameraMsgPrototypes();
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& getSonarMsgPrototypes();
 		std::vector<ROSControlInterface*>& getControlInterfaces();
 
@@ -133,6 +142,7 @@ namespace sf
 		std::map<std::string, image_transport::Publisher> imgPubs;
 		std::map<std::string, ros::Subscriber> subs;
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>> cameraMsgPrototypes;
+		std::map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>> dualImageCameraMsgPrototypes;
 		std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>> sonarMsgPrototypes;
 		std::vector<ROSRobot*> rosRobots;
 		std::vector<ROSControlInterface*> controlIfs;

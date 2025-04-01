@@ -29,6 +29,8 @@ add_message_files(
   Int32Stamped.msg
   ThrusterState.msg
   BeaconInfo.msg
+  Event.msg
+  EventArray.msg
 )
 
 add_service_files(

@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2021 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2025 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROSInterface__
@@ -45,6 +45,10 @@ namespace sf
     class ForceTorque;
     class RotaryEncoder;
     class Camera;
+    class ThermalCamera;
+    class OpticalFlowCamera;
+    class SegmentationCamera;
+    class EventBasedCamera;
     class Multibeam;
     class Profiler;
     class Multibeam2;
@@ -78,8 +82,12 @@ namespace sf
         static void PublishContact(ros::Publisher& pub, Contact* cnt);
         static void PublishUSBL(ros::Publisher& pub, ros::Publisher& pub_info, USBL* usbl);
         static void PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim);
-        
+        static void PublishEventBasedCamera(ros::Publisher& pub, EventBasedCamera* ebc);
+
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth);
+        static std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr> GenerateThermalCameraMsgPrototypes(ThermalCamera* cam);
+        static std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr> GenerateOpticalFlowCameraMsgPrototypes(OpticalFlowCamera* cam);
+        static std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr> GenerateSegmentationCameraMsgPrototypes(SegmentationCamera* cam);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateFLSMsgPrototypes(FLS* fls);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateSSSMsgPrototypes(SSS* sss);
         static std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> GenerateMSISMsgPrototypes(MSIS* msis);

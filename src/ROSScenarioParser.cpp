@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2025 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSScenarioParser.h"
@@ -37,6 +37,10 @@
 #include <Stonefish/sensors/ScalarSensor.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
+#include <Stonefish/sensors/vision/ThermalCamera.h>
+#include <Stonefish/sensors/vision/OpticalFlowCamera.h>
+#include <Stonefish/sensors/vision/SegmentationCamera.h>
+#include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
@@ -69,6 +73,8 @@
 #include <stonefish_ros/ThrusterState.h>
 #include <stonefish_ros/Int32Stamped.h>
 #include <stonefish_ros/BeaconInfo.h>
+#include <stonefish_ros/Event.h>
+#include <stonefish_ros/EventArray.h>
 
 #include <ros/package.h>
 
@@ -584,6 +590,7 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
         std::map<std::string, image_transport::Publisher>& img_pubs = sim->getImagePublishers();
         std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
         std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& camMsgProto = sim->getCameraMsgPrototypes();
+        std::map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>>& dualCamMsgProto = sim->getDualImageCameraMsgPrototypes();
         std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& sonarMsgProto = sim->getSonarMsgPrototypes();
         std::string sensorName = sens->getName();
 
@@ -734,6 +741,47 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         DepthCamera* cam = (DepthCamera*)sens;
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::DepthCameraImageReady, sim, std::placeholders::_1));
                         camMsgProto[sensorName] = ROSInterface::GenerateCameraMsgPrototypes(cam, true);
+                    }
+                        break;
+
+                    case VisionSensorType::THERMAL_CAMERA:
+                    {
+                        img_pubs[sensorName] = it.advertise(topicStr + "/image_raw", queueSize);
+                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
+                        ThermalCamera* cam = (ThermalCamera*)sens;
+                        cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::ThermalCameraImageReady, sim, std::placeholders::_1));
+                        dualCamMsgProto[sensorName] = ROSInterface::GenerateThermalCameraMsgPrototypes(cam); 
+                    }   
+                        break;
+
+                    case VisionSensorType::OPTICAL_FLOW_CAMERA:
+                    {
+                        img_pubs[sensorName] = it.advertise(topicStr + "/image_raw", queueSize);
+                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
+                        OpticalFlowCamera* cam = (OpticalFlowCamera*)sens;
+                        cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::OpticalFlowCameraImageReady, sim, std::placeholders::_1));
+                        dualCamMsgProto[sensorName] = ROSInterface::GenerateOpticalFlowCameraMsgPrototypes(cam); 
+                    }   
+                        break;
+
+                    case VisionSensorType::SEGMENTATION_CAMERA:
+                    {
+                        img_pubs[sensorName] = it.advertise(topicStr + "/image_raw", queueSize);
+                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
+                        SegmentationCamera* cam = (SegmentationCamera*)sens;
+                        cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::SegmentationCameraImageReady, sim, std::placeholders::_1));
+                        dualCamMsgProto[sensorName] = ROSInterface::GenerateSegmentationCameraMsgPrototypes(cam); 
+                    }   
+                        break;
+
+                    case VisionSensorType::EVENT_BASED_CAMERA:
+                    {
+                        pubs[sensorName] = nh.advertise<stonefish_ros::EventArray>(topicStr, queueSize);
+                        EventBasedCamera* cam = (EventBasedCamera*)sens;
+                        cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::EventBasedCameraOutputReady, sim, std::placeholders::_1));
                     }
                         break;
 
