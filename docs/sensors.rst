@@ -15,78 +15,119 @@ The *Stonefish* library implements a wide range of sensor simulations. Each of t
 
 For each sensor type a different message type is published. Some of the sensors need to publish on multiple topics. Specific information on all supported sensors is presented below.
 
+Joint sensors
+=============
+
 Rotary encoder
-==============
+--------------
 
 Message type: ``sensor_msgs::JointState``
 
 Force-torque (6-axis)
-=====================
+---------------------
 
 Message type: ``geometry_msgs::WrenchStamped``
 
+Link sensors
+============
+
 Odometry
-========
+--------
 
 Message type: ``nav_msgs::Odometry``
 
 IMU
-===
+---
 
 Message type: ``sensor_msgs::Imu``
 
 GPS
-===
+---
 
 Message type: ``sensor_msgs::NavSatFix``
 
 Doppler velocity log (DVL)
-==========================
+--------------------------
 
 Message type: ``cola2_msgs::DVL``
 
 Second message type: ``sensor_msgs::Range``
 
 Pressure
-========
+--------
 
 Message type: ``sensor_msgs::FluidPressure``
 
 Multi-beam
-==========
+----------
 
 Message type: ``sensor_msgs::LaserScan``
 
+Vision sensors
+==============
+
 Color camera
-============
+------------
 
 Message type: ``sensor_msgs::Image``
 
 Second message type: ``sensor_msgs::CameraInfo``
 
 Depth camera
-============
+------------
 
 Message type: ``sensor_msgs::Image``
 
 Second message type: ``sensor_msgs::CameraInfo``
 
+Optical flow camera
+-------------------
+
+Message type: ``sensor_msgs::Image``
+
+Second message type: ``sensor_msgs::CameraInfo``
+
+Third message type: ``sensor_msgs::Image``
+
+Thermal camera
+--------------
+
+Message type: ``sensor_msgs::Image``
+
+Second message type: ``sensor_msgs::CameraInfo``
+
+Third message type: ``sensor_msgs::Image``
+
+Segmentation camera
+-------------------
+
+Message type: ``sensor_msgs::Image``
+
+Second message type: ``sensor_msgs::CameraInfo``
+
+Third message type: ``sensor_msgs::Image``
+
+Event-based camera
+------------------
+
+Message type: ``stonefish_ros2::msg::EventArray``
+
 Forward-looking sonar (FLS)
-===========================
+---------------------------
 
 Message type: ``sensor_msgs::Image``
 
 Second message type: ``sensor_msgs::Image``
 
 Mechanical scanning imaging sonar (MSIS)
-========================================
+----------------------------------------
 
 Message type: ``sensor_msgs::Image``
 
 Second message type: ``sensor_msgs::Image``
 
 Side-scan sonar (SSS)
-=====================
+---------------------
 
 Message type: ``sensor_msgs::Image``
 

@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
 )
 
-find_package(Stonefish REQUIRED 1.3.0)
+find_package(Stonefish REQUIRED 1.5.0)
 
 add_message_files(
   FILES
