@@ -704,9 +704,32 @@ void ROSSimulationManager::MSISScanReady(MSIS* msis)
     disp->header.stamp = img->header.stamp;
     memcpy(disp->data.data(), (uint8_t*)msis->getDisplayDataPointer(), disp->step * disp->height);
 
+    //Fill in the laser scan message for the last beam
+    Scalar currentAngle = (msis->getCurrentRotationStep() * msis->getRotationStepAngle()) * M_PI / 180.0;
+    unsigned int currentBeamIndex = msis->getCurrentBeamIndex();
+
+    sensor_msgs::LaserScan laserscan;
+    laserscan.header.stamp = img->header.stamp;
+    laserscan.header.frame_id = msis->getName();
+    laserscan.angle_min = currentAngle;
+    laserscan.angle_max = currentAngle;
+    laserscan.angle_increment = 0.0;
+    laserscan.time_increment = 0.0;
+    laserscan.range_min = msis->getRangeMin();
+    laserscan.range_max = msis->getRangeMax();
+    laserscan.ranges.resize(img->height);
+    laserscan.intensities.resize(img->height);
+
+    for(unsigned int i=0; i<img->height; ++i)
+    {
+        laserscan.ranges[i] = (laserscan.range_max - laserscan.range_min) * (img->height-1-i)/Scalar(img->height-1) + laserscan.range_min;
+        laserscan.intensities[i] = img->data[img->step * i + currentBeamIndex];
+    }
+
     //Publish messages
     imgPubs.at(msis->getName()).publish(img);
     imgPubs.at(msis->getName() + "/display").publish(disp);
+    pubs.at(msis->getName() + "/beam").publish(laserscan);
 }
 
 void ROSSimulationManager::Multibeam2ScanReady(Multibeam2* mb)

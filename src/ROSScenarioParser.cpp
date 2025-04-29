@@ -725,7 +725,6 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                     case VisionSensorType::COLOR_CAMERA:
                     {
                         img_pubs[sensorName] = it.advertise(topicStr + "/image_color", queueSize);
-                        // pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image_color", queueSize);
                         pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
                         ColorCamera* cam = (ColorCamera*)sens;
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::ColorCameraImageReady, sim, std::placeholders::_1));
@@ -736,7 +735,6 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                     case VisionSensorType::DEPTH_CAMERA:
                     {
                         img_pubs[sensorName] = it.advertise(topicStr + "/image_depth", queueSize);
-                        // pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image_depth", queueSize);
                         pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
                         DepthCamera* cam = (DepthCamera*)sens;
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::DepthCameraImageReady, sim, std::placeholders::_1));
@@ -800,9 +798,7 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         sonarMsgProto[sensorName] = ROSInterface::GenerateFLSMsgPrototypes(fls);
                         srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(topicStr + "/settings", FLSService(fls));
                         img_pubs[sensorName] = it.advertise(topicStr + "/image", queueSize);
-                        // pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
                         img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/display", queueSize);
-                        // pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
                     }
                         break;
 
@@ -813,9 +809,7 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         sonarMsgProto[sensorName] = ROSInterface::GenerateSSSMsgPrototypes(sss);
                         srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(topicStr + "/settings", SSSService(sss));
                         img_pubs[sensorName] = it.advertise(topicStr + "/image", queueSize);
-                        // pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
                         img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/display", queueSize);
-                        // pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
                     }
                         break;
 
@@ -826,9 +820,8 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         sonarMsgProto[sensorName] = ROSInterface::GenerateMSISMsgPrototypes(msis);
                         srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings2::Request, stonefish_ros::SonarSettings2::Response>(topicStr + "/settings", MSISService(msis));
                         img_pubs[sensorName] = it.advertise(topicStr + "/image", queueSize);
-                        // pubs[sensorName] = nh.advertise<sensor_msgs::Image>(topicStr + "/image", queueSize);
                         img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/display", queueSize);
-                        // pubs[sensorName + "/display"] = nh.advertise<sensor_msgs::Image>(topicStr + "/display", queueSize);
+                        pubs[sensorName + "/beam"] = nh.advertise<sensor_msgs::LaserScan>(topicStr + "/last_beam", queueSize);
                     }
                         break;
 
