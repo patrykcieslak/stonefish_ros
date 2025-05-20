@@ -36,6 +36,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/String.h>
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Transform.h>
 #include <sensor_msgs/JointState.h>
@@ -68,6 +69,7 @@ namespace sf
 	class ManualTrajectory;
 	class Uniform;
 	class Jet;
+	class Comm;
 
 	struct ROSRobot
 	{
@@ -280,6 +282,16 @@ namespace sf
 
 	private:
 		Sensor* sens;
+	};
+
+	class CommCallback
+	{
+	public:
+		CommCallback(Comm* comm);
+		void operator()(const std_msgs::StringConstPtr& msg);
+
+	private:
+		Comm* comm;
 	};
 
 	class FLSService

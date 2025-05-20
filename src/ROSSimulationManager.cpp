@@ -56,6 +56,7 @@
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
+#include <Stonefish/comms/OpticalModem.h>
 #include <Stonefish/actuators/Push.h>
 #include <Stonefish/actuators/SimpleThruster.h>
 #include <Stonefish/actuators/Thruster.h>
@@ -306,17 +307,55 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     Comm* comm;
     while((comm = getComm(id++)) != nullptr)
     {
-        if(!comm->isNewDataAvailable())
-            continue;
-
         if(pubs.find(comm->getName()) == pubs.end())
             continue;
 
         switch(comm->getType())
         {
+            case CommType::ACOUSTIC:
+            {
+                std_msgs::String msg;
+                std::shared_ptr<CommDataFrame> message;
+                while ((message = comm->ReadMessage()) != nullptr)
+                {
+                    msg.data = std::string(message->data.begin(), message->data.end());
+                    pubs.at(comm->getName()).publish(msg);
+                }
+            }
+                break;
+
             case CommType::USBL:
-                ROSInterface::PublishUSBL(pubs.at(comm->getName()), pubs.at(comm->getName() + "/beacon_info"), (USBL*)comm);
-                comm->MarkDataOld();
+            {
+                if(comm->isNewDataAvailable())
+                {
+                    ROSInterface::PublishUSBL(pubs.at(comm->getName()), pubs.at(comm->getName() + "/beacon_info"), (USBL*)comm);
+                    comm->MarkDataOld();
+                }
+
+                std_msgs::String msg;
+                std::shared_ptr<CommDataFrame> message;
+                while ((message = comm->ReadMessage()) != nullptr)
+                {
+                    msg.data = std::string(message->data.begin(), message->data.end());
+                    pubs.at(comm->getName() + "/received_data").publish(msg);
+                }
+            }
+                break;
+
+            case CommType::OPTICAL:
+            {
+                std_msgs::Float64 msg;
+                msg.data = ((OpticalModem*)comm)->getReceptionQuality();
+                pubs.at(comm->getName()).publish(msg);
+
+                std_msgs::String msg2;
+                std::shared_ptr<CommDataFrame> message;
+                while ((message = comm->ReadMessage()) != nullptr)
+                {
+                    msg2.data = std::string(message->data.begin(), message->data.end());
+                    pubs.at(comm->getName() + "/received_data").publish(msg2);
+                }
+            }
                 break;
 
             default:
@@ -1008,6 +1047,15 @@ void TrajectoryCallback::operator()(const nav_msgs::OdometryConstPtr& msg)
     tr->setTransform(Transform(q, p));
     tr->setLinearVelocity(v);
     tr->setAngularVelocity(omega);
+}
+
+CommCallback::CommCallback(Comm* comm) : comm(comm)
+{
+}
+
+void CommCallback::operator()(const std_msgs::StringConstPtr& msg)
+{
+    comm->SendMessage(msg->data);
 }
 
 FLSService::FLSService(FLS* fls) : fls(fls)

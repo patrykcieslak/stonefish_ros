@@ -50,6 +50,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/String.h>
 #include <geometry_msgs/Transform.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -857,26 +858,74 @@ Comm* ROSScenarioParser::ParseComm(XMLElement* element, const std::string& nameP
         ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
         ros::NodeHandle& nh = sim->getNodeHandle();
         std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
         std::string commName = comm->getName();
 
         //Publishing info
         XMLElement* item;
-        const char* topic = nullptr;
-        if((item = element->FirstChildElement("ros_publisher")) == nullptr
-            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        const char* pubTopic = nullptr;
+        const char* subTopic = nullptr;
+        if((item = element->FirstChildElement("ros_publisher")) != nullptr)
         {
-            return comm;
+            item->QueryStringAttribute("topic", &pubTopic);
         }
 
-        std::string topicStr(topic);
+        if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
+        {
+            item->QueryStringAttribute("topic", &subTopic);
+        }
+        if(pubTopic == nullptr && subTopic == nullptr)
+            return comm;
 
         //Generate publishers for different comm types
         switch(comm->getType())
         {
+            case CommType::ACOUSTIC:
+            {
+                if(pubTopic != nullptr)
+                {
+                    std::string topicStr {pubTopic};
+                    pubs[commName] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
+                }
+                if(subTopic != nullptr)
+                {
+                    std::string topicStr {subTopic};
+                    subs[commName + "/data_to_send"] = nh.subscribe<std_msgs::String>(topicStr + "/data_to_send", 1, CommCallback(comm));
+                }
+
+            }
+                break;
+
             case CommType::USBL:
             {
-                pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(topicStr, 10);
-                pubs[commName + "/beacon_info"] = nh.advertise<stonefish_ros::BeaconInfo>(topicStr + "/beacon_info", 10);
+                if(pubTopic != nullptr)
+                {
+                    std::string topicStr {pubTopic};
+                    pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(topicStr + "/beacons", 10);
+                    pubs[commName + "/beacon_info"] = nh.advertise<stonefish_ros::BeaconInfo>(topicStr + "/beacon_info", 10);
+                    pubs[commName + "/received_data"] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
+                }
+                if(subTopic != nullptr)
+                {
+                    std::string topicStr {subTopic};
+                    subs[commName + "/data_to_send"] = nh.subscribe<std_msgs::String>(topicStr + "/data_to_send", 1, CommCallback(comm));
+                }
+            }
+                break;
+
+            case CommType::OPTICAL:
+            {
+                if(pubTopic != nullptr)
+                {
+                    std::string topicStr {pubTopic};
+                    pubs[commName] = nh.advertise<std_msgs::Float64>(topicStr + "/reception_quality", 10);
+                    pubs[commName + "/received_data"] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
+                }
+                if(subTopic != nullptr)
+                {
+                    std::string topicStr {subTopic};
+                    subs[commName + "/data_to_send"] = nh.subscribe<std_msgs::String>(topicStr + "/data_to_send", 1, CommCallback(comm));
+                }
             }
                 break;
 
