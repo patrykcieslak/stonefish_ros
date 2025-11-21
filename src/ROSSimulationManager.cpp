@@ -73,7 +73,7 @@ namespace sf
 {
 
 ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath)
-	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE), scnFilePath(scenarioFilePath), nh("~"), it(nh), spinner(4)
+	: SimulationManager(stepsPerSecond, Solver::SI, CollisionFilter::EXCLUSIVE), scnFilePath(scenarioFilePath), nh("~"), it(nh), spinner(4)
 {
 }
 

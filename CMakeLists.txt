@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(stonefish_ros)
+project(stonefish_ros VERSION 1.6.0)
 
 find_package(catkin REQUIRED COMPONENTS
   message_generation
@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
 )
 
-find_package(Stonefish REQUIRED 1.5.0)
+find_package(Stonefish REQUIRED 1.6.0)
 
 add_message_files(
   FILES
