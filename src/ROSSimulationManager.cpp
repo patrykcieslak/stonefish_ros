@@ -702,12 +702,12 @@ void ROSSimulationManager::FLSScanReady(FLS* fls)
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[fls->getName()].first;
     img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), (uint8_t*)fls->getImageDataPointer(), img->step * img->height);
+    memcpy(img->data.data(), fls->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
     sensor_msgs::ImagePtr disp = sonarMsgPrototypes[fls->getName()].second;
     disp->header.stamp = img->header.stamp;
-    memcpy(disp->data.data(), (uint8_t*)fls->getDisplayDataPointer(), disp->step * disp->height);
+    memcpy(disp->data.data(), fls->getDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
     imgPubs.at(fls->getName()).publish(img);
@@ -719,12 +719,12 @@ void ROSSimulationManager::SSSScanReady(SSS* sss)
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[sss->getName()].first;
     img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), (uint8_t*)sss->getImageDataPointer(), img->step * img->height);
+    memcpy(img->data.data(), sss->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
     sensor_msgs::ImagePtr disp = sonarMsgPrototypes[sss->getName()].second;
     disp->header.stamp = img->header.stamp;
-    memcpy(disp->data.data(), (uint8_t*)sss->getDisplayDataPointer(), disp->step * disp->height);
+    memcpy(disp->data.data(), sss->getDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
     imgPubs.at(sss->getName()).publish(img);
@@ -736,12 +736,12 @@ void ROSSimulationManager::MSISScanReady(MSIS* msis)
     //Fill in the data message
     sensor_msgs::ImagePtr img = sonarMsgPrototypes[msis->getName()].first;
     img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), (uint8_t*)msis->getImageDataPointer(), img->step * img->height);
+    memcpy(img->data.data(), msis->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
     sensor_msgs::ImagePtr disp = sonarMsgPrototypes[msis->getName()].second;
     disp->header.stamp = img->header.stamp;
-    memcpy(disp->data.data(), (uint8_t*)msis->getDisplayDataPointer(), disp->step * disp->height);
+    memcpy(disp->data.data(), msis->getDisplayDataPointer(), disp->step * disp->height);
 
     //Fill in the laser scan message for the last beam
     Scalar currentAngle = (msis->getCurrentRotationStep() * msis->getRotationStepAngle()) * M_PI / 180.0;
