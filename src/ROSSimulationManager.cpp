@@ -39,6 +39,7 @@
 #include <Stonefish/sensors/scalar/Accelerometer.h>
 #include <Stonefish/sensors/scalar/Gyroscope.h>
 #include <Stonefish/sensors/scalar/IMU.h>
+#include <Stonefish/sensors/scalar/RawIMU.h>
 #include <Stonefish/sensors/scalar/GPS.h>
 #include <Stonefish/sensors/scalar/ForceTorque.h>
 #include <Stonefish/sensors/scalar/RotaryEncoder.h>
@@ -244,6 +245,10 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 
                 case ScalarSensorType::IMU:
                     ROSInterface::PublishIMU(pubs.at(sensor->getName()), (IMU*)sensor);
+                    break;
+
+                case ScalarSensorType::RAW_IMU:
+                    ROSInterface::PublishRawIMU(pubs.at(sensor->getName()), (RawIMU*)sensor);
                     break;
 
                 case ScalarSensorType::ODOM:

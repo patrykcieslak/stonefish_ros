@@ -41,6 +41,13 @@ IMU
 
 Message type: ``sensor_msgs::Imu``
 
+Raw IMU
+-------
+
+Message type: ``sensor_msgs::Imu``
+
+The orientation is not provided, which is indicated by ``orientation_covariance[0] = -1``.
+
 GPS
 ---
 

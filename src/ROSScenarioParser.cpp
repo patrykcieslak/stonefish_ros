@@ -643,6 +643,7 @@ Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& n
                         break;
 
                     case ScalarSensorType::IMU:
+                    case ScalarSensorType::RAW_IMU:
                         pubs[sensorName] = nh.advertise<sensor_msgs::Imu>(topicStr, queueSize);
                         break;
 
