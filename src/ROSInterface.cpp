@@ -31,6 +31,7 @@
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/IMU.h>
+#include <Stonefish/sensors/scalar/RawIMU.h>
 #include <Stonefish/sensors/scalar/GPS.h>
 #include <Stonefish/sensors/scalar/INS.h>
 #include <Stonefish/sensors/scalar/ForceTorque.h>
@@ -168,6 +169,40 @@ void ROSInterface::PublishIMU(ros::Publisher& pub, IMU* imu)
     msg.linear_acceleration.x = s.getValue(6);
     msg.linear_acceleration.y = s.getValue(7);
     msg.linear_acceleration.z = s.getValue(8);
+    msg.linear_acceleration_covariance[0] = accStdDev.getX() * accStdDev.getX();
+    msg.linear_acceleration_covariance[4] = accStdDev.getY() * accStdDev.getY();
+    msg.linear_acceleration_covariance[8] = accStdDev.getZ() * accStdDev.getZ();
+    pub.publish(msg);
+}
+
+void ROSInterface::PublishRawIMU(ros::Publisher& pub, RawIMU* imu)
+{
+    Sample s = imu->getLastSample();
+    Vector3 avelocityStdDev = Vector3(imu->getSensorChannelDescription(0).stdDev,
+                                      imu->getSensorChannelDescription(1).stdDev,
+                                      imu->getSensorChannelDescription(2).stdDev);
+    Vector3 accStdDev = Vector3(imu->getSensorChannelDescription(3).stdDev,
+                                imu->getSensorChannelDescription(4).stdDev,
+                                imu->getSensorChannelDescription(5).stdDev);
+    //Variance is sigma^2!
+    sensor_msgs::Imu msg;
+    msg.header.stamp = ros::Time(s.getTimestamp());
+    msg.header.frame_id = imu->getName();
+    //Orientation not provided (REP-145)
+    msg.orientation.x = 0.0;
+    msg.orientation.y = 0.0;
+    msg.orientation.z = 0.0;
+    msg.orientation.w = 1.0;
+    msg.orientation_covariance[0] = -1.0;
+    msg.angular_velocity.x = s.getValue(0);
+    msg.angular_velocity.y = s.getValue(1);
+    msg.angular_velocity.z = s.getValue(2);
+    msg.angular_velocity_covariance[0] = avelocityStdDev.getX() * avelocityStdDev.getX();
+    msg.angular_velocity_covariance[4] = avelocityStdDev.getY() * avelocityStdDev.getY();
+    msg.angular_velocity_covariance[8] = avelocityStdDev.getZ() * avelocityStdDev.getZ();
+    msg.linear_acceleration.x = s.getValue(3);
+    msg.linear_acceleration.y = s.getValue(4);
+    msg.linear_acceleration.z = s.getValue(5);
     msg.linear_acceleration_covariance[0] = accStdDev.getX() * accStdDev.getX();
     msg.linear_acceleration_covariance[4] = accStdDev.getY() * accStdDev.getY();
     msg.linear_acceleration_covariance[8] = accStdDev.getZ() * accStdDev.getZ();

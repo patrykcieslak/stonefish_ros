@@ -37,6 +37,7 @@ namespace sf
     class Accelerometer;
     class Gyroscope;
     class IMU;
+    class RawIMU;
     class Pressure;
     class DVL;
     class GPS;
@@ -66,6 +67,7 @@ namespace sf
         static void PublishAccelerometer(ros::Publisher& pub, Accelerometer* acc);
         static void PublishGyroscope(ros::Publisher& pub, Gyroscope* gyro);
         static void PublishIMU(ros::Publisher& pub, IMU* imu);
+        static void PublishRawIMU(ros::Publisher& pub, RawIMU* imu);
         static void PublishPressure(ros::Publisher& pub, Pressure* press);
         static void PublishDVL(ros::Publisher& pub, DVL* dvl);
         static void PublishDVLAltitude(ros::Publisher& pub, DVL* dvl);
