@@ -20,11 +20,10 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2021 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROSScenarioParser__
-#define __Stonefish_ROSScenarioParser__
+#pragma once
 
 #include <Stonefish/core/ScenarioParser.h>
 #include <ros/ros.h>
@@ -36,20 +35,91 @@ namespace sf
     class ROSScenarioParser : public ScenarioParser
     {
     public:
+        //! A constructor.
+        /*!
+         \param sm a pointer to the simulation manager
+         */
         ROSScenarioParser(ROSSimulationManager* sm);
 
     protected:
+        //! A method used to pre-process the xml description file after loading.
+        /*!
+         \param root a pointer to a root node
+         \param args a map of arguments and their values
+         \return success
+         */
         virtual bool PreProcess(XMLNode* root, 
-                                const std::map<std::string, std::string>& args = std::map<std::string, std::string>());
-        virtual VelocityField* ParseVelocityField(XMLElement* element);
-        virtual bool ParseRobot(XMLElement* element);
-        virtual bool ParseAnimated(XMLElement* element);
-        virtual Actuator* ParseActuator(XMLElement* element, const std::string& namePrefix);
-        virtual Sensor* ParseSensor(XMLElement* element, const std::string& namePrefix);
-        virtual Comm* ParseComm(XMLElement* element, const std::string& namePrefix);
-        virtual Light* ParseLight(XMLElement* element, const std::string& namePrefix);
-        virtual bool ParseContact(XMLElement* element);
-        virtual FixedJoint* ParseGlue(XMLElement* element);
+            const std::map<std::string, std::string>& args = std::map<std::string, std::string>()) override;
+        
+        //! A method used to parse a definition of a velocity field (current, wind).
+        /*!
+         \param element a pointer to the XML node
+         \return a pointer to the new velocity field object
+         */
+        virtual std::unique_ptr<VelocityField> ParseVelocityField(XMLElement* element) override;
+
+        //! A method used to parse a robot description.
+        /*!
+         \param element a pointer to the XML node
+         \return success
+         */
+        virtual bool ParseRobot(XMLElement* element) override;
+
+        //! A method used to parse an animated object description.
+        /*!
+         \param element a pointer to the XML node
+         \return success
+         */
+        virtual bool ParseAnimated(XMLElement* element) override;
+
+        //! A method used to parse a single actuator description.
+        /*!
+         \param element a pointer to the XML node
+         \param namePrefix an optional prefix string
+         \return success
+         */
+        virtual std::unique_ptr<Actuator, ActuatorDeleter> 
+            ParseActuator(XMLElement* element, std::string_view namePrefix) override;
+
+        //! A method used to parse a single sensor description.
+        /*!
+         \param element a pointer to the XML node
+         \param namePrefix an optional prefix string
+         \return success
+         */
+        virtual std::unique_ptr<Sensor, SensorDeleter> 
+            ParseSensor(XMLElement* element, std::string_view namePrefix) override;
+
+        //! A method used to parse a communication device description.
+        /*!
+         \param element a pointer to the XML node
+         \param namePrefix an optional prefix string
+         \return pointer to the communication device
+         */
+        virtual std::unique_ptr<Comm, CommDeleter> 
+            ParseComm(XMLElement* element, std::string_view namePrefix) override;
+
+        //! A method used to parse a description of a light source.
+        /*!
+         \param element a pointer to the XML node
+         \param namePrefix a string added at the beginning of the light name
+         \return pointer to light
+         */        
+        virtual std::unique_ptr<Light> ParseLight(XMLElement* element, std::string_view namePrefix) override;
+
+        //! A method used to parse a single contact description.
+        /*!
+         \param element a pointer to the XML node
+         \return success
+         */
+        virtual bool ParseContact(XMLElement* element) override;
+
+        //! A method used to parse a single glue joint description.
+        /*!
+         \param element a pointer to the XML node
+         \return pointer to the fixed joint
+        */
+        virtual FixedJoint* ParseGlue(XMLElement* element) override;
 
     private:
         std::string SubstituteROSVars(const std::string& value);
@@ -57,4 +127,3 @@ namespace sf
     };
 }
 
-#endif

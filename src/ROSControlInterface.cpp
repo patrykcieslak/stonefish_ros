@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 27/07/22.
-//  Copyright (c) 2022-2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2022-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSControlInterface.h"
@@ -28,19 +28,21 @@
 namespace sf
 {
 
-ROSControlInterface::ROSControlInterface(Robot* robot, const std::vector<std::string>& jointNames, ServoControlMode ifType, const std::string& _namespace)
-    : robot(robot), mode(ifType), nh(_namespace)
+ROSControlInterface::ROSControlInterface(Robot* robot, const std::vector<std::string>& jointNames, ServoControlMode ifType, std::string_view _namespace)
+    : robot(robot), mode(ifType), nh(std::string(_namespace))
 {    
     //Find actuators connected to joints
     for(size_t i=0; i<jointNames.size(); ++i)
     {
         size_t id = 0;
         Actuator* act;
-        while((act = robot->getActuator(id++)) != nullptr)
+        while((act = robot->GetActuator(id++)) != nullptr)
         {
-            if(act->getType() == ActuatorType::SERVO && ((Servo*)act)->getJointName() == jointNames[i])
+            if( act->GetType() == ActuatorType::JOINT
+                && static_cast<JointActuator*>(act)->GetJointActuatorType() == JointActuatorType::SERVO
+                && static_cast<Servo*>(act)->GetJointName() == jointNames[i])
             {
-                actuators.push_back(act->getName());   
+                actuators.push_back(act->GetName());   
                 break;
             }
         }
@@ -67,16 +69,16 @@ ROSControlInterface::ROSControlInterface(Robot* robot, const std::vector<std::st
     {
         case ServoControlMode::POSITION:
         {
-            jcif = new hardware_interface::PositionJointInterface();
-            registerInterface((hardware_interface::PositionJointInterface*)jcif);
+            jcif = std::make_unique<hardware_interface::PositionJointInterface>();
+            registerInterface(static_cast<hardware_interface::PositionJointInterface*>(jcif.get()));
         }
             break;
         
         case ServoControlMode::VELOCITY:
         case ServoControlMode::TORQUE: // Effort interface not implemented at this time!
         {
-            jcif = new hardware_interface::VelocityJointInterface();
-            registerInterface((hardware_interface::VelocityJointInterface*)jcif);
+            jcif = std::make_unique<hardware_interface::VelocityJointInterface>();
+            registerInterface(static_cast<hardware_interface::VelocityJointInterface*>(jcif.get()));
         }
             break;
     }
@@ -88,23 +90,17 @@ ROSControlInterface::ROSControlInterface(Robot* robot, const std::vector<std::st
     }
 
     // Create controller manager
-    cm = new controller_manager::ControllerManager(this, nh);
-}
-
-ROSControlInterface::~ROSControlInterface()
-{
-    delete jcif;
-    delete cm;
+    cm = std::make_unique<controller_manager::ControllerManager>(this, nh);
 }
 
 void ROSControlInterface::read()
 {
     for(size_t i=0; i<actuators.size(); ++i)
     {
-        Servo* srv = (Servo*)robot->getActuator(actuators[i]);    
-        eff[i] = srv->getEffort();
-        vel[i] = srv->getVelocity();
-        pos[i] = srv->getPosition();
+        Servo* srv = static_cast<Servo*>(robot->GetActuator(actuators[i]));    
+        eff[i] = srv->GetEffort();
+        vel[i] = srv->GetVelocity();
+        pos[i] = srv->GetPosition();
     }
 }
 
@@ -121,9 +117,9 @@ void ROSControlInterface::write()
         {
             for(size_t i=0; i<actuators.size(); ++i)
             {
-                Servo* srv = (Servo*)robot->getActuator(actuators[i]);
-                srv->setControlMode(ServoControlMode::POSITION);
-                srv->setDesiredPosition(cmd[i]);
+                Servo* srv = static_cast<Servo*>(robot->GetActuator(actuators[i]));
+                srv->SetControlMode(ServoControlMode::POSITION);
+                srv->SetDesiredPosition(cmd[i]);
             }
         }
         break;
@@ -133,9 +129,9 @@ void ROSControlInterface::write()
         {
             for(size_t i=0; i<actuators.size(); ++i)
             {
-                Servo* srv = (Servo*)robot->getActuator(actuators[i]);
-                srv->setControlMode(ServoControlMode::VELOCITY);
-                srv->setDesiredVelocity(cmd[i]);
+                Servo* srv = static_cast<Servo*>(robot->GetActuator(actuators[i]));
+                srv->SetControlMode(ServoControlMode::VELOCITY);
+                srv->SetDesiredVelocity(cmd[i]);
             }
         }
         break;

@@ -20,15 +20,15 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 27/07/22.
-//  Copyright (c) 2022 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2022-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROSControlInterface__
-#define __Stonefish_ROSControlInterface__
+#pragma once
 
 //Stonefish
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/actuators/Servo.h>
+#include <Stonefish/entities/SolidEntity.h>
 //ROS
 #include <hardware_interface/robot_hw.h>
 #include <hardware_interface/joint_state_interface.h>
@@ -41,8 +41,9 @@ namespace sf
     class ROSControlInterface : public hardware_interface::RobotHW
     {
     public:
-        ROSControlInterface(Robot* robot, const std::vector<std::string>& jointNames, ServoControlMode ifType, const std::string& _namespace);
-        virtual ~ROSControlInterface();
+        ROSControlInterface(Robot* robot, const std::vector<std::string>& jointNames, ServoControlMode ifType, std::string_view _namespace);
+        virtual ~ROSControlInterface() = default;
+
         void read();
         void update(const ros::Time& time, const ros::Duration& period);
         void write();
@@ -57,10 +58,8 @@ namespace sf
         std::vector<double> pos;
 
         hardware_interface::JointStateInterface jsif;
-        hardware_interface::JointCommandInterface* jcif;
-        controller_manager::ControllerManager* cm;
+        std::unique_ptr<hardware_interface::JointCommandInterface> jcif;
+        std::unique_ptr<controller_manager::ControllerManager> cm;
         ros::NodeHandle nh;
     };
 }
-
-#endif

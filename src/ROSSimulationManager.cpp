@@ -20,12 +20,15 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSSimulationManager.h"
 #include "stonefish_ros/ROSScenarioParser.h"
 #include "stonefish_ros/ROSInterface.h"
+#include "stonefish_ros/ROSSensorPluginInterface.h"
+#include "stonefish_ros/ROSActuatorPluginInterface.h"
+#include "stonefish_ros/ROSCommPluginInterface.h"
 #include "stonefish_ros/ThrusterState.h"
 
 #include <Stonefish/core/Robot.h>
@@ -50,7 +53,7 @@
 #include <Stonefish/sensors/vision/SegmentationCamera.h>
 #include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/scalar/Multibeam.h>
-#include <Stonefish/sensors/vision/Multibeam2.h>
+#include <Stonefish/sensors/vision/Lidar.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/vision/MSIS.h>
@@ -63,7 +66,9 @@
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Rudder.h>
 #include <Stonefish/actuators/SuctionCup.h>
+#include <Stonefish/actuators/Motor.h>
 #include <Stonefish/actuators/Servo.h>
+#include <Stonefish/actuators/Light.h>
 #include <Stonefish/joints/FixedJoint.h>
 #include <Stonefish/utils/SystemUtil.hpp>
 
@@ -77,11 +82,7 @@ ROSSimulationManager::ROSSimulationManager(Scalar stepsPerSecond, std::string sc
 {
 }
 
-ROSSimulationManager::~ROSSimulationManager()
-{
-}
-
-uint64_t ROSSimulationManager::getSimulationClock() const
+uint64_t ROSSimulationManager::GetSimulationClock() const
 {
     return ros::Time::now().toNSec()/1000;
 }
@@ -91,52 +92,52 @@ void ROSSimulationManager::SimulationClockSleep(uint64_t us)
     ros::Duration(0, (int32_t)us*1000).sleep();
 }
 
-ros::NodeHandle& ROSSimulationManager::getNodeHandle()
+ros::NodeHandle& ROSSimulationManager::GetNodeHandle()
 {
     return nh;
 }
 
-image_transport::ImageTransport& ROSSimulationManager::getImageTransportHandle()
+image_transport::ImageTransport& ROSSimulationManager::GetImageTransportHandle()
 {
     return it;
 }
 
-std::map<std::string, ros::ServiceServer>& ROSSimulationManager::getServiceServers()
+std::unordered_map<std::string, ros::ServiceServer>& ROSSimulationManager::GetServiceServers()
 {
     return srvs;
 }
 
-std::map<std::string, ros::Publisher>& ROSSimulationManager::getPublishers()
+std::unordered_map<std::string, ros::Publisher>& ROSSimulationManager::GetPublishers()
 {
     return pubs;
 }
 
-std::map<std::string, image_transport::Publisher>& ROSSimulationManager::getImagePublishers()
+std::unordered_map<std::string, image_transport::Publisher>& ROSSimulationManager::GetImagePublishers()
 {
     return imgPubs;
 }
 
-std::map<std::string, ros::Subscriber>& ROSSimulationManager::getSubscribers()
+std::unordered_map<std::string, ros::Subscriber>& ROSSimulationManager::GetSubscribers()
 {
     return subs;
 }
 
-std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& ROSSimulationManager::getCameraMsgPrototypes()
+std::unordered_map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& ROSSimulationManager::GetCameraMsgPrototypes()
 {
     return cameraMsgPrototypes;
 }
 
-std::map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::getDualImageCameraMsgPrototypes()
+std::unordered_map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::GetDualImageCameraMsgPrototypes()
 {
     return dualImageCameraMsgPrototypes;
 }
 
-std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::getSonarMsgPrototypes()
+std::unordered_map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& ROSSimulationManager::GetSonarMsgPrototypes()
 {
     return sonarMsgPrototypes;
 }
 
-std::vector<ROSControlInterface*>& ROSSimulationManager::getControlInterfaces()
+std::vector<std::unique_ptr<ROSControlInterface>>& ROSSimulationManager::GetControlInterfaces()
 {
     return controlIfs;
 }
@@ -187,27 +188,23 @@ void ROSSimulationManager::DestroyScenario()
     cameraMsgPrototypes.clear();
     dualImageCameraMsgPrototypes.clear();
     sonarMsgPrototypes.clear();
-    for(size_t i = 0; i<rosRobots.size(); ++i)
-        delete rosRobots[i];
     rosRobots.clear();
-    for(size_t i = 0; i<controlIfs.size(); ++i)
-        delete controlIfs[i];
     controlIfs.clear();
 
     //Destroy simulation entities
     SimulationManager::DestroyScenario();
 }
 
-void ROSSimulationManager::AddROSRobot(ROSRobot* robot)
+void ROSSimulationManager::AddROSRobot(std::unique_ptr<ROSRobot> robot)
 {
-    rosRobots.push_back(robot);
+    rosRobots.push_back(std::move(robot));
 }
 
-bool ROSSimulationManager::RespawnROSRobot(const std::string& robotName, const Transform& origin)
+bool ROSSimulationManager::RespawnROSRobot(std::string_view robotName, const Transform& origin)
 {
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
-        if(rosRobots[i]->robot->getName() == robotName)
+        if(rosRobots[i]->robot->GetName() == robotName)
         {
             rosRobots[i]->respawnOrigin = origin;
             rosRobots[i]->respawnRequested = true;
@@ -222,78 +219,73 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
 	////////////////////////////////////////SENSORS//////////////////////////////////////////////
     unsigned int id = 0;
     Sensor* sensor;
-    while((sensor = getSensor(id++)) != nullptr)
+    while((sensor = GetSensor(id++)) != nullptr)
     {
-        if(!sensor->isNewDataAvailable())
+        if(!sensor->IsNewDataAvailable())
             continue;
 
-        if(sensor->getType() != SensorType::VISION)
+        if(sensor->GetType() != SensorType::VISION)
         {
-            if(pubs.find(sensor->getName()) == pubs.end())
+            if(pubs.find(sensor->GetName()) == pubs.end())
                 continue;
 
-            switch(((ScalarSensor*)sensor)->getScalarSensorType())
+            switch(static_cast<ScalarSensor*>(sensor)->GetScalarSensorType())
             {
                 case ScalarSensorType::ACC:
-                    ROSInterface::PublishAccelerometer(pubs.at(sensor->getName()), (Accelerometer*)sensor);
+                    ROSInterface::PublishAccelerometer(pubs.at(sensor->GetName()), (Accelerometer*)sensor);
                     break;
-
                 case ScalarSensorType::GYRO:
-                    ROSInterface::PublishGyroscope(pubs.at(sensor->getName()), (Gyroscope*)sensor);
+                    ROSInterface::PublishGyroscope(pubs.at(sensor->GetName()), (Gyroscope*)sensor);
                     break;
-
                 case ScalarSensorType::IMU:
-                    ROSInterface::PublishIMU(pubs.at(sensor->getName()), (IMU*)sensor);
+                    ROSInterface::PublishIMU(pubs.at(sensor->GetName()), (IMU*)sensor);
                     break;
-
                 case ScalarSensorType::ODOM:
-                    ROSInterface::PublishOdometry(pubs.at(sensor->getName()), (Odometry*)sensor);
+                    ROSInterface::PublishOdometry(pubs.at(sensor->GetName()), (Odometry*)sensor);
                     break;
-
                 case ScalarSensorType::DVL:
                 {
-                    ROSInterface::PublishDVL(pubs.at(sensor->getName()), (DVL*)sensor);
-                    if(pubs.find(sensor->getName() + "/altitude") != pubs.end())
-                        ROSInterface::PublishDVLAltitude(pubs.at(sensor->getName() + "/altitude"), (DVL*)sensor);
+                    ROSInterface::PublishDVL(pubs.at(sensor->GetName()), (DVL*)sensor);
+                    if(pubs.find(sensor->GetName() + "/altitude") != pubs.end())
+                        ROSInterface::PublishDVLAltitude(pubs.at(sensor->GetName() + "/altitude"), (DVL*)sensor);
                 }
                     break;
-
                 case ScalarSensorType::INS:
                 {
-                    ROSInterface::PublishINS(pubs.at(sensor->getName()), (INS*)sensor);
-                    if(pubs.find(sensor->getName() + "/odometry") != pubs.end())
-                        ROSInterface::PublishINSOdometry(pubs.at(sensor->getName() + "/odometry"), (INS*)sensor);
+                    ROSInterface::PublishINS(pubs.at(sensor->GetName()), (INS*)sensor);
+                    if(pubs.find(sensor->GetName() + "/odometry") != pubs.end())
+                        ROSInterface::PublishINSOdometry(pubs.at(sensor->GetName() + "/odometry"), (INS*)sensor);
                 }
                     break;
-
                 case ScalarSensorType::GPS:
-                    ROSInterface::PublishGPS(pubs.at(sensor->getName()), (GPS*)sensor);
+                    ROSInterface::PublishGPS(pubs.at(sensor->GetName()), (GPS*)sensor);
                     break;
-
                 case ScalarSensorType::PRESSURE:
-                    ROSInterface::PublishPressure(pubs.at(sensor->getName()), (Pressure*)sensor);
+                    ROSInterface::PublishPressure(pubs.at(sensor->GetName()), (Pressure*)sensor);
                     break;
-
                 case ScalarSensorType::FT:
-                    ROSInterface::PublishForceTorque(pubs.at(sensor->getName()), (ForceTorque*)sensor);
+                    ROSInterface::PublishForceTorque(pubs.at(sensor->GetName()), (ForceTorque*)sensor);
                     break;
-
                 case ScalarSensorType::ENCODER:
-                    ROSInterface::PublishEncoder(pubs.at(sensor->getName()), (RotaryEncoder*)sensor);
+                    ROSInterface::PublishEncoder(pubs.at(sensor->GetName()), (RotaryEncoder*)sensor);
                     break;
-
                 case ScalarSensorType::MULTIBEAM:
                 {
-                    ROSInterface::PublishMultibeam(pubs.at(sensor->getName()), (Multibeam*)sensor);
-                    if(pubs.find(sensor->getName() + "/pcl") != pubs.end())
-                        ROSInterface::PublishMultibeamPCL(pubs.at(sensor->getName() + "/pcl"), (Multibeam*)sensor);
+                    ROSInterface::PublishMultibeam(pubs.at(sensor->GetName()), (Multibeam*)sensor);
+                    if(pubs.find(sensor->GetName() + "/pcl") != pubs.end())
+                        ROSInterface::PublishMultibeamPCL(pubs.at(sensor->GetName() + "/pcl"), (Multibeam*)sensor);
                 }
                     break;
-
                 case ScalarSensorType::PROFILER:
-                    ROSInterface::PublishProfiler(pubs.at(sensor->getName()), (Profiler*)sensor);
+                    ROSInterface::PublishProfiler(pubs.at(sensor->GetName()), (Profiler*)sensor);
                     break;
-
+                case ScalarSensorType::PLUGIN:
+                {
+                    ROSSensorPluginInterface* iface = dynamic_cast<ROSSensorPluginInterface*>(sensor);
+                    if (iface != nullptr)
+                        iface->Publish(nh, pubs);
+                }
+                    break;
                 default:
                     break;
             }
@@ -305,12 +297,12 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     ///////////////////////////////////////COMMS///////////////////////////////////////////////////
     id = 0;
     Comm* comm;
-    while((comm = getComm(id++)) != nullptr)
+    while((comm = GetComm(id++)) != nullptr)
     {
-        if(pubs.find(comm->getName()) == pubs.end())
+        if(pubs.find(comm->GetName()) == pubs.end())
             continue;
 
-        switch(comm->getType())
+        switch(comm->GetType())
         {
             case CommType::ACOUSTIC:
             {
@@ -319,16 +311,16 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                 while ((message = comm->ReadMessage()) != nullptr)
                 {
                     msg.data = std::string(message->data.begin(), message->data.end());
-                    pubs.at(comm->getName()).publish(msg);
+                    pubs.at(comm->GetName()).publish(msg);
                 }
             }
                 break;
 
             case CommType::USBL:
             {
-                if(comm->isNewDataAvailable())
+                if(comm->IsNewDataAvailable())
                 {
-                    ROSInterface::PublishUSBL(pubs.at(comm->getName()), pubs.at(comm->getName() + "/beacon_info"), (USBL*)comm);
+                    ROSInterface::PublishUSBL(pubs.at(comm->GetName()), pubs.at(comm->GetName() + "/beacon_info"), (USBL*)comm);
                     comm->MarkDataOld();
                 }
 
@@ -337,7 +329,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
                 while ((message = comm->ReadMessage()) != nullptr)
                 {
                     msg.data = std::string(message->data.begin(), message->data.end());
-                    pubs.at(comm->getName() + "/received_data").publish(msg);
+                    pubs.at(comm->GetName() + "/received_data").publish(msg);
                 }
             }
                 break;
@@ -345,19 +337,25 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
             case CommType::OPTICAL:
             {
                 std_msgs::Float64 msg;
-                msg.data = ((OpticalModem*)comm)->getReceptionQuality();
-                pubs.at(comm->getName()).publish(msg);
+                msg.data = static_cast<OpticalModem*>(comm)->GetReceptionQuality();
+                pubs.at(comm->GetName()).publish(msg);
 
                 std_msgs::String msg2;
                 std::shared_ptr<CommDataFrame> message;
                 while ((message = comm->ReadMessage()) != nullptr)
                 {
                     msg2.data = std::string(message->data.begin(), message->data.end());
-                    pubs.at(comm->getName() + "/received_data").publish(msg2);
+                    pubs.at(comm->GetName() + "/received_data").publish(msg2);
                 }
             }
                 break;
-
+            case CommType::PLUGIN:
+            {
+                ROSCommPluginInterface* iface = dynamic_cast<ROSCommPluginInterface*>(comm);
+                if (iface != nullptr)
+                    iface->Publish(nh, pubs);
+            }
+                break;
             default:
                 break;
         }
@@ -366,28 +364,28 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     //////////////////////////////////////TRAJECTORIES/////////////////////////////////////////////
     id = 0;
     Entity* ent;
-    while((ent = getEntity(id++)) != nullptr)
+    while((ent = GetEntity(id++)) != nullptr)
     {
-        if(ent->getType() == EntityType::ANIMATED)
+        if(ent->GetType() == EntityType::ANIMATED)
         {
-            if(pubs.find(ent->getName() + "/odometry") == pubs.end())
+            if(pubs.find(ent->GetName() + "/odometry") == pubs.end())
                 continue;
 
-            ROSInterface::PublishTrajectoryState(pubs.at(ent->getName() + "/odometry"), pubs.at(ent->getName() + "/iteration"), (AnimatedEntity*)ent);
+            ROSInterface::PublishTrajectoryState(pubs.at(ent->GetName() + "/odometry"), pubs.at(ent->GetName() + "/iteration"), (AnimatedEntity*)ent);
         }
     }
 
     //////////////////////////////////////CONTACTS/////////////////////////////////////////////////
     id = 0;
     Contact* cnt;
-    while((cnt = getContact(id++)) != nullptr)
+    while((cnt = GetContact(id++)) != nullptr)
     {
-        if(!cnt->isNewDataAvailable())
+        if(!cnt->IsNewDataAvailable())
             continue;
 
-        if(pubs.find(cnt->getName()) != pubs.end())
+        if(pubs.find(cnt->GetName()) != pubs.end())
         {
-            ROSInterface::PublishContact(pubs[cnt->getName()], cnt);
+            ROSInterface::PublishContact(pubs[cnt->GetName()], cnt);
             cnt->MarkDataOld();
         }
     }
@@ -396,75 +394,79 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
         if(rosRobots[i]->publishBaseLinkTransform)
-            ROSInterface::PublishTF(br, rosRobots[i]->robot->getTransform(), ros::Time(getSimulationTime(true)), "world_ned", rosRobots[i]->robot->getName() + "/base_link");
+            ROSInterface::PublishTF(br, rosRobots[i]->robot->GetTransform(), ros::Time(GetSimulationTime(true)), "world_ned", rosRobots[i]->robot->GetName() + "/base_link");
     }
 
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
-        if(pubs.find(rosRobots[i]->robot->getName() + "/servos") != pubs.end())
+        if(pubs.find(rosRobots[i]->robot->GetName() + "/servos") != pubs.end())
         {
             unsigned int aID = 0;
             Actuator* actuator;
             Servo* srv;
             sensor_msgs::JointState msg;
-            msg.header.stamp = ros::Time(getSimulationTime(true));
-            msg.header.frame_id = rosRobots[i]->robot->getName();
+            msg.header.stamp = ros::Time(GetSimulationTime(true));
+            msg.header.frame_id = rosRobots[i]->robot->GetName();
             
-            while((actuator = rosRobots[i]->robot->getActuator(aID++)) != nullptr)
+            while((actuator = rosRobots[i]->robot->GetActuator(aID++)) != nullptr)
             {
-                if(actuator->getType() == ActuatorType::SERVO)
+                if(actuator->GetType() == ActuatorType::JOINT 
+                    && static_cast<JointActuator*>(actuator)->GetJointActuatorType() == JointActuatorType::SERVO)
                 {
-                    srv = (Servo*)actuator;
-                    msg.name.push_back(srv->getJointName());
-                    msg.position.push_back(srv->getPosition());
-                    msg.velocity.push_back(srv->getVelocity());
-                    msg.effort.push_back(srv->getEffort());
+                    srv = static_cast<Servo*>(actuator);
+                    msg.name.push_back(srv->GetJointName());
+                    msg.position.push_back(srv->GetPosition());
+                    msg.velocity.push_back(srv->GetVelocity());
+                    msg.effort.push_back(srv->GetEffort());
                 }
             }
             if(msg.name.size() > 0)
-                pubs.at(rosRobots[i]->robot->getName() + "/servos").publish(msg);
+                pubs.at(rosRobots[i]->robot->GetName() + "/servos").publish(msg);
         }
 
         if(rosRobots[i]->thrusterSetpoints.size() != 0
-           && pubs.find(rosRobots[i]->robot->getName() + "/thrusters") != pubs.end())
+           && pubs.find(rosRobots[i]->robot->GetName() + "/thrusters") != pubs.end())
         {
             unsigned int aID = 0;
             unsigned int thID = 0;
             Actuator* actuator;
             stonefish_ros::ThrusterState msg;
-            msg.header.stamp = ros::Time(getSimulationTime(true));
-            msg.header.frame_id = rosRobots[i]->robot->getName();
+            msg.header.stamp = ros::Time(GetSimulationTime(true));
+            msg.header.frame_id = rosRobots[i]->robot->GetName();
             msg.setpoint.resize(rosRobots[i]->thrusterSetpoints.size());
             msg.rpm.resize(rosRobots[i]->thrusterSetpoints.size());
             msg.thrust.resize(rosRobots[i]->thrusterSetpoints.size());
             msg.torque.resize(rosRobots[i]->thrusterSetpoints.size());
 
-            while((actuator = rosRobots[i]->robot->getActuator(aID++)) != nullptr)
+            while((actuator = rosRobots[i]->robot->GetActuator(aID++)) != nullptr)
             {
-                if(actuator->getType() == ActuatorType::THRUSTER)
+                if(actuator->GetType() == ActuatorType::LINK)
                 {
-                    Thruster* th = (Thruster*)actuator;
-                    msg.setpoint[thID] = th->getSetpoint();
-                    msg.rpm[thID] = th->getOmega()/(Scalar(2)*M_PI)*Scalar(60);
-                    msg.thrust[thID] = th->getThrust();
-                    msg.torque[thID] = th->getTorque();
-                    ++thID;    
-                }
-                else if(actuator->getType() == ActuatorType::SIMPLE_THRUSTER)
-                {
-                    SimpleThruster* th = (SimpleThruster*)actuator;
-                    msg.setpoint[thID] = th->getThrust();
-                    msg.rpm[thID] = Scalar(0);
-                    msg.thrust[thID] = th->getThrust();
-                    msg.torque[thID] = th->getTorque();
-                    ++thID;
-                }
+                    if(static_cast<LinkActuator*>(actuator)->GetLinkActuatorType() == LinkActuatorType::THRUSTER)
+                    {
+                        Thruster* th = static_cast<Thruster*>(actuator);
+                        msg.setpoint[thID] = th->GetSetpoint();
+                        msg.rpm[thID] = th->GetOmega()/(Scalar(2)*M_PI)*Scalar(60);
+                        msg.thrust[thID] = th->GetThrust();
+                        msg.torque[thID] = th->GetTorque();
+                        ++thID;    
+                    }
+                    else if(static_cast<LinkActuator*>(actuator)->GetLinkActuatorType() == LinkActuatorType::SIMPLE_THRUSTER)
+                    {
+                        SimpleThruster* th = static_cast<SimpleThruster*>(actuator);
+                        msg.setpoint[thID] = th->GetThrust();
+                        msg.rpm[thID] = Scalar(0);
+                        msg.thrust[thID] = th->GetThrust();
+                        msg.torque[thID] = th->GetTorque();
+                        ++thID;
+                    }
 
-                if(thID == rosRobots[i]->thrusterSetpoints.size())
-                        break;
+                    if(thID == rosRobots[i]->thrusterSetpoints.size())
+                            break;
+                }
             }
-            pubs.at(rosRobots[i]->robot->getName() + "/thrusters").publish(msg);
+            pubs.at(rosRobots[i]->robot->GetName() + "/thrusters").publish(msg);
         }
     }
 
@@ -477,74 +479,113 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         unsigned int propID = 0;
         unsigned int rudderID = 0;
 
-        while((actuator = rosRobots[i]->robot->getActuator(aID++)) != nullptr)
+        while((actuator = rosRobots[i]->robot->GetActuator(aID++)) != nullptr)
         {
-            switch(actuator->getType())
+            if (actuator->GetType() == ActuatorType::LINK)
             {
-                case ActuatorType::SIMPLE_THRUSTER:
-                    ((SimpleThruster*)actuator)->setSetpoint(rosRobots[i]->thrusterSetpoints[thID++], Scalar(0));
-                    break;
-
-                case ActuatorType::THRUSTER:
-                    ((Thruster*)actuator)->setSetpoint(rosRobots[i]->thrusterSetpoints[thID++]);
-                    break;
-
-                case ActuatorType::PROPELLER:
-                    ((Propeller*)actuator)->setSetpoint(rosRobots[i]->propellerSetpoints[propID++]);
-                    break;
-
-                case ActuatorType::RUDDER:
-                    ((Rudder*)actuator)->setSetpoint(rosRobots[i]->rudderSetpoints[rudderID++]);
-                    break;
-
-                case ActuatorType::SERVO:
+                switch(static_cast<LinkActuator*>(actuator)->GetLinkActuatorType())
                 {
-                    if(rosRobots[i]->servoSetpoints.size() == 0)
-                        continue;
-
-                    auto it = rosRobots[i]->servoSetpoints.find(((Servo*)actuator)->getJointName());
-                    if(it != rosRobots[i]->servoSetpoints.end())
+                    case LinkActuatorType::PUSH:
+                        static_cast<Push*>(actuator)->SetForce(rosRobots[i]->thrusterSetpoints[thID++]);
+                        break;
+                    case LinkActuatorType::SIMPLE_THRUSTER:
+                        static_cast<SimpleThruster*>(actuator)->SetSetpoint(rosRobots[i]->thrusterSetpoints[thID++], Scalar(0));
+                        break;
+                    case LinkActuatorType::THRUSTER:
+                        static_cast<Thruster*>(actuator)->SetSetpoint(rosRobots[i]->thrusterSetpoints[thID++]);
+                        break;
+                    case LinkActuatorType::PROPELLER:
+                        static_cast<Propeller*>(actuator)->SetSetpoint(rosRobots[i]->propellerSetpoints[propID++]);
+                        break;
+                    case LinkActuatorType::RUDDER:
+                        static_cast<Rudder*>(actuator)->SetSetpoint(rosRobots[i]->rudderSetpoints[rudderID++]);
+                        break;
+                    case LinkActuatorType::VBS:
                     {
-                        if(it->second.first == ServoControlMode::VELOCITY)
+                        auto it = pubs.find(actuator->GetName());
+                        if(it != pubs.end())
                         {
-                            ((Servo*)actuator)->setControlMode(ServoControlMode::VELOCITY);
-                            ((Servo*)actuator)->setDesiredVelocity(it->second.second);
-                        }
-                        else if(it->second.first == ServoControlMode::POSITION)
-                        {
-                            ((Servo*)actuator)->setControlMode(ServoControlMode::POSITION);
-                            ((Servo*)actuator)->setDesiredPosition(it->second.second);
+                            std_msgs::Float64 msg;
+                            msg.data = static_cast<VariableBuoyancy*>(actuator)->GetLiquidVolume();
+                            it->second.publish(msg);
                         }
                     }
-                }
-                    break;
-
-                case ActuatorType::VBS:
-                {
-                    auto it = pubs.find(actuator->getName());
-                    if(it != pubs.end())
+                        break;
+                    case LinkActuatorType::SUCTION_CUP:
                     {
-                        std_msgs::Float64 msg;
-                        msg.data = ((VariableBuoyancy*)actuator)->getLiquidVolume();
-                        it->second.publish(msg);
+                        auto it = pubs.find(actuator->GetName());
+                        if(it != pubs.end())
+                        {
+                            std_msgs::Bool msg;
+                            msg.data = static_cast<SuctionCup*>(actuator)->GetPump();
+                            it->second.publish(msg);
+                        }
                     }
-                }
-                    break;
-
-                case ActuatorType::SUCTION_CUP:
-                {
-                    auto it = pubs.find(actuator->getName());
-                    if(it != pubs.end())
+                        break;
+                    case LinkActuatorType::PLUGIN:
                     {
-                        std_msgs::Bool msg;
-                        msg.data = ((SuctionCup*)actuator)->getPump();
-                        it->second.publish(msg);
+                        ROSActuatorPluginInterface* iface = dynamic_cast<ROSActuatorPluginInterface*>(actuator);
+                        if (iface != nullptr)
+                            iface->Publish(nh, pubs);
                     }
+                        break;
+                    default:
+                        break;
                 }
-                    break;
+            }
+            else if (actuator->GetType() == ActuatorType::JOINT)
+            {
+                switch (static_cast<JointActuator*>(actuator)->GetJointActuatorType())
+                {
+                    case JointActuatorType::MOTOR:
+                    {
+                        if(rosRobots[i]->servoSetpoints.size() == 0)
+                            continue;
 
-                default:
-                    break;
+                        Motor* mtr = static_cast<Motor*>(actuator);
+                        auto it = rosRobots[i]->servoSetpoints.find(mtr->GetJointName());
+                        if(it != rosRobots[i]->servoSetpoints.end())
+                        {
+                            if(it->second.first == ServoControlMode::TORQUE)
+                            {
+                                mtr->SetTorque(it->second.second);
+                            }
+                        }
+                    }
+                        break;
+                    case JointActuatorType::SERVO:
+                    {
+                        if(rosRobots[i]->servoSetpoints.size() == 0)
+                            continue;
+
+                        Servo* srv = static_cast<Servo*>(actuator);
+
+                        auto it = rosRobots[i]->servoSetpoints.find(srv->GetJointName());
+                        if(it != rosRobots[i]->servoSetpoints.end())
+                        {
+                            if(it->second.first == ServoControlMode::VELOCITY)
+                            {
+                                srv->SetControlMode(ServoControlMode::VELOCITY);
+                                srv->SetDesiredVelocity(it->second.second);
+                            }
+                            else if(it->second.first == ServoControlMode::POSITION)
+                            {
+                                srv->SetControlMode(ServoControlMode::POSITION);
+                                srv->SetDesiredPosition(it->second.second);
+                            }
+                        }
+                    }
+                        break;
+                    case JointActuatorType::PLUGIN:
+                    {
+                        ROSActuatorPluginInterface* iface = dynamic_cast<ROSActuatorPluginInterface*>(actuator);
+                        if (iface != nullptr)
+                            iface->Publish(nh, pubs);
+                    }
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -553,7 +594,7 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     for(size_t i=0; i<controlIfs.size(); ++i)
     {
         controlIfs[i]->read();
-        controlIfs[i]->update(ros::Time(getSimulationTime(true)), ros::Duration(timeStep));
+        controlIfs[i]->update(ros::Time(GetSimulationTime(true)), ros::Duration(timeStep));
         controlIfs[i]->write();
     }
 
@@ -575,10 +616,10 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
         SolidEntity* link;
         Vector3 Fb, Tb, Fd, Td, Fs, Ts;
     
-        while((link = r->getLink(lID++)) != nullptr)
+        while((link = r->GetLink(lID++)) != nullptr)
         {
-            link->getHydrodynamicForces(Fb, Tb, Fd, Td, Fs, Ts);
-            output << "[" << link->getName() << "]" << std::endl;
+            link->GetHydrodynamicForces(Fb, Tb, Fd, Td, Fs, Ts);
+            output << "[" << link->GetName() << "]" << std::endl;
             output << "Buoyancy force[N]: " << Fb.x() << ", " << Fb.y() << ", " << Fb.z() << std::endl;
             output << "Damping force[N]: " << Fd.x() << ", " << Fd.y() << ", " << Fd.z() << std::endl;
             output << "Skin friction[N]: " << Fs.x() << ", " << Fs.y() << ", " << Fs.z() << std::endl;
@@ -589,173 +630,173 @@ void ROSSimulationManager::SimulationStepCompleted(Scalar timeStep)
     for(size_t i=0; i<rosRobots.size(); ++i)
     {
         Robot* r = rosRobots[i]->robot;
-        ROS_DEBUG_STREAM_NAMED("Hydrodynamics", "===== Hydrodynamics for " << r->getName() << " =====\n" << hydroLambda(r));
+        ROS_DEBUG_STREAM_NAMED("Hydrodynamics", "===== Hydrodynamics for " << r->GetName() << " =====\n" << hydroLambda(r));
     }
 }
 
 void ROSSimulationManager::ColorCameraImageReady(ColorCamera* cam)
 {
     //Fill in the image message
-    sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->getName()].first;
-    img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), (uint8_t*)cam->getImageDataPointer(), img->step * img->height);
+    sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->GetName()].first;
+    img->header.stamp = ros::Time(GetSimulationTime(true));
+    memcpy(img->data.data(), (uint8_t*)cam->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
-    sensor_msgs::CameraInfoPtr info = cameraMsgPrototypes[cam->getName()].second;
+    sensor_msgs::CameraInfoPtr info = cameraMsgPrototypes[cam->GetName()].second;
     info->header.stamp = img->header.stamp;
 
     //Publish messages
-    imgPubs.at(cam->getName()).publish(img);
-    pubs.at(cam->getName() + "/info").publish(info);
+    imgPubs.at(cam->GetName()).publish(img);
+    pubs.at(cam->GetName() + "/info").publish(info);
 }
 
 
 void ROSSimulationManager::DepthCameraImageReady(DepthCamera* cam)
 {
     //Fill in the image message
-    sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->getName()].first;
-    img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+    sensor_msgs::ImagePtr img = cameraMsgPrototypes[cam->GetName()].first;
+    img->header.stamp = ros::Time(GetSimulationTime(true));
+    memcpy(img->data.data(), (float*)cam->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
-    sensor_msgs::CameraInfoPtr info = cameraMsgPrototypes[cam->getName()].second;
+    sensor_msgs::CameraInfoPtr info = cameraMsgPrototypes[cam->GetName()].second;
     info->header.stamp = img->header.stamp;
 
     //Publish messages
-    imgPubs.at(cam->getName()).publish(img);
-    pubs.at(cam->getName() + "/info").publish(info);
+    imgPubs.at(cam->GetName()).publish(img);
+    pubs.at(cam->GetName() + "/info").publish(info);
 }
 
 void ROSSimulationManager::ThermalCameraImageReady(ThermalCamera* cam)
 {
     //Fill in the image message
-    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->GetName()]);
     img->header.stamp = ros::Time::now();
-    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+    memcpy(img->data.data(), (float*)cam->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
-    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->GetName()]);
     info->header.stamp = img->header.stamp;
 
     //Fill in the display message
-    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->GetName()]);
     img2->header.stamp = img->header.stamp;
-    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+    memcpy(img2->data.data(), (uint8_t*)cam->GetDisplayDataPointer(), img2->step * img2->height);
 
     //Publish messages
-    imgPubs.at(cam->getName()).publish(img);
-    pubs.at(cam->getName() + "/info").publish(info);
-    imgPubs.at(cam->getName()+"/display").publish(img2);
+    imgPubs.at(cam->GetName()).publish(img);
+    pubs.at(cam->GetName() + "/info").publish(info);
+    imgPubs.at(cam->GetName()+"/display").publish(img2);
 }
 
 void ROSSimulationManager::OpticalFlowCameraImageReady(OpticalFlowCamera* cam)
 {
     //Fill in the image message
-    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->GetName()]);
     img->header.stamp = ros::Time::now();
-    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+    memcpy(img->data.data(), (float*)cam->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
-    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->GetName()]);
     info->header.stamp = img->header.stamp;
 
     //Fill in the display message
-    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->GetName()]);
     img2->header.stamp = img->header.stamp;
-    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+    memcpy(img2->data.data(), (uint8_t*)cam->GetDisplayDataPointer(), img2->step * img2->height);
 
     //Publish messages
-    imgPubs.at(cam->getName()).publish(img);
-    pubs.at(cam->getName() + "/info").publish(info);
-    imgPubs.at(cam->getName()+"/display").publish(img2);
+    imgPubs.at(cam->GetName()).publish(img);
+    pubs.at(cam->GetName() + "/info").publish(info);
+    imgPubs.at(cam->GetName()+"/display").publish(img2);
 }
 
 void ROSSimulationManager::SegmentationCameraImageReady(SegmentationCamera* cam)
 {
     //Fill in the image message
-    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::ImagePtr img = std::get<0>(dualImageCameraMsgPrototypes[cam->GetName()]);
     img->header.stamp = ros::Time::now();
-    memcpy(img->data.data(), (uint16_t*)cam->getImageDataPointer(), img->step * img->height);
+    memcpy(img->data.data(), (uint16_t*)cam->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
-    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::CameraInfoPtr info = std::get<1>(dualImageCameraMsgPrototypes[cam->GetName()]);
     info->header.stamp = img->header.stamp;
 
     //Fill in the display message
-    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->getName()]);
+    sensor_msgs::ImagePtr img2 = std::get<2>(dualImageCameraMsgPrototypes[cam->GetName()]);
     img2->header.stamp = img->header.stamp;
-    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+    memcpy(img2->data.data(), (uint8_t*)cam->GetDisplayDataPointer(), img2->step * img2->height);
 
     //Publish messages
-    imgPubs.at(cam->getName()).publish(img);
-    pubs.at(cam->getName() + "/info").publish(info);
-    imgPubs.at(cam->getName()+"/display").publish(img2);
+    imgPubs.at(cam->GetName()).publish(img);
+    pubs.at(cam->GetName() + "/info").publish(info);
+    imgPubs.at(cam->GetName()+"/display").publish(img2);
 }
 
 void ROSSimulationManager::EventBasedCameraOutputReady(EventBasedCamera* cam)
 {
-    ROSInterface::PublishEventBasedCamera(pubs.at(cam->getName()), cam);
+    ROSInterface::PublishEventBasedCamera(pubs.at(cam->GetName()), cam);
 }
 
 void ROSSimulationManager::FLSScanReady(FLS* fls)
 {
     //Fill in the data message
-    sensor_msgs::ImagePtr img = sonarMsgPrototypes[fls->getName()].first;
-    img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), fls->getImageDataPointer(), img->step * img->height);
+    sensor_msgs::ImagePtr img = sonarMsgPrototypes[fls->GetName()].first;
+    img->header.stamp = ros::Time(GetSimulationTime(true));
+    memcpy(img->data.data(), fls->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
-    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[fls->getName()].second;
+    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[fls->GetName()].second;
     disp->header.stamp = img->header.stamp;
-    memcpy(disp->data.data(), fls->getDisplayDataPointer(), disp->step * disp->height);
+    memcpy(disp->data.data(), fls->GetDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
-    imgPubs.at(fls->getName()).publish(img);
-    imgPubs.at(fls->getName() + "/display").publish(disp);
+    imgPubs.at(fls->GetName()).publish(img);
+    imgPubs.at(fls->GetName() + "/display").publish(disp);
 }
 
 void ROSSimulationManager::SSSScanReady(SSS* sss)
 {
     //Fill in the data message
-    sensor_msgs::ImagePtr img = sonarMsgPrototypes[sss->getName()].first;
-    img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), sss->getImageDataPointer(), img->step * img->height);
+    sensor_msgs::ImagePtr img = sonarMsgPrototypes[sss->GetName()].first;
+    img->header.stamp = ros::Time(GetSimulationTime(true));
+    memcpy(img->data.data(), sss->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
-    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[sss->getName()].second;
+    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[sss->GetName()].second;
     disp->header.stamp = img->header.stamp;
-    memcpy(disp->data.data(), sss->getDisplayDataPointer(), disp->step * disp->height);
+    memcpy(disp->data.data(), sss->GetDisplayDataPointer(), disp->step * disp->height);
 
     //Publish messages
-    imgPubs.at(sss->getName()).publish(img);
-    imgPubs.at(sss->getName() + "/display").publish(disp);
+    imgPubs.at(sss->GetName()).publish(img);
+    imgPubs.at(sss->GetName() + "/display").publish(disp);
 }
 
 void ROSSimulationManager::MSISScanReady(MSIS* msis)
 {
     //Fill in the data message
-    sensor_msgs::ImagePtr img = sonarMsgPrototypes[msis->getName()].first;
-    img->header.stamp = ros::Time(getSimulationTime(true));
-    memcpy(img->data.data(), msis->getImageDataPointer(), img->step * img->height);
+    sensor_msgs::ImagePtr img = sonarMsgPrototypes[msis->GetName()].first;
+    img->header.stamp = ros::Time(GetSimulationTime(true));
+    memcpy(img->data.data(), msis->GetImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
-    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[msis->getName()].second;
+    sensor_msgs::ImagePtr disp = sonarMsgPrototypes[msis->GetName()].second;
     disp->header.stamp = img->header.stamp;
-    memcpy(disp->data.data(), msis->getDisplayDataPointer(), disp->step * disp->height);
+    memcpy(disp->data.data(), msis->GetDisplayDataPointer(), disp->step * disp->height);
 
     //Fill in the laser scan message for the last beam
-    Scalar currentAngle = (msis->getCurrentRotationStep() * msis->getRotationStepAngle()) * M_PI / 180.0;
-    unsigned int currentBeamIndex = msis->getCurrentBeamIndex();
+    Scalar currentAngle = (msis->GetCurrentRotationStep() * msis->GetRotationStepAngle()) * M_PI / 180.0;
+    unsigned int currentBeamIndex = msis->GetCurrentBeamIndex();
 
     sensor_msgs::LaserScan laserscan;
     laserscan.header.stamp = img->header.stamp;
-    laserscan.header.frame_id = msis->getName();
+    laserscan.header.frame_id = msis->GetName();
     laserscan.angle_min = currentAngle;
     laserscan.angle_max = currentAngle;
     laserscan.angle_increment = 0.0;
     laserscan.time_increment = 0.0;
-    laserscan.range_min = msis->getRangeMin();
-    laserscan.range_max = msis->getRangeMax();
+    laserscan.range_min = msis->GetRangeMin();
+    laserscan.range_max = msis->GetRangeMax();
     laserscan.ranges.resize(img->height);
     laserscan.intensities.resize(img->height);
 
@@ -766,14 +807,14 @@ void ROSSimulationManager::MSISScanReady(MSIS* msis)
     }
 
     //Publish messages
-    imgPubs.at(msis->getName()).publish(img);
-    imgPubs.at(msis->getName() + "/display").publish(disp);
-    pubs.at(msis->getName() + "/beam").publish(laserscan);
+    imgPubs.at(msis->GetName()).publish(img);
+    imgPubs.at(msis->GetName() + "/display").publish(disp);
+    pubs.at(msis->GetName() + "/beam").publish(laserscan);
 }
 
-void ROSSimulationManager::Multibeam2ScanReady(Multibeam2* mb)
+void ROSSimulationManager::LidarScanReady(Lidar* lidar)
 {
-    ROSInterface::PublishMultibeam2(pubs.at(mb->getName()), mb);
+    ROSInterface::PublishLidar(pubs.at(lidar->GetName()), lidar);
 }
 
 bool ROSSimulationManager::RespawnRobot(stonefish_ros::Respawn::Request& req, stonefish_ros::Respawn::Response& res)
@@ -797,7 +838,7 @@ bool ROSSimulationManager::RespawnRobot(stonefish_ros::Respawn::Request& req, st
         
 bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res)
 {
-    getOcean()->EnableCurrents();
+    GetOcean()->EnableVelocityFields();
     res.message = "Currents simulation enabled.";
     res.success = true;
     return true;
@@ -805,7 +846,7 @@ bool ROSSimulationManager::EnableCurrents(std_srvs::Trigger::Request& req, std_s
 
 bool ROSSimulationManager::DisableCurrents(std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res)
 {
-    getOcean()->DisableCurrents();
+    GetOcean()->DisableVelocityFields();
     res.message = "Currents simulation disabled.";
     res.success = true;
     return true;
@@ -817,7 +858,7 @@ UniformVFCallback::UniformVFCallback(Uniform* vf) : vf(vf)
 
 void UniformVFCallback::operator()(const geometry_msgs::Vector3ConstPtr& msg)
 {
-    vf->setVelocity(Vector3(msg->x, msg->y, msg->z));
+    vf->SetVelocity(Vector3(msg->x, msg->y, msg->z));
 }
 
 JetVFCallback::JetVFCallback(Jet* vf) : vf(vf)
@@ -826,7 +867,7 @@ JetVFCallback::JetVFCallback(Jet* vf) : vf(vf)
 
 void JetVFCallback::operator()(const std_msgs::Float64ConstPtr& msg)
 {
-    vf->setOutletVelocity(msg->data);
+    vf->SetOutletVelocity(msg->data);
 }
 
 ThrustersCallback::ThrustersCallback(ROSSimulationManager* sm, ROSRobot* robot) : sm(sm), robot(robot)
@@ -837,7 +878,7 @@ void ThrustersCallback::operator()(const std_msgs::Float64MultiArrayConstPtr& ms
 {
     if(msg->data.size() != robot->thrusterSetpoints.size())
     {
-        ROS_ERROR_STREAM("Wrong number of thruster setpoints for robot: " << robot->robot->getName());
+        ROS_ERROR_STREAM("Wrong number of thruster setpoints for robot: " << robot->robot->GetName());
         return;
     }
 
@@ -853,7 +894,7 @@ void PropellersCallback::operator()(const std_msgs::Float64MultiArrayConstPtr& m
 {
     if(msg->data.size() != robot->propellerSetpoints.size())
     {
-        ROS_ERROR_STREAM("Wrong number of propeller setpoints for robot: " << robot->robot->getName());
+        ROS_ERROR_STREAM("Wrong number of propeller setpoints for robot: " << robot->robot->GetName());
         return;
     }
 
@@ -869,7 +910,7 @@ void RuddersCallback::operator()(const std_msgs::Float64MultiArrayConstPtr& msg)
 {
     if(msg->data.size() != robot->rudderSetpoints.size())
     {
-        ROS_ERROR_STREAM("Wrong number of rudder setpoints for robot: " << robot->robot->getName());
+        ROS_ERROR_STREAM("Wrong number of rudder setpoints for robot: " << robot->robot->GetName());
         return;
     }
 
@@ -971,66 +1012,49 @@ void JointCallback::operator()(const std_msgs::Float64ConstPtr& msg)
     }
 }
 
+PushCallback::PushCallback(Push* act) : act(act)
+{
+}
+
+void PushCallback::operator()(const std_msgs::Float64ConstPtr& msg)
+{
+    act->SetForce(msg->data);
+}
+
+SimpleThrusterCallback::SimpleThrusterCallback(SimpleThruster* act) : act(act)
+{
+}
+
+void SimpleThrusterCallback::operator()(const std_msgs::Float64ConstPtr& msg)
+{
+    act->SetSetpoint(msg->data, Scalar(0));
+}
+
+ThrusterCallback::ThrusterCallback(Thruster* act) : act(act)
+{
+}
+
+void ThrusterCallback::operator()(const std_msgs::Float64ConstPtr& msg)
+{
+    act->SetSetpoint(msg->data);
+}
+
+PropellerCallback::PropellerCallback(Propeller* act) : act(act)
+{
+}
+
+void PropellerCallback::operator()(const std_msgs::Float64ConstPtr& msg)
+{
+    act->SetSetpoint(msg->data);
+}
+
 VBSCallback::VBSCallback(VariableBuoyancy* act) : act(act)
 {
 }
 
 void VBSCallback::operator()(const std_msgs::Float64ConstPtr& msg)
 {
-    act->setFlowRate(msg->data);
-}
-
-ActuatorOriginCallback::ActuatorOriginCallback(Actuator* act) : act(act)
-{
-}
-
-void ActuatorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& msg)
-{
-    Transform T;
-    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
-    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
-
-    switch(act->getType())
-    {
-        case ActuatorType::PUSH:
-        case ActuatorType::SIMPLE_THRUSTER:
-        case ActuatorType::THRUSTER:
-        case ActuatorType::PROPELLER:
-        case ActuatorType::VBS:
-        case ActuatorType::LIGHT:
-            ((LinkActuator*)act)->setRelativeActuatorFrame(T);
-            break;
-
-        default:
-            ROS_WARN_STREAM("Live update of origin frame of actuator '" << act->getName() << "' not supported!");
-            break;
-    }
-}
-
-SensorOriginCallback::SensorOriginCallback(Sensor* sens) : sens(sens)
-{
-}
-
-void SensorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& msg)
-{
-    Transform T;
-    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
-    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
-
-    switch(sens->getType())
-    {
-        case SensorType::LINK:
-            ((LinkSensor*)sens)->setRelativeSensorFrame(T);
-            break;
-
-        case SensorType::VISION:
-            ((VisionSensor*)sens)->setRelativeSensorFrame(T);
-            break;
-
-        default:
-            ROS_WARN_STREAM("Live update of origin frame of sensor '" << sens->getName() << "' not supported!");
-            break;
-    }
+    act->SetFlowRate(msg->data);
 }
 
 TrajectoryCallback::TrajectoryCallback(ManualTrajectory* tr) : tr(tr)
@@ -1044,9 +1068,49 @@ void TrajectoryCallback::operator()(const nav_msgs::OdometryConstPtr& msg)
     Vector3 p(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
     Vector3 v(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
     Vector3 omega(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z);
-    tr->setTransform(Transform(q, p));
-    tr->setLinearVelocity(v);
-    tr->setAngularVelocity(omega);
+    tr->SetTransform(Transform(q, p));
+    tr->SetLinearVelocity(v);
+    tr->SetAngularVelocity(omega);
+}
+
+ActuatorOriginCallback::ActuatorOriginCallback(Actuator* act) : act(act)
+{
+}
+
+void ActuatorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& msg)
+{
+    Transform T;
+    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
+    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
+
+    if(act->GetType() == ActuatorType::LINK)
+        static_cast<LinkActuator*>(act)->SetRelativeActuatorFrame(T);
+}
+
+SensorOriginCallback::SensorOriginCallback(Sensor* sens) : sens(sens)
+{
+}
+
+void SensorOriginCallback::operator()(const geometry_msgs::TransformConstPtr& msg)
+{
+    Transform T;
+    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
+    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
+
+    switch(sens->GetType())
+    {
+        case SensorType::LINK:
+            static_cast<LinkSensor*>(sens)->SetRelativeSensorFrame(T);
+            break;
+
+        case SensorType::VISION:
+            static_cast<VisionSensor*>(sens)->SetRelativeSensorFrame(T);
+            break;
+
+        default:
+            ROS_WARN_STREAM("Live update of origin frame of sensor '" << sens->GetName() << "' not supported!");
+            break;
+    }
 }
 
 CommCallback::CommCallback(Comm* comm) : comm(comm)
@@ -1056,6 +1120,21 @@ CommCallback::CommCallback(Comm* comm) : comm(comm)
 void CommCallback::operator()(const std_msgs::StringConstPtr& msg)
 {
     comm->SendMessage(msg->data);
+}
+
+SensorService::SensorService(Sensor* sens) : sens(sens)
+{
+}
+
+bool SensorService::operator()(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+{
+    sens->SetEnabled(req.data);
+    if(req.data)
+        res.message = "Sensor turned on.";
+    else
+        res.message = "Sensor turned off.";
+    res.success = true;  
+    return true;
 }
 
 FLSService::FLSService(FLS* fls) : fls(fls)
@@ -1071,9 +1150,9 @@ bool FLSService::operator()(stonefish_ros::SonarSettings::Request& req, stonefis
     }
     else
     {
-        fls->setRangeMax(req.range_max);
-        fls->setRangeMin(req.range_min);
-        fls->setGain(req.gain);
+        fls->SetRangeMax(req.range_max);
+        fls->SetRangeMin(req.range_min);
+        fls->SetGain(req.gain);
         res.success = true;
         res.message = "New sonar settings applied.";
     }
@@ -1093,9 +1172,9 @@ bool SSSService::operator()(stonefish_ros::SonarSettings::Request& req, stonefis
     }
     else
     {
-        sss->setRangeMax(req.range_max);
-        sss->setRangeMin(req.range_min);
-        sss->setGain(req.gain);
+        sss->SetRangeMax(req.range_max);
+        sss->SetRangeMin(req.range_min);
+        sss->SetGain(req.gain);
         res.success = true;
         res.message = "New sonar settings applied.";
     }
@@ -1119,10 +1198,10 @@ bool MSISService::operator()(stonefish_ros::SonarSettings2::Request& req, stonef
     }
     else
     {
-        msis->setRangeMax(req.range_max);
-        msis->setRangeMin(req.range_min);
-        msis->setGain(req.gain);
-        msis->setRotationLimits(req.rotation_min, req.rotation_max);
+        msis->SetRangeMax(req.range_max);
+        msis->SetRangeMin(req.range_min);
+        msis->SetGain(req.gain);
+        msis->SetRotationLimits(req.rotation_min, req.rotation_max);
         res.success = true;
         res.message = "New sonar settings applied.";
     }
@@ -1135,11 +1214,26 @@ SuctionCupService::SuctionCupService(SuctionCup* suction) : suction(suction)
 
 bool SuctionCupService::operator()(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
 {
-    suction->setPump(req.data);
+    suction->SetPump(req.data);
     if(req.data)
         res.message = "Pump turned on.";
     else 
         res.message = "Pump turned off.";
+    res.success = true;
+    return true;
+}
+
+LightService::LightService(Light* l) : l(l)
+{
+}
+
+bool LightService::operator()(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+{
+    l->Switch(req.data);
+    if(req.data)
+        res.message = "Light turned on.";
+    else
+        res.message = "Light turned off.";
     res.success = true;
     return true;
 }

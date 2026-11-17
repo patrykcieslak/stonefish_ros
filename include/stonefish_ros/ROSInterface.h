@@ -20,11 +20,10 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROSInterface__
-#define __Stonefish_ROSInterface__
+#pragma once
 
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
@@ -51,7 +50,7 @@ namespace sf
     class EventBasedCamera;
     class Multibeam;
     class Profiler;
-    class Multibeam2;
+    class Lidar;
     class FLS;
     class SSS;
     class MSIS;
@@ -78,7 +77,7 @@ namespace sf
         static void PublishMultibeam(ros::Publisher& pub, Multibeam* mb);
         static void PublishMultibeamPCL(ros::Publisher& pub, Multibeam* mb);
         static void PublishProfiler(ros::Publisher& pub, Profiler* prof);
-        static void PublishMultibeam2(ros::Publisher& pub, Multibeam2* mb);
+        static void PublishLidar(ros::Publisher& pub, Lidar* lidar);
         static void PublishContact(ros::Publisher& pub, Contact* cnt);
         static void PublishUSBL(ros::Publisher& pub, ros::Publisher& pub_info, USBL* usbl);
         static void PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim);
@@ -96,5 +95,3 @@ namespace sf
         ROSInterface();
     };
 }
-
-#endif

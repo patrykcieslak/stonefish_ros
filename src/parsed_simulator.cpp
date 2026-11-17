@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 12/06/19.
-//  Copyright (c) 2019-2020 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include <ros/ros.h>
@@ -76,6 +76,7 @@ int main(int argc, char **argv)
         s.aa = sf::RenderQuality::MEDIUM;
         s.ssr = sf::RenderQuality::MEDIUM;
     }
+    s.verticalSync = false;
 
     sf::HelperSettings h;
     h.showFluidDynamics = false;
@@ -85,8 +86,8 @@ int main(int argc, char **argv)
     h.showActuators = false;
     h.showForces = false;
 	
-	sf::ROSSimulationManager manager(rate, scenarioPath);
-    sf::GraphicalSimulationApp app("Stonefish Simulator", dataDirPath, s, h, &manager); 
+    sf::GraphicalSimulationApp app("Stonefish Simulator", dataDirPath, s, h, 
+        std::make_unique<sf::ROSSimulationManager>(rate, scenarioPath)); 
 	app.Run();
 
 	return 0;

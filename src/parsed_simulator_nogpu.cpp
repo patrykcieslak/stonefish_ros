@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 16/12/20.
-//  Copyright (c) 2020 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2020-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include <ros/ros.h>
@@ -44,8 +44,8 @@ int main(int argc, char **argv)
     std::string scenarioPath(argv[2]);
     sf::Scalar rate = atof(argv[3]);
 	
-	sf::ROSSimulationManager manager(rate, scenarioPath);
-    sf::ConsoleSimulationApp app("Stonefish Simulator", dataDirPath, &manager); 
+    sf::ConsoleSimulationApp app("Stonefish Simulator", dataDirPath, 
+        std::make_unique<sf::ROSSimulationManager>(rate, scenarioPath)); 
 	app.Run();
 
 	return 0;
