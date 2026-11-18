@@ -20,20 +20,25 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 17/09/19.
-//  Copyright (c) 2019-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2019-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSScenarioParser.h"
 #include "stonefish_ros/ROSSimulationManager.h"
 #include "stonefish_ros/ROSInterface.h"
+#include "stonefish_ros/ROSSensorPluginInterface.h"
+#include "stonefish_ros/ROSActuatorPluginInterface.h"
+#include "stonefish_ros/ROSCommPluginInterface.h"
 
 #include <Stonefish/core/Robot.h>
 #include <Stonefish/entities/AnimatedEntity.h>
+#include <Stonefish/entities/animation/ManualTrajectory.h>
 #include <Stonefish/entities/forcefields/Uniform.h>
 #include <Stonefish/entities/forcefields/Jet.h>
 #include <Stonefish/actuators/Actuator.h>
 #include <Stonefish/actuators/Light.h>
 #include <Stonefish/actuators/Servo.h>
+#include <Stonefish/actuators/SuctionCup.h>
 #include <Stonefish/sensors/ScalarSensor.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
@@ -41,7 +46,7 @@
 #include <Stonefish/sensors/vision/OpticalFlowCamera.h>
 #include <Stonefish/sensors/vision/SegmentationCamera.h>
 #include <Stonefish/sensors/vision/EventBasedCamera.h>
-#include <Stonefish/sensors/vision/Multibeam2.h>
+#include <Stonefish/sensors/vision/Lidar.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/vision/MSIS.h>
@@ -76,6 +81,7 @@
 #include <stonefish_ros/BeaconInfo.h>
 #include <stonefish_ros/Event.h>
 #include <stonefish_ros/EventArray.h>
+#include <stonefish_ros/DebugPhysics.h>
 
 #include <ros/package.h>
 
@@ -202,17 +208,17 @@ bool ROSScenarioParser::PreProcess(XMLNode* root, const std::map<std::string, st
     return ScenarioParser::PreProcess(root, args);
 }
 
-VelocityField* ROSScenarioParser::ParseVelocityField(XMLElement* element)
+std::unique_ptr<VelocityField> ROSScenarioParser::ParseVelocityField(XMLElement* element)
 {
-    VelocityField* vf = ScenarioParser::ParseVelocityField(element);
+    std::unique_ptr<VelocityField> vf = ScenarioParser::ParseVelocityField(element);
     if(vf != nullptr)
     {
-        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-        ros::NodeHandle& nh = sim->getNodeHandle();
-        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+        ROSSimulationManager* sim = static_cast<ROSSimulationManager*>((GetSimulationManager()));
+        ros::NodeHandle& nh = sim->GetNodeHandle();
+        std::unordered_map<std::string, ros::Subscriber>& subs = sim->GetSubscribers();
         XMLElement* item;
 
-        switch(vf->getType())
+        switch(vf->GetType())
         {
             case VelocityFieldType::UNIFORM:
             {
@@ -221,7 +227,7 @@ VelocityField* ROSScenarioParser::ParseVelocityField(XMLElement* element)
                    && item->QueryStringAttribute("velocity", &subTopic) == XML_SUCCESS)
                 {
                     subs["vf"+std::to_string(ros::Time::now().toNSec())]  //Unique subscriber key string
-                        = nh.subscribe<geometry_msgs::Vector3>(std::string(subTopic), 1, UniformVFCallback((Uniform*)vf));
+                        = nh.subscribe<geometry_msgs::Vector3>(std::string(subTopic), 1, UniformVFCallback(static_cast<Uniform*>(vf.get())));
                 }
             }
                 break;
@@ -233,7 +239,7 @@ VelocityField* ROSScenarioParser::ParseVelocityField(XMLElement* element)
                    && item->QueryStringAttribute("outlet_velocity", &subTopic) == XML_SUCCESS)
                 {
                     subs["vf"+std::to_string(ros::Time::now().toNSec())]  //Unique subscriber key string
-                        = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, JetVFCallback((Jet*)vf));
+                        = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, JetVFCallback(static_cast<Jet*>(vf.get())));
                 }
             }
                 break;
@@ -250,61 +256,80 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     if(!ScenarioParser::ParseRobot(element))
         return false;
 
-    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-    ros::NodeHandle& nh = sim->getNodeHandle();
-    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-    std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
-    std::vector<ROSControlInterface*>& cifs = sim->getControlInterfaces();
+    ROSSimulationManager* sim = static_cast<ROSSimulationManager*>((GetSimulationManager()));
+    ros::NodeHandle& nh = sim->GetNodeHandle();
+    std::unordered_map<std::string, ros::Publisher>& pubs = sim->GetPublishers();
+    std::unordered_map<std::string, ros::Subscriber>& subs = sim->GetSubscribers();
+    std::vector<std::unique_ptr<ROSControlInterface>>& cifs = sim->GetControlInterfaces();
 
     //Robot info
     const char* name = nullptr;
     element->QueryStringAttribute("name", &name);
     std::string nameStr(name);
-    Robot* robot = getSimulationManager()->getRobot(nameStr);
+    Robot* robot = (GetSimulationManager())->GetRobot(nameStr);
 
     //Check actuators
     unsigned int nThrusters = 0;
     unsigned int nPropellers = 0;
     unsigned int nServos = 0;
     unsigned int nRudders = 0;
+    unsigned int nMotors = 0;
 
     unsigned int aID = 0;
     Actuator* act;
-    while((act = robot->getActuator(aID++)) != NULL)
+
+    while((act = robot->GetActuator(aID++)) != nullptr)
     {
-        switch(act->getType())
+        if (act->GetType() == ActuatorType::LINK)
         {
-            case ActuatorType::SIMPLE_THRUSTER:
-            case ActuatorType::THRUSTER:
-                ++nThrusters;
-                break;
-
-            case ActuatorType::PROPELLER:
-                ++nPropellers;
-                break;
-
-            case ActuatorType::RUDDER:
-                ++nRudders;
-                break;
-
-            case ActuatorType::SERVO:
-                ++nServos;
-                break;
-
-            default:
-                break;
+            LinkActuator* linkAct = static_cast<LinkActuator*>(act);
+            switch(linkAct->GetLinkActuatorType())
+            {
+                case LinkActuatorType::SIMPLE_THRUSTER:
+                case LinkActuatorType::THRUSTER:
+                    ++nThrusters;
+                    break;
+                case LinkActuatorType::PROPELLER:
+                    ++nPropellers;
+                    break;
+                case LinkActuatorType::RUDDER:
+                    ++nRudders;
+                    break;
+                default:
+                    break;
+            }
+        }
+        else if (act->GetType() == ActuatorType::JOINT)
+        {
+            JointActuator* jointAct = static_cast<JointActuator*>(act);
+            switch(jointAct->GetJointActuatorType())
+            {
+                case JointActuatorType::SERVO:
+                    ++nServos;
+                    break;
+                case JointActuatorType::MOTOR:
+                    ++nMotors;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
-    ROSRobot* rosRobot = new ROSRobot(robot, nThrusters, nPropellers, nRudders);
+    std::unique_ptr<ROSRobot> rosRobot = std::make_unique<ROSRobot>(robot, nThrusters, nPropellers, nRudders);
 
     //Check if we should publish world_ned -> base_link transform
     XMLElement* item;
     if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
         item->QueryBoolAttribute("publish", &rosRobot->publishBaseLinkTransform);
 
-    //Save robot
-    sim->AddROSRobot(rosRobot);
+    //Check if we should publish debug information
+    if((item = element->FirstChildElement("ros_debug")) != nullptr)
+    {
+        const char* topicPhysics = nullptr;
+        if(item->QueryStringAttribute("physics", &topicPhysics) == XML_SUCCESS)
+            pubs[robot->GetName() + "/debug/physics"] = nh.advertise<stonefish_ros::DebugPhysics>(std::string(topicPhysics), 10);
+    }
 
     //Generate subscribers
     if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
@@ -315,29 +340,29 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         const char* topicSrv = nullptr;
 
         if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThrust) == XML_SUCCESS)
-            subs[robot->getName() + "/thrusters"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicThrust), 10, ThrustersCallback(sim, rosRobot));
+            subs[robot->GetName() + "/thrusters"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicThrust), 10, ThrustersCallback(rosRobot.get()));
 
         if(nPropellers > 0 && item->QueryStringAttribute("propellers", &topicProp) == XML_SUCCESS)
-            subs[robot->getName() + "/propellers"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicProp), 10, PropellersCallback(sim, rosRobot));
+            subs[robot->GetName() + "/propellers"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicProp), 10, PropellersCallback(rosRobot.get()));
 
         if(nRudders > 0 && item->QueryStringAttribute("rudders", &topicRudder) == XML_SUCCESS)
-            subs[robot->getName() + "/rudders"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicRudder), 10, RuddersCallback(sim, rosRobot));
+            subs[robot->GetName() + "/rudders"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicRudder), 10, RuddersCallback(rosRobot.get()));
 
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
         {
-            subs[robot->getName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(sim, rosRobot));
+            subs[robot->GetName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(rosRobot.get()));
             //Generate setpoint placeholders for the whole system
             aID = 0;
-            while((act = robot->getActuator(aID++)) != nullptr)
+            while((act = robot->GetActuator(aID++)) != nullptr)
             {
-                if(act->getType() == ActuatorType::SERVO)
-                    rosRobot->servoSetpoints[((Servo*)act)->getJointName()] = std::pair(ServoControlMode::VELOCITY, Scalar(0));
+                if (act->GetType() == ActuatorType::JOINT && static_cast<JointActuator*>(act)->GetJointActuatorType() == JointActuatorType::SERVO)
+                    rosRobot->servoSetpoints[static_cast<Servo*>(act)->GetJointName()] = std::pair(ServoControlMode::VELOCITY, Scalar(0));
             }
         }
     }
 
     //Parse all defined joint groups, single joint subscribers and ros control interfaces
-    if(nServos > 0)
+    if(nServos > 0 || nMotors > 0)
     {
         //Joint group subscribers
         const char* jgTopic = nullptr;
@@ -354,6 +379,8 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                     mode = ServoControlMode::VELOCITY;
                 else if(modeStr == "position")
                     mode = ServoControlMode::POSITION;
+                else if(modeStr == "torque")
+                    mode = ServoControlMode::TORQUE;
                 else
                     continue; //Skip joint group -> missing parameters
             }
@@ -365,13 +392,13 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             {
                 const char* jgJointName = nullptr;
                 if(joint->QueryStringAttribute("name", &jgJointName) == XML_SUCCESS)
-                    jointNames.push_back(robot->getName() + "/" + std::string(jgJointName));
+                    jointNames.push_back(robot->GetName() + "/" + std::string(jgJointName));
             }
 
             if(jointNames.size() > 0) // Any joints defined?
             {
                 ROS_INFO_STREAM("Creating joint group subscriber (" << std::string(jgMode) << ") " << std::string(jgTopic));
-                subs[robot->getName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(sim, rosRobot, mode, jointNames));
+                subs[robot->GetName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(rosRobot.get(), mode, jointNames));
                 ++jg;
             }
         }
@@ -390,10 +417,13 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                     mode = ServoControlMode::VELOCITY;
                 else if(modeStr == "position")
                     mode = ServoControlMode::POSITION;
+                else if(modeStr == "torque")
+                    mode = ServoControlMode::TORQUE;
                 else
                     continue; //Skip joint group -> missing parameters
                 ROS_INFO_STREAM("Creating joint subscriber (" << modeStr << ") " << std::string(jgTopic));
-                subs[robot->getName() + "/joint" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64>(std::string(jgTopic), 10, JointCallback(sim, rosRobot, mode, robot->getName() + "/" + std::string(jointName)));
+                subs[robot->GetName() + "/joint" + std::to_string(jg)] = 
+                    nh.subscribe<std_msgs::Float64>(std::string(jgTopic), 10, JointCallback(rosRobot.get(), mode, robot->GetName() + "/" + std::string(jointName)));
                 ++jg;
             }
         }
@@ -422,13 +452,13 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             {
                 const char* rcifJointName = nullptr;
                 if(joint->QueryStringAttribute("name", &rcifJointName) == XML_SUCCESS)
-                    jointNames.push_back(robot->getName() + "/" + std::string(rcifJointName));
+                    jointNames.push_back(robot->GetName() + "/" + std::string(rcifJointName));
             }
 
             if(jointNames.size() > 0) // Any joints defined?
             {
                 ROS_INFO_STREAM("Creating ros control interface (" << std::string(rcifType) << ") " << std::string(rcifNamespace));
-                cifs.push_back(new ROSControlInterface(robot, jointNames, mode, std::string(rcifNamespace)));
+                cifs.push_back(std::make_unique<ROSControlInterface>(robot, jointNames, mode, std::string(rcifNamespace)));
             }
         }
     }
@@ -438,14 +468,24 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     {
         const char* topicThrust = nullptr;
         const char* topicSrv = nullptr;
+        const char* topicMtr = nullptr;
+        const char* topicRud = nullptr;
 
         if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThrust) == XML_SUCCESS)
-            pubs[robot->getName() + "/thrusters"] = nh.advertise<stonefish_ros::ThrusterState>(std::string(topicThrust), 10);
+            pubs[robot->GetName() + "/thrusters"] = nh.advertise<stonefish_ros::ThrusterState>(std::string(topicThrust), 10);
 
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
-            pubs[robot->getName() + "/servos"] = nh.advertise<sensor_msgs::JointState>(std::string(topicSrv), 10);
+            pubs[robot->GetName() + "/servos"] = nh.advertise<sensor_msgs::JointState>(std::string(topicSrv), 10);
+
+        if(nMotors > 0 && item->QueryStringAttribute("motors", &topicMtr) == XML_SUCCESS)
+            pubs[robot->GetName() + "/motors"] = nh.advertise<sensor_msgs::JointState>(std::string(topicMtr), 10);
+
+        if(nRudders > 0 && item->QueryStringAttribute("rudders", &topicRud) == XML_SUCCESS)
+            pubs[robot->GetName() + "/servos"] = nh.advertise<sensor_msgs::JointState>(std::string(topicRud), 10);
     }
 
+    //Save robot
+    sim->AddROSRobot(std::move(rosRobot));
 
     return true;
 }
@@ -455,10 +495,10 @@ bool ROSScenarioParser::ParseAnimated(XMLElement* element)
     if(!ScenarioParser::ParseAnimated(element))
         return false;
 
-    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-    ros::NodeHandle& nh = sim->getNodeHandle();
-    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-    std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+    ROSSimulationManager* sim = static_cast<ROSSimulationManager*>((GetSimulationManager()));
+    ros::NodeHandle& nh = sim->GetNodeHandle();
+    std::unordered_map<std::string, ros::Publisher>& pubs = sim->GetPublishers();
+    std::unordered_map<std::string, ros::Subscriber>& subs = sim->GetSubscribers();
 
     //Get name
     const char* name = nullptr;
@@ -480,9 +520,10 @@ bool ROSScenarioParser::ParseAnimated(XMLElement* element)
         {
             return true;
         }
-        AnimatedEntity* anim = (AnimatedEntity*)sim->getEntity(nameStr);
+        AnimatedEntity* anim = static_cast<AnimatedEntity*>(sim->GetEntity(nameStr));
         if(anim != nullptr)
-            subs[nameStr + "/odometry"] = nh.subscribe<nav_msgs::Odometry>(std::string(topic), 1, TrajectoryCallback((ManualTrajectory*)anim->getTrajectory()));
+            subs[nameStr + "/odometry"] = nh.subscribe<nav_msgs::Odometry>(std::string(topic), 1, 
+                                            TrajectoryCallback(static_cast<ManualTrajectory*>(anim->GetTrajectory())));
     }
     else //State of the trajectory published with a message
     {
@@ -500,435 +541,548 @@ bool ROSScenarioParser::ParseAnimated(XMLElement* element)
     return true;
 }
 
-Actuator* ROSScenarioParser::ParseActuator(XMLElement* element, const std::string& namePrefix)
+std::unique_ptr<Actuator, ActuatorDeleter> ROSScenarioParser::ParseActuator(XMLElement* element, std::string_view namePrefix)
 {
-    Actuator* act = ScenarioParser::ParseActuator(element, namePrefix);
-    if(act != nullptr)
+    std::unique_ptr<Actuator, ActuatorDeleter> act = ScenarioParser::ParseActuator(element, namePrefix);
+    if (act == nullptr)
+        return act;
+
+    ROSSimulationManager* sim = static_cast<ROSSimulationManager*>(GetSimulationManager());
+    ros::NodeHandle& nh = sim->GetNodeHandle();
+    std::unordered_map<std::string, ros::Publisher>& pubs = sim->GetPublishers();
+    std::unordered_map<std::string, ros::Subscriber>& subs = sim->GetSubscribers();
+    std::unordered_map<std::string, ros::ServiceServer>& srvs = sim->GetServiceServers();
+    std::string actuatorName = act->GetName();
+    XMLElement* item;
+
+    //Get subscriber topics
+    std::unordered_map<std::string, std::string> subTopics;
+    if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
     {
-        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-        ros::NodeHandle& nh = sim->getNodeHandle();
-        std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
-        std::map<std::string, ros::ServiceServer>& srvs = sim->getServiceServers();
-        std::string actuatorName = act->getName();
-        XMLElement* item;
-        //Actuator specific handling
-        switch(act->getType())
+        for (const XMLAttribute* attr = item->FirstAttribute(); attr != nullptr; attr = attr->Next()) 
         {
-            case ActuatorType::VBS:
+            std::string name(attr->Name());
+            std::string value(attr->Value());
+            if (value != "")
+                subTopics[name] = std::string(attr->Value());
+        }
+    }
+
+    //Get publisher topics
+    std::unordered_map<std::string, std::string> pubTopics;
+    if((item = element->FirstChildElement("ros_publisher")) != nullptr)
+    {
+        for (const XMLAttribute* attr = item->FirstAttribute(); attr != nullptr; attr = attr->Next()) 
+        {
+            std::string name(attr->Name());
+            std::string value(attr->Value());
+            if (value != "")
+                pubTopics[name] = std::string(attr->Value());
+        }
+    }    
+    
+    if (subTopics.empty() && pubTopics.empty()) // No ROS messaging enabled
+        return act;
+
+    //Actuator specific handling
+    if (act->GetType() == ActuatorType::LINK)
+    {
+        switch(static_cast<LinkActuator*>(act.get())->GetLinkActuatorType())
+        {
+            case LinkActuatorType::SIMPLE_THRUSTER:
             {
-                const char* pubTopic = nullptr;
-                const char* subTopic = nullptr;
-                if((item = element->FirstChildElement("ros_publisher")) != nullptr
-                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
-                {
-                    pubs[actuatorName] = nh.advertise<std_msgs::Float64>(std::string(pubTopic), 10);
-                }
-                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
-                    && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
-                {
-                    subs[actuatorName] = nh.subscribe<std_msgs::Float64>(std::string(subTopic), 1, VBSCallback((VariableBuoyancy*)act));
-                }
+                if (auto it = subTopics.find("topic"); it != subTopics.end())
+                    subs[actuatorName] = nh.subscribe<std_msgs::Float64>(it->second, 1, SimpleThrusterCallback(static_cast<SimpleThruster*>(act.get())));
+
+                if (auto it = pubTopics.find("wrench_topic"); it != pubTopics.end())
+                    pubs[actuatorName + "/wrench"] = nh.advertise<geometry_msgs::WrenchStamped>(it->second, 10);
+
+                if (auto it = pubTopics.find("joint_state_topic"); it != pubTopics.end())
+                    pubs[actuatorName + "/joint_state"] = nh.advertise<sensor_msgs::JointState>(it->second, 10);
             }
                 break;
-
-            case ActuatorType::SUCTION_CUP:
+            case LinkActuatorType::THRUSTER:
             {
-                const char* pubTopic = nullptr;
+                if (auto it = subTopics.find("topic"); it != subTopics.end())
+                    subs[actuatorName] = nh.subscribe<std_msgs::Float64>(it->second, 1, ThrusterCallback(static_cast<Thruster*>(act.get())));
+
+                if (auto it = pubTopics.find("wrench_topic"); it != pubTopics.end())
+                    pubs[actuatorName + "/wrench"] = nh.advertise<geometry_msgs::WrenchStamped>(it->second, 10);
+
+                if (auto it = pubTopics.find("joint_state_topic"); it != pubTopics.end())
+                    pubs[actuatorName + "/joint_state"] = nh.advertise<sensor_msgs::JointState>(it->second, 10);
+            }
+                break;
+            case LinkActuatorType::PROPELLER:
+            {
+                if (auto it = subTopics.find("topic"); it != subTopics.end())
+                    subs[actuatorName] = nh.subscribe<std_msgs::Float64>(it->second, 1, PropellerCallback(static_cast<Propeller*>(act.get())));
+
+                if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                    pubs[actuatorName] = nh.advertise<geometry_msgs::WrenchStamped>(it->second, 10);
+            }
+                break;
+            case LinkActuatorType::PUSH:
+            {
+                if (auto it = subTopics.find("topic"); it != subTopics.end())
+                    subs[actuatorName] = nh.subscribe<std_msgs::Float64>(it->second, 1, PushCallback(static_cast<Push*>(act.get())));
+
+                if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                    pubs[actuatorName] = nh.advertise<geometry_msgs::WrenchStamped>(it->second, 10);
+            }
+                break;
+            case LinkActuatorType::VBS:
+            {
+                if (auto it = subTopics.find("topic"); it != subTopics.end())
+                    subs[actuatorName] = nh.subscribe<std_msgs::Float64>(it->second, 1, VBSCallback(static_cast<VariableBuoyancy*>(act.get())));
+
+                if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                    pubs[actuatorName] = nh.advertise<std_msgs::Float64>(it->second, 10);
+            }
+                break;
+            case LinkActuatorType::SUCTION_CUP:
+            {
                 const char* srvTopic = nullptr;
-                if((item = element->FirstChildElement("ros_publisher")) != nullptr
-                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+                if((item = element->FirstChildElement("ros_service")) != nullptr && item->QueryStringAttribute("topic", &srvTopic) == XML_SUCCESS)
                 {
-                    pubs[actuatorName] = nh.advertise<std_msgs::Bool>(std::string(pubTopic), 10);
-                }
-                if((item = element->FirstChildElement("ros_service")) != nullptr
-                    && item->QueryStringAttribute("topic", &srvTopic) == XML_SUCCESS)
-                {
-                    SuctionCup* suction = (SuctionCup*)act;
+                    SuctionCup* suction = static_cast<SuctionCup*>(act.get());
                     srvs[actuatorName] = nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(std::string(srvTopic), SuctionCupService(suction));
                 }
+
+                if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                    pubs[actuatorName] = nh.advertise<std_msgs::Bool>(it->second, 10);
             }
                 break;
-
-            default:
-                break;
-        }
-        //Handling of online origin updates
-        switch(act->getType())
-        {
-            case ActuatorType::PUSH:
-            case ActuatorType::SIMPLE_THRUSTER:
-            case ActuatorType::THRUSTER:
-            case ActuatorType::PROPELLER:
-            case ActuatorType::VBS:
+            case LinkActuatorType::PLUGIN:
             {
-                const char* originTopic = nullptr;
-                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
-                    && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
+                ROSActuatorPluginInterface* iface = dynamic_cast<ROSActuatorPluginInterface*>(act.get());
+                if (iface != nullptr)
                 {
-                    subs[actuatorName] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), 1, ActuatorOriginCallback(act));
+                    iface->CreatePublishers(nh, pubs, pubTopics);   
+                    iface->CreateSubscribers(nh, subs, subTopics);
                 }
             }
                 break;
-
             default:
-                break;
+                return act;
+        }
+
+        //Handling of online origin updates
+        if (auto it = subTopics.find("origin"); it != subTopics.end())
+        {
+            switch(static_cast<LinkActuator*>(act.get())->GetLinkActuatorType())
+            {
+                case LinkActuatorType::PUSH:
+                case LinkActuatorType::SIMPLE_THRUSTER:
+                case LinkActuatorType::THRUSTER:
+                case LinkActuatorType::PROPELLER:
+                case LinkActuatorType::VBS:
+                    subs[actuatorName] = nh.subscribe<geometry_msgs::Transform>(it->second, 1, ActuatorOriginCallback(act.get()));
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    else if (act->GetType() == ActuatorType::JOINT)
+    {
+        if(static_cast<JointActuator*>(act.get())->GetJointActuatorType() == JointActuatorType::PLUGIN)
+        {
+            ROSActuatorPluginInterface* iface = dynamic_cast<ROSActuatorPluginInterface*>(act.get());
+            if (iface != nullptr)
+            {
+                iface->CreatePublishers(nh, pubs, pubTopics);   
+                iface->CreateSubscribers(nh, subs, subTopics);
+            }
         }
     }
     return act;
 }
 
-Sensor* ROSScenarioParser::ParseSensor(XMLElement* element, const std::string& namePrefix)
+std::unique_ptr<Sensor, SensorDeleter> ROSScenarioParser::ParseSensor(XMLElement* element, std::string_view namePrefix)
 {
-    Sensor* sens = ScenarioParser::ParseSensor(element, namePrefix);
-    if(sens != nullptr)
+    std::unique_ptr<Sensor, SensorDeleter> sens = ScenarioParser::ParseSensor(element, namePrefix);
+    if(sens == nullptr)
+        return sens;
+
+    ROSSimulationManager* sim = static_cast<ROSSimulationManager*>(GetSimulationManager());
+    ros::NodeHandle& nh = sim->GetNodeHandle();
+    image_transport::ImageTransport& imgTrans = sim->GetImageTransportHandle();
+    std::unordered_map<std::string, ros::ServiceServer>& srvs = sim->GetServiceServers();
+    std::unordered_map<std::string, ros::Publisher>& pubs = sim->GetPublishers();
+    std::unordered_map<std::string, image_transport::Publisher>& imgPubs = sim->GetImagePublishers();
+    std::unordered_map<std::string, ros::Subscriber>& subs = sim->GetSubscribers();
+    std::unordered_map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& camMsgProto = sim->GetCameraMsgPrototypes();
+    std::unordered_map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>>& dualCamMsgProto = sim->GetDualImageCameraMsgPrototypes();
+    std::unordered_map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& sonarMsgProto = sim->GetSonarMsgPrototypes();
+    std::string sensorName = sens->GetName();
+    XMLElement* item;
+
+    //Get publisher topics
+    std::unordered_map<std::string, std::string> pubTopics;
+    if((item = element->FirstChildElement("ros_publisher")) != nullptr)
     {
-        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-        ros::NodeHandle& nh = sim->getNodeHandle();
-        image_transport::ImageTransport& it = sim->getImageTransportHandle();
-        std::map<std::string, ros::ServiceServer>& srvs = sim->getServiceServers();
-        std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-        std::map<std::string, image_transport::Publisher>& img_pubs = sim->getImagePublishers();
-        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
-        std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr>>& camMsgProto = sim->getCameraMsgPrototypes();
-        std::map<std::string, std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::ImagePtr>>& dualCamMsgProto = sim->getDualImageCameraMsgPrototypes();
-        std::map<std::string, std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr>>& sonarMsgProto = sim->getSonarMsgPrototypes();
-        std::string sensorName = sens->getName();
-
-        //Publishing info
-        XMLElement* item;
-        const char* topic = nullptr;
-        if((item = element->FirstChildElement("ros_publisher")) == nullptr
-            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        for (const XMLAttribute* attr = item->FirstAttribute(); attr != nullptr; attr = attr->Next()) 
         {
-            return sens;
+            std::string name(attr->Name());
+            std::string value(attr->Value());
+            if (value != "")
+                pubTopics[name] = std::string(attr->Value());
         }
+    }    
+    else
+    {
+        return sens;
+    }
 
-        std::string topicStr(topic);
-        unsigned int queueSize = (unsigned int)ceil(sens->getUpdateFrequency());
+    if (pubTopics.empty())
+        return sens;
 
-        //Generate publishers for different sensor types
-        switch(sens->getType())
+    //Sensor enable/disable service
+    const char* serviceTopic = nullptr;
+    if((item = element->FirstChildElement("ros_service")) != nullptr
+        && item->QueryStringAttribute("set_enabled", &serviceTopic) == XML_SUCCESS)
+    {
+        srvs[sensorName + "/set_enabled"] = nh.advertiseService<std_srvs::SetBool::Request, 
+            std_srvs::SetBool::Response>(std::string(serviceTopic), SensorService(sens.get()));
+        sens->SetEnabled(false); // Sensor with an enable service starts as disabled
+    }
+
+    unsigned int queueSize = (unsigned int)ceil(sens->GetUpdateFrequency());
+
+    //Generate publishers for different sensor types
+    switch(sens->GetType())
+    {
+        case SensorType::JOINT:
         {
-            case SensorType::JOINT:
+            switch(static_cast<ScalarSensor*>(sens.get())->GetScalarSensorType())
             {
-                switch(((ScalarSensor*)sens)->getScalarSensorType())
+                case ScalarSensorType::FT:
                 {
-                    case ScalarSensorType::FT:
-                        pubs[sensorName] = nh.advertise<geometry_msgs::WrenchStamped>(topicStr, queueSize);
-                        break;
-
-                    case ScalarSensorType::ENCODER:
-                        pubs[sensorName] = nh.advertise<sensor_msgs::JointState>(topicStr, queueSize);
-                        break;
-
-                    default:
-                        log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
-                        ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
-                        break;
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<geometry_msgs::WrenchStamped>(it->second, queueSize);
                 }
+                    break;
+                case ScalarSensorType::ENCODER:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<sensor_msgs::JointState>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::PLUGIN:
+                {
+                    ROSSensorPluginInterface* iface = dynamic_cast<ROSSensorPluginInterface*>(sens.get());
+                    if (iface != nullptr)
+                        iface->CreatePublishers(nh, pubs, pubTopics);
+                }
+                    break;
+                default:
+                    log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
+                    ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
+                    break;
             }
-                break;
-
-            case SensorType::LINK:
+        }
+            break;
+        case SensorType::LINK:
+        {
+            switch(static_cast<ScalarSensor*>(sens.get())->GetScalarSensorType())
             {
-                switch(((ScalarSensor*)sens)->getScalarSensorType())
+                case ScalarSensorType::ACC:
                 {
-                    case ScalarSensorType::ACC:
-                        pubs[sensorName] = nh.advertise<geometry_msgs::AccelWithCovarianceStamped>(topicStr, queueSize);
-                        break;
-
-                    case ScalarSensorType::GYRO:
-                        pubs[sensorName] = nh.advertise<geometry_msgs::TwistWithCovarianceStamped>(topicStr, queueSize);
-                        break;
-
-                    case ScalarSensorType::IMU:
-                        pubs[sensorName] = nh.advertise<sensor_msgs::Imu>(topicStr, queueSize);
-                        break;
-
-                    case ScalarSensorType::DVL:
-                    {
-                        pubs[sensorName] = nh.advertise<stonefish_ros::DVL>(topicStr, queueSize);
-
-                        //Second topic with altitude
-                        const char* altTopic = nullptr;
-                        if(item->QueryStringAttribute("altitude_topic", &altTopic) == XML_SUCCESS)
-                        {
-                            std::string altTopicStr = std::string(altTopic);
-                            pubs[sensorName + "/altitude"] = nh.advertise<sensor_msgs::Range>(altTopicStr, queueSize);
-                        }
-                    }
-                        break;
-
-                    case ScalarSensorType::GPS:
-                        pubs[sensorName] = nh.advertise<sensor_msgs::NavSatFix>(topicStr, queueSize);
-                        break;
-
-                    case ScalarSensorType::PRESSURE:
-                        pubs[sensorName] = nh.advertise<sensor_msgs::FluidPressure>(topicStr, queueSize);
-                        break;
-
-                    case ScalarSensorType::INS:
-                    {
-                        pubs[sensorName] = nh.advertise<stonefish_ros::INS>(topicStr, queueSize);
-
-                        //Second topic with odometry
-                        const char* odomTopic = nullptr;
-                        if(item->QueryStringAttribute("odometry_topic", &odomTopic) == XML_SUCCESS)
-                        {
-                            std::string odomTopicStr = std::string(odomTopic);
-                            pubs[sensorName + "/odometry"] = nh.advertise<nav_msgs::Odometry>(odomTopicStr, queueSize);
-                        }
-                    }
-                        break;
-
-                    case ScalarSensorType::ODOM:
-                        pubs[sensorName] = nh.advertise<nav_msgs::Odometry>(topicStr, queueSize);
-                        break;
-
-                    case ScalarSensorType::MULTIBEAM:
-                    {
-                        pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
-
-                        //Second topic with point cloud
-                        const char* pclTopic = nullptr;
-                        if(item->QueryStringAttribute("pcl_topic", &pclTopic) == XML_SUCCESS)
-                        {
-                            std::string pclTopicStr = std::string(pclTopic);
-                            pubs[sensorName + "/pcl"] = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>(pclTopicStr, queueSize);
-                        }
-                    }
-                        break;
-
-                    case ScalarSensorType::PROFILER:
-                        pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(topicStr, queueSize);
-                        break;
-
-                    default:
-                        log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
-                        ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
-                        break;
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<geometry_msgs::AccelWithCovarianceStamped>(it->second, queueSize);
                 }
-                //Origin frame updates
-                const char* originTopic = nullptr;
-                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
-                    && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
+                    break;
+                case ScalarSensorType::GYRO:
                 {
-                    subs[sensorName] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), queueSize, SensorOriginCallback(sens));
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<geometry_msgs::TwistWithCovarianceStamped>(it->second, queueSize);
                 }
+                    break;
+                case ScalarSensorType::IMU:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<sensor_msgs::Imu>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::DVL:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<stonefish_ros::DVL>(it->second, queueSize);
+                    if (auto it = pubTopics.find("altitude_topic"); it != pubTopics.end())
+                        pubs[sensorName + "/altitude"] = nh.advertise<sensor_msgs::Range>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::GPS:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<sensor_msgs::NavSatFix>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::PRESSURE:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<sensor_msgs::FluidPressure>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::INS:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<stonefish_ros::INS>(it->second, queueSize);
+                    if (auto it = pubTopics.find("odometry_topic"); it != pubTopics.end())
+                        pubs[sensorName + "/odometry"] = nh.advertise<nav_msgs::Odometry>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::ODOM:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<nav_msgs::Odometry>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::MULTIBEAM:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(it->second, queueSize);
+                    if (auto it = pubTopics.find("pcl_topic"); it != pubTopics.end())
+                        pubs[sensorName + "/pcl"] = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::PROFILER:
+                {
+                    if (auto it = pubTopics.find("odometry_topic"); it != pubTopics.end())
+                        pubs[sensorName] = nh.advertise<sensor_msgs::LaserScan>(it->second, queueSize);
+                }
+                    break;
+                case ScalarSensorType::PLUGIN:
+                {
+                    ROSSensorPluginInterface* iface = dynamic_cast<ROSSensorPluginInterface*>(sens.get());
+                    if (iface != nullptr)
+                        iface->CreatePublishers(nh, pubs, pubTopics);
+                }
+                    break;
+                default:
+                    log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
+                    ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
+                    break;
             }
-                break;
-
-            case SensorType::VISION:
+            //Origin frame updates
+            const char* originTopic = nullptr;
+            if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
             {
-                switch(((VisionSensor*)sens)->getVisionSensorType())
+                subs[sensorName] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), queueSize, SensorOriginCallback(sens.get()));
+            }
+        }
+            break;
+        case SensorType::VISION:
+        {
+            switch(static_cast<VisionSensor*>(sens.get())->GetVisionSensorType())
+            {
+                case VisionSensorType::COLOR_CAMERA:
                 {
-                    case VisionSensorType::COLOR_CAMERA:
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image_color", queueSize);
-                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
-                        ColorCamera* cam = (ColorCamera*)sens;
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(it->second + "/camera_info", queueSize);
+                        ColorCamera* cam = static_cast<ColorCamera*>(sens.get());
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::ColorCameraImageReady, sim, std::placeholders::_1));
                         camMsgProto[sensorName] = ROSInterface::GenerateCameraMsgPrototypes(cam, false);
                     }
-                        break;
-
-                    case VisionSensorType::DEPTH_CAMERA:
+                }
+                    break;
+                case VisionSensorType::DEPTH_CAMERA:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image_depth", queueSize);
-                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
-                        DepthCamera* cam = (DepthCamera*)sens;
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image_depth", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(it->second + "/camera_info", queueSize);
+                        DepthCamera* cam = static_cast<DepthCamera*>(sens.get());
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::DepthCameraImageReady, sim, std::placeholders::_1));
                         camMsgProto[sensorName] = ROSInterface::GenerateCameraMsgPrototypes(cam, true);
                     }
-                        break;
-
-                    case VisionSensorType::THERMAL_CAMERA:
+                }
+                    break;
+                case VisionSensorType::THERMAL_CAMERA:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image_raw", queueSize);
-                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/image_color", queueSize);
-                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
-                        ThermalCamera* cam = (ThermalCamera*)sens;
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image_raw", queueSize);
+                        imgPubs[sensorName + "/display"] = imgTrans.advertise(it->second + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(it->second + "/camera_info", queueSize);
+                        ThermalCamera* cam = static_cast<ThermalCamera*>(sens.get());
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::ThermalCameraImageReady, sim, std::placeholders::_1));
                         dualCamMsgProto[sensorName] = ROSInterface::GenerateThermalCameraMsgPrototypes(cam); 
-                    }   
-                        break;
-
-                    case VisionSensorType::OPTICAL_FLOW_CAMERA:
+                    }
+                }   
+                    break;
+                case VisionSensorType::OPTICAL_FLOW_CAMERA:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image_raw", queueSize);
-                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/image_color", queueSize);
-                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
-                        OpticalFlowCamera* cam = (OpticalFlowCamera*)sens;
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image_raw", queueSize);
+                        imgPubs[sensorName + "/display"] = imgTrans.advertise(it->second + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(it->second + "/camera_info", queueSize);
+                        OpticalFlowCamera* cam = static_cast<OpticalFlowCamera*>(sens.get());
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::OpticalFlowCameraImageReady, sim, std::placeholders::_1));
                         dualCamMsgProto[sensorName] = ROSInterface::GenerateOpticalFlowCameraMsgPrototypes(cam); 
-                    }   
-                        break;
-
-                    case VisionSensorType::SEGMENTATION_CAMERA:
+                    }
+                }   
+                    break;
+                case VisionSensorType::SEGMENTATION_CAMERA:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image_raw", queueSize);
-                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/image_color", queueSize);
-                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(topicStr + "/camera_info", queueSize);
-                        SegmentationCamera* cam = (SegmentationCamera*)sens;
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image_raw", queueSize);
+                        imgPubs[sensorName + "/display"] = imgTrans.advertise(it->second + "/image_color", queueSize);
+                        pubs[sensorName + "/info"] = nh.advertise<sensor_msgs::CameraInfo>(it->second + "/camera_info", queueSize);
+                        SegmentationCamera* cam = static_cast<SegmentationCamera*>(sens.get());
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::SegmentationCameraImageReady, sim, std::placeholders::_1));
                         dualCamMsgProto[sensorName] = ROSInterface::GenerateSegmentationCameraMsgPrototypes(cam); 
-                    }   
-                        break;
-
-                    case VisionSensorType::EVENT_BASED_CAMERA:
+                    }
+                }   
+                    break;
+                case VisionSensorType::EVENT_BASED_CAMERA:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        pubs[sensorName] = nh.advertise<stonefish_ros::EventArray>(topicStr, queueSize);
-                        EventBasedCamera* cam = (EventBasedCamera*)sens;
+                        pubs[sensorName] = nh.advertise<stonefish_ros::EventArray>(it->second, queueSize);
+                        EventBasedCamera* cam = static_cast<EventBasedCamera*>(sens.get());
                         cam->InstallNewDataHandler(std::bind(&ROSSimulationManager::EventBasedCameraOutputReady, sim, std::placeholders::_1));
                     }
-                        break;
-
-                    case VisionSensorType::MULTIBEAM2:
+                }
+                    break;
+                case VisionSensorType::LIDAR:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        pubs[sensorName] = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>(topicStr, queueSize);
-                        Multibeam2* mb = (Multibeam2*)sens;
-                        mb->InstallNewDataHandler(std::bind(&ROSSimulationManager::Multibeam2ScanReady, sim, std::placeholders::_1));
+                        pubs[sensorName] = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>(it->second, queueSize);
+                        Lidar* lidar = static_cast<Lidar*>(sens.get());
+                        lidar->InstallNewDataHandler(std::bind(&ROSSimulationManager::LidarScanReady, sim, std::placeholders::_1));
                     }
-                        break;
-
-                    case VisionSensorType::FLS:
+                }
+                    break;
+                case VisionSensorType::FLS:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        FLS* fls = (FLS*)sens;
+                        FLS* fls = static_cast<FLS*>(sens.get());
                         fls->InstallNewDataHandler(std::bind(&ROSSimulationManager::FLSScanReady, sim, std::placeholders::_1));
                         sonarMsgProto[sensorName] = ROSInterface::GenerateFLSMsgPrototypes(fls);
-                        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(topicStr + "/settings", FLSService(fls));
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image", queueSize);
-                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/display", queueSize);
+                        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(it->second + "/settings", FLSService(fls));
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image", queueSize);
+                        imgPubs[sensorName + "/display"] = imgTrans.advertise(it->second + "/display", queueSize);
                     }
-                        break;
-
-                    case VisionSensorType::SSS:
+                }
+                    break;
+                case VisionSensorType::SSS:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        SSS* sss = (SSS*)sens;
+                        SSS* sss = static_cast<SSS*>(sens.get());
                         sss->InstallNewDataHandler(std::bind(&ROSSimulationManager::SSSScanReady, sim, std::placeholders::_1));
                         sonarMsgProto[sensorName] = ROSInterface::GenerateSSSMsgPrototypes(sss);
-                        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(topicStr + "/settings", SSSService(sss));
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image", queueSize);
-                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/display", queueSize);
+                        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings::Request, stonefish_ros::SonarSettings::Response>(it->second + "/settings", SSSService(sss));
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image", queueSize);
+                        imgPubs[sensorName + "/display"] = imgTrans.advertise(it->second + "/display", queueSize);
                     }
-                        break;
-
-                    case VisionSensorType::MSIS:
+                }
+                    break;
+                case VisionSensorType::MSIS:
+                {
+                    if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
-                        MSIS* msis = (MSIS*)sens;
+                        MSIS* msis = static_cast<MSIS*>(sens.get());
                         msis->InstallNewDataHandler(std::bind(&ROSSimulationManager::MSISScanReady, sim, std::placeholders::_1));
                         sonarMsgProto[sensorName] = ROSInterface::GenerateMSISMsgPrototypes(msis);
-                        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings2::Request, stonefish_ros::SonarSettings2::Response>(topicStr + "/settings", MSISService(msis));
-                        img_pubs[sensorName] = it.advertise(topicStr + "/image", queueSize);
-                        img_pubs[sensorName + "/display"] = it.advertise(topicStr + "/display", queueSize);
-                        pubs[sensorName + "/beam"] = nh.advertise<sensor_msgs::LaserScan>(topicStr + "/last_beam", queueSize);
+                        srvs[sensorName] = nh.advertiseService<stonefish_ros::SonarSettings2::Request, stonefish_ros::SonarSettings2::Response>(it->second + "/settings", MSISService(msis));
+                        imgPubs[sensorName] = imgTrans.advertise(it->second + "/image", queueSize);
+                        imgPubs[sensorName + "/display"] = imgTrans.advertise(it->second + "/display", queueSize);
+                        pubs[sensorName + "/beam"] = nh.advertise<sensor_msgs::LaserScan>(it->second + "/last_beam", queueSize);
                     }
-                        break;
-
-                    default:
-                        log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
-                        ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
-                        break;
                 }
-                //Origin frame updates
-                const char* originTopic = nullptr;
-                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
-                    && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
-                {
-                    subs[sensorName] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), queueSize, SensorOriginCallback(sens));
-                }
+                    break;
+                default:
+                    log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
+                    ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
+                    break;
             }
-                break;
-
-            default:
-                log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
-                ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
-                break;
+            //Origin frame updates
+            const char* originTopic = nullptr;
+            if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
+            {
+                subs[sensorName] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), queueSize, SensorOriginCallback(sens.get()));
+            }
         }
+            break;
+        default:
+            log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
+            ROS_ERROR("Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
+            break;
     }
     return sens;
 }
 
-Comm* ROSScenarioParser::ParseComm(XMLElement* element, const std::string& namePrefix)
+std::unique_ptr<Comm, CommDeleter> ROSScenarioParser::ParseComm(XMLElement* element, std::string_view namePrefix)
 {
-    Comm* comm = ScenarioParser::ParseComm(element, namePrefix);
-    if(comm != nullptr)
+    std::unique_ptr<Comm, CommDeleter> comm = ScenarioParser::ParseComm(element, namePrefix);
+    if(comm == nullptr)
+        return comm;
+    
+    ROSSimulationManager* sim = static_cast<ROSSimulationManager*>(GetSimulationManager());
+    ros::NodeHandle& nh = sim->GetNodeHandle();
+    std::unordered_map<std::string, ros::Publisher>& pubs = sim->GetPublishers();
+    std::unordered_map<std::string, ros::Subscriber>& subs = sim->GetSubscribers();
+    std::string commName = comm->GetName();
+
+    //Publishing info
+    XMLElement* item;
+    const char* pubTopic = nullptr;
+    const char* subTopic = nullptr;
+    if((item = element->FirstChildElement("ros_publisher")) != nullptr)
+        item->QueryStringAttribute("topic", &pubTopic);
+    if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
+        item->QueryStringAttribute("topic", &subTopic);
+    if(pubTopic == nullptr && subTopic == nullptr)
+        return comm;
+
+    //Generate subscribers for all comm types
+    if(subTopic != nullptr)
     {
-        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-        ros::NodeHandle& nh = sim->getNodeHandle();
-        std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
-        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
-        std::string commName = comm->getName();
+        std::string topicStr {subTopic};
+        subs[commName + "/data_to_send"] = nh.subscribe<std_msgs::String>(topicStr + "/data_to_send", 1, CommCallback(comm.get()));
+    }
 
-        //Publishing info
-        XMLElement* item;
-        const char* pubTopic = nullptr;
-        const char* subTopic = nullptr;
-        if((item = element->FirstChildElement("ros_publisher")) != nullptr)
-        {
-            item->QueryStringAttribute("topic", &pubTopic);
-        }
+    //Generate publishers for different comm types
+    if (pubTopic != nullptr)
+    {
+        std::string topicStr {pubTopic};
 
-        if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
-        {
-            item->QueryStringAttribute("topic", &subTopic);
-        }
-        if(pubTopic == nullptr && subTopic == nullptr)
-            return comm;
-
-        //Generate publishers for different comm types
-        switch(comm->getType())
+        switch(comm->GetType())
         {
             case CommType::ACOUSTIC:
-            {
-                if(pubTopic != nullptr)
-                {
-                    std::string topicStr {pubTopic};
-                    pubs[commName] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
-                }
-                if(subTopic != nullptr)
-                {
-                    std::string topicStr {subTopic};
-                    subs[commName + "/data_to_send"] = nh.subscribe<std_msgs::String>(topicStr + "/data_to_send", 1, CommCallback(comm));
-                }
-
-            }
+                pubs[commName] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
                 break;
-
             case CommType::USBL:
             {
-                if(pubTopic != nullptr)
-                {
-                    std::string topicStr {pubTopic};
-                    pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(topicStr + "/beacons", 10);
-                    pubs[commName + "/beacon_info"] = nh.advertise<stonefish_ros::BeaconInfo>(topicStr + "/beacon_info", 10);
-                    pubs[commName + "/received_data"] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
-                }
-                if(subTopic != nullptr)
-                {
-                    std::string topicStr {subTopic};
-                    subs[commName + "/data_to_send"] = nh.subscribe<std_msgs::String>(topicStr + "/data_to_send", 1, CommCallback(comm));
-                }
+                pubs[commName] = nh.advertise<visualization_msgs::MarkerArray>(topicStr + "/beacons", 10);
+                pubs[commName + "/beacon_info"] = nh.advertise<stonefish_ros::BeaconInfo>(topicStr + "/beacon_info", 10);
+                pubs[commName + "/received_data"] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
             }
                 break;
-
             case CommType::OPTICAL:
             {
-                if(pubTopic != nullptr)
-                {
-                    std::string topicStr {pubTopic};
-                    pubs[commName] = nh.advertise<std_msgs::Float64>(topicStr + "/reception_quality", 10);
-                    pubs[commName + "/received_data"] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
-                }
-                if(subTopic != nullptr)
-                {
-                    std::string topicStr {subTopic};
-                    subs[commName + "/data_to_send"] = nh.subscribe<std_msgs::String>(topicStr + "/data_to_send", 1, CommCallback(comm));
-                }
+                pubs[commName] = nh.advertise<std_msgs::Float64>(topicStr + "/reception_quality", 10);
+                pubs[commName + "/received_data"] = nh.advertise<std_msgs::String>(topicStr + "/received_data", 10);
             }
                 break;
-
+            case CommType::PLUGIN:
+            {
+                ROSCommPluginInterface* iface = dynamic_cast<ROSCommPluginInterface*>(comm.get());
+                if (iface != nullptr)
+                    iface->CreatePublishers(nh, pubs, topicStr);
+            }
+                break;
             default:
                 break;
         }
@@ -936,14 +1090,14 @@ Comm* ROSScenarioParser::ParseComm(XMLElement* element, const std::string& nameP
     return comm;
 }
 
-Light* ROSScenarioParser::ParseLight(XMLElement* element, const std::string& namePrefix)
+std::unique_ptr<Light> ROSScenarioParser::ParseLight(XMLElement* element, std::string_view namePrefix)
 {
-    Light* l = ScenarioParser::ParseLight(element, namePrefix);
+    std::unique_ptr<Light> l = ScenarioParser::ParseLight(element, namePrefix);
     if(l != nullptr)
     {
-        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-        ros::NodeHandle& nh = sim->getNodeHandle();
-        std::map<std::string, ros::Subscriber>& subs = sim->getSubscribers();
+        ROSSimulationManager* sim = static_cast<ROSSimulationManager*>(GetSimulationManager());
+        ros::NodeHandle& nh = sim->GetNodeHandle();
+        std::unordered_map<std::string, ros::Subscriber>& subs = sim->GetSubscribers();
         XMLElement* item;
 
         //Online update of light origin frame
@@ -951,7 +1105,16 @@ Light* ROSScenarioParser::ParseLight(XMLElement* element, const std::string& nam
         if((item = element->FirstChildElement("ros_subscriber")) != nullptr
             && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
         {
-            subs[l->getName()] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), 1, ActuatorOriginCallback(l));
+            subs[l->GetName()] = nh.subscribe<geometry_msgs::Transform>(std::string(originTopic), 1, ActuatorOriginCallback(l.get()));
+        }
+
+        //Service for switching the light
+        const char* switchTopic = nullptr;
+        if((item = element->FirstChildElement("ros_service")) != nullptr
+            && item->QueryStringAttribute("topic", &switchTopic) == XML_SUCCESS)
+        {
+            std::unordered_map<std::string, ros::ServiceServer>& srvs = sim->GetServiceServers();
+            srvs[l->GetName()] = nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(std::string(switchTopic), LightService(l.get()));
         }
     }
     return l;
@@ -962,9 +1125,9 @@ bool ROSScenarioParser::ParseContact(XMLElement* element)
     if(!ScenarioParser::ParseContact(element))
         return false;
 
-    ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-    ros::NodeHandle& nh = sim->getNodeHandle();
-    std::map<std::string, ros::Publisher>& pubs = sim->getPublishers();
+    ROSSimulationManager* sim = static_cast<ROSSimulationManager*>(GetSimulationManager());
+    ros::NodeHandle& nh = sim->GetNodeHandle();
+    std::unordered_map<std::string, ros::Publisher>& pubs = sim->GetPublishers();
 
     //Contact info
     const char* name = nullptr;
@@ -976,32 +1139,33 @@ bool ROSScenarioParser::ParseContact(XMLElement* element)
     const char* topic = nullptr;
     if((item = element->FirstChildElement("ros_publisher")) == nullptr
         || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+    {
         return true;
+    }
     std::string topicStr(topic);
-
     pubs[contactName] = nh.advertise<visualization_msgs::Marker>(topicStr, 10);
-
     return true;
 }
 
 FixedJoint* ROSScenarioParser::ParseGlue(XMLElement* element)
 {
-    FixedJoint* fix = ScenarioParser::ParseGlue(element);
-
-    XMLElement* item;
-    const char* topic = nullptr;
-
-    if(fix != nullptr
-        && (item = element->FirstChildElement("ros_service")) != nullptr
-        && item->QueryStringAttribute("topic", &topic) == XML_SUCCESS)
+    FixedJoint* glue = ScenarioParser::ParseGlue(element);
+    if(glue != nullptr)
     {
-        ROSSimulationManager* sim = (ROSSimulationManager*)getSimulationManager();
-        ros::NodeHandle& nh = sim->getNodeHandle();
-        std::map<std::string, ros::ServiceServer>& srvs = sim->getServiceServers();
-        srvs["glue" + std::to_string((size_t)fix)] = nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(std::string(topic), GlueService(sim, fix));
-    }
+        XMLElement* item;
+        const char* topic = nullptr;
+        if ((item = element->FirstChildElement("ros_service")) == nullptr
+            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        {
+            return glue;
+        }
 
-    return fix;
+        ROSSimulationManager* sim = static_cast<ROSSimulationManager*>(GetSimulationManager());
+        ros::NodeHandle& nh = sim->GetNodeHandle();
+        std::unordered_map<std::string, ros::ServiceServer>& srvs = sim->GetServiceServers();
+        srvs[glue->GetName()] = nh.advertiseService<std_srvs::SetBool::Request, std_srvs::SetBool::Response>(std::string(topic), GlueService(sim, glue));
+    }
+    return glue;
 }
 
 }

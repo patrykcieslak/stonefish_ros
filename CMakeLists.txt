@@ -31,6 +31,7 @@ add_message_files(
   BeaconInfo.msg
   Event.msg
   EventArray.msg
+  DebugPhysics.msg
 )
 
 add_service_files(
@@ -75,7 +76,16 @@ add_library(stonefish_ros SHARED
   src/ROSControlInterface.cpp
 )
 target_link_libraries(stonefish_ros PUBLIC ${catkin_LIBRARIES} Stonefish::Stonefish)
-target_include_directories(stonefish_ros PUBLIC include ${catkin_INCLUDE_DIRS})
+target_include_directories(stonefish_ros PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CATKIN_DEVEL_PREFIX}/include>
+  $<INSTALL_INTERFACE:include>
+  ${catkin_INCLUDE_DIRS}
+)
+set_target_properties(stonefish_ros PROPERTIES
+  EXPORT_NAME stonefish_ros
+)
+add_library(stonefish_ros::stonefish_ros ALIAS stonefish_ros)
 add_dependencies(stonefish_ros ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 #Universal simulators with XML parser
@@ -84,3 +94,26 @@ target_link_libraries(parsed_simulator PRIVATE stonefish_ros)
 
 add_executable(parsed_simulator_nogpu src/parsed_simulator_nogpu.cpp)
 target_link_libraries(parsed_simulator_nogpu PRIVATE stonefish_ros)
+
+# Export for both catkin builds and direct CMake consumers.
+install(
+  TARGETS stonefish_ros
+  EXPORT stonefish_rosTargets
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+install(
+  DIRECTORY include/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+install(
+  TARGETS parsed_simulator parsed_simulator_nogpu
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(
+  EXPORT stonefish_rosTargets
+  FILE stonefish_rosTargets.cmake
+  NAMESPACE stonefish_ros::
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}/cmake/${PROJECT_NAME}
+)

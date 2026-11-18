@@ -20,7 +20,7 @@
 //  stonefish_ros
 //
 //  Created by Patryk Cieslak on 30/11/17.
-//  Copyright (c) 2017-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2017-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros/ROSInterface.h"
@@ -44,7 +44,7 @@
 #include <Stonefish/sensors/vision/OpticalFlowCamera.h>
 #include <Stonefish/sensors/vision/SegmentationCamera.h>
 #include <Stonefish/sensors/vision/EventBasedCamera.h>
-#include <Stonefish/sensors/vision/Multibeam2.h>
+#include <Stonefish/sensors/vision/Lidar.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/vision/MSIS.h>
@@ -98,17 +98,17 @@ void ROSInterface::PublishTF(tf::TransformBroadcaster& broadcaster, const Transf
 
 void ROSInterface::PublishAccelerometer(ros::Publisher& pub, Accelerometer* acc)
 {
-    Sample s = acc->getLastSample();
-    Vector3 accelStdDev = Vector3(acc->getSensorChannelDescription(0).stdDev, 
-                                  acc->getSensorChannelDescription(1).stdDev,
-                                  acc->getSensorChannelDescription(2).stdDev);
+    Sample s = acc->GetLastSample();
+    Vector3 accelStdDev = Vector3(acc->GetSensorChannelDescription(0).stdDev, 
+                                  acc->GetSensorChannelDescription(1).stdDev,
+                                  acc->GetSensorChannelDescription(2).stdDev);
     
     geometry_msgs::AccelWithCovarianceStamped msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = acc->getName();
-    msg.accel.accel.linear.x = s.getValue(0);
-    msg.accel.accel.linear.y = s.getValue(1);
-    msg.accel.accel.linear.z = s.getValue(2);
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = acc->GetName();
+    msg.accel.accel.linear.x = s.GetValue(0);
+    msg.accel.accel.linear.y = s.GetValue(1);
+    msg.accel.accel.linear.z = s.GetValue(2);
     msg.accel.covariance[0] = accelStdDev.getX() * accelStdDev.getX();
     msg.accel.covariance[7] = accelStdDev.getY() * accelStdDev.getY();
     msg.accel.covariance[14] = accelStdDev.getZ() * accelStdDev.getZ();
@@ -117,17 +117,17 @@ void ROSInterface::PublishAccelerometer(ros::Publisher& pub, Accelerometer* acc)
 
 void ROSInterface::PublishGyroscope(ros::Publisher& pub, Gyroscope* gyro)
 {
-    Sample s = gyro->getLastSample();
-    Vector3 avelocityStdDev = Vector3(gyro->getSensorChannelDescription(0).stdDev, 
-                                      gyro->getSensorChannelDescription(1).stdDev,
-                                      gyro->getSensorChannelDescription(2).stdDev);
+    Sample s = gyro->GetLastSample();
+    Vector3 avelocityStdDev = Vector3(gyro->GetSensorChannelDescription(0).stdDev, 
+                                      gyro->GetSensorChannelDescription(1).stdDev,
+                                      gyro->GetSensorChannelDescription(2).stdDev);
 
     geometry_msgs::TwistWithCovarianceStamped msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = gyro->getName();
-    msg.twist.twist.angular.x = s.getValue(0);
-    msg.twist.twist.angular.y = s.getValue(1);
-    msg.twist.twist.angular.z = s.getValue(2);
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = gyro->GetName();
+    msg.twist.twist.angular.x = s.GetValue(0);
+    msg.twist.twist.angular.y = s.GetValue(1);
+    msg.twist.twist.angular.z = s.GetValue(2);
     msg.twist.covariance[21] = avelocityStdDev.getX() * avelocityStdDev.getX();
     msg.twist.covariance[28] = avelocityStdDev.getY() * avelocityStdDev.getY();
     msg.twist.covariance[35] = avelocityStdDev.getZ() * avelocityStdDev.getZ();
@@ -136,22 +136,22 @@ void ROSInterface::PublishGyroscope(ros::Publisher& pub, Gyroscope* gyro)
 
 void ROSInterface::PublishIMU(ros::Publisher& pub, IMU* imu)
 {
-    Sample s = imu->getLastSample();
-    Vector3 rpy = Vector3(s.getValue(0), s.getValue(1), s.getValue(2));
+    Sample s = imu->GetLastSample();
+    Vector3 rpy = Vector3(s.GetValue(0), s.GetValue(1), s.GetValue(2));
     Quaternion quat(rpy.z(), rpy.y(), rpy.x());
-    Vector3 angleStdDev = Vector3(imu->getSensorChannelDescription(0).stdDev,
-                                  imu->getSensorChannelDescription(1).stdDev,
-                                  imu->getSensorChannelDescription(2).stdDev);
-    Vector3 avelocityStdDev = Vector3(imu->getSensorChannelDescription(3).stdDev,
-                                      imu->getSensorChannelDescription(4).stdDev,
-                                      imu->getSensorChannelDescription(5).stdDev);
-    Vector3 accStdDev = Vector3(imu->getSensorChannelDescription(6).stdDev,
-                                imu->getSensorChannelDescription(7).stdDev,
-                                imu->getSensorChannelDescription(8).stdDev);
+    Vector3 angleStdDev = Vector3(imu->GetSensorChannelDescription(0).stdDev,
+                                  imu->GetSensorChannelDescription(1).stdDev,
+                                  imu->GetSensorChannelDescription(2).stdDev);
+    Vector3 avelocityStdDev = Vector3(imu->GetSensorChannelDescription(3).stdDev,
+                                      imu->GetSensorChannelDescription(4).stdDev,
+                                      imu->GetSensorChannelDescription(5).stdDev);
+    Vector3 accStdDev = Vector3(imu->GetSensorChannelDescription(6).stdDev,
+                                imu->GetSensorChannelDescription(7).stdDev,
+                                imu->GetSensorChannelDescription(8).stdDev);
     //Variance is sigma^2!
     sensor_msgs::Imu msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = imu->getName();
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = imu->GetName();
     msg.orientation.x = quat.x();
     msg.orientation.y = quat.y();
     msg.orientation.z = quat.z();
@@ -159,15 +159,15 @@ void ROSInterface::PublishIMU(ros::Publisher& pub, IMU* imu)
     msg.orientation_covariance[0] = angleStdDev.getX() * angleStdDev.getX();
     msg.orientation_covariance[4] = angleStdDev.getY() * angleStdDev.getY();
     msg.orientation_covariance[8] = angleStdDev.getZ() * angleStdDev.getZ();
-    msg.angular_velocity.x = s.getValue(3);
-    msg.angular_velocity.y = s.getValue(4);
-    msg.angular_velocity.z = s.getValue(5);
+    msg.angular_velocity.x = s.GetValue(3);
+    msg.angular_velocity.y = s.GetValue(4);
+    msg.angular_velocity.z = s.GetValue(5);
     msg.angular_velocity_covariance[0] = avelocityStdDev.getX() * avelocityStdDev.getX();
     msg.angular_velocity_covariance[4] = avelocityStdDev.getY() * avelocityStdDev.getY();
     msg.angular_velocity_covariance[8] = avelocityStdDev.getZ() * avelocityStdDev.getZ();
-    msg.linear_acceleration.x = s.getValue(6);
-    msg.linear_acceleration.y = s.getValue(7);
-    msg.linear_acceleration.z = s.getValue(8);
+    msg.linear_acceleration.x = s.GetValue(6);
+    msg.linear_acceleration.y = s.GetValue(7);
+    msg.linear_acceleration.z = s.GetValue(8);
     msg.linear_acceleration_covariance[0] = accStdDev.getX() * accStdDev.getX();
     msg.linear_acceleration_covariance[4] = accStdDev.getY() * accStdDev.getY();
     msg.linear_acceleration_covariance[8] = accStdDev.getZ() * accStdDev.getZ();
@@ -176,12 +176,12 @@ void ROSInterface::PublishIMU(ros::Publisher& pub, IMU* imu)
 
 void ROSInterface::PublishPressure(ros::Publisher& pub, Pressure* press)
 {
-    Sample s = press->getLastSample();
+    Sample s = press->GetLastSample();
     sensor_msgs::FluidPressure msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = press->getName();
-    msg.fluid_pressure = s.getValue(0);
-    msg.variance = press->getSensorChannelDescription(0).stdDev;
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = press->GetName();
+    msg.fluid_pressure = s.GetValue(0);
+    msg.variance = press->GetSensorChannelDescription(0).stdDev;
     msg.variance *= msg.variance; //Variance is square of standard deviation
     pub.publish(msg);
 }
@@ -189,55 +189,55 @@ void ROSInterface::PublishPressure(ros::Publisher& pub, Pressure* press)
 void ROSInterface::PublishDVL(ros::Publisher& pub, DVL* dvl)
 {
     //Get data
-    Sample s = dvl->getLastSample();
-    unsigned short status = (unsigned short)trunc(s.getValue(7));
-    Scalar vVariance = dvl->getSensorChannelDescription(0).stdDev;
+    Sample s = dvl->GetLastSample();
+    unsigned short status = (unsigned short)trunc(s.GetValue(7));
+    Scalar vVariance = dvl->GetSensorChannelDescription(0).stdDev;
     vVariance *= vVariance; //Variance is square of standard deviation
     //Publish DVL message
     stonefish_ros::DVL msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = dvl->getName();
-    msg.velocity.x = s.getValue(0);
-    msg.velocity.y = s.getValue(1);
-    msg.velocity.z = s.getValue(2);
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = dvl->GetName();
+    msg.velocity.x = s.GetValue(0);
+    msg.velocity.y = s.GetValue(1);
+    msg.velocity.z = s.GetValue(2);
     msg.velocity_covariance[0] = vVariance;
     msg.velocity_covariance[4] = vVariance;
     msg.velocity_covariance[8] = vVariance;
-    msg.altitude = (status == 0 || status == 2) ? s.getValue(3) : -1.0;
+    msg.altitude = (status == 0 || status == 2) ? s.GetValue(3) : -1.0;
     pub.publish(msg);
 }
 
 void ROSInterface::PublishDVLAltitude(ros::Publisher& pub, DVL* dvl)
 {
     //Get data
-    Sample s = dvl->getLastSample();
-    unsigned short status = (unsigned short)trunc(s.getValue(7));
+    Sample s = dvl->GetLastSample();
+    unsigned short status = (unsigned short)trunc(s.GetValue(7));
     Vector3 velMax;
     Scalar altMin, altMax;
-    dvl->getRange(velMax, altMin, altMax);
-    Scalar beamAngle = dvl->getBeamAngle();
+    dvl->GetRange(velMax, altMin, altMax);
+    Scalar beamAngle = dvl->GetBeamAngle();
     //Publish range message
     sensor_msgs::Range msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = dvl->getName() + "_altitude";
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = dvl->GetName() + "_altitude";
     msg.radiation_type = msg.ULTRASOUND;
     msg.field_of_view = beamAngle*2;
     msg.min_range = altMin;
     msg.max_range = altMax;
-    msg.range = (status == 0 || status == 2) ? s.getValue(3) : -1.0;
+    msg.range = (status == 0 || status == 2) ? s.GetValue(3) : -1.0;
     pub.publish(msg);
 }
 
 void ROSInterface::PublishGPS(ros::Publisher& pub, GPS* gps)
 {
-    Sample s = gps->getLastSample();
+    Sample s = gps->GetLastSample();
 
     sensor_msgs::NavSatFix msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = gps->getName();
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = gps->GetName();
     msg.status.service = msg.status.SERVICE_GPS;
 
-    if(s.getValue(0) > Scalar(90) && s.getValue(1) > Scalar(180)) //Underwater
+    if(s.GetValue(0) > Scalar(90) && s.GetValue(1) > Scalar(180)) //Underwater
     {
         msg.status.status = msg.status.STATUS_NO_FIX;
         msg.latitude = 0.0;
@@ -247,12 +247,12 @@ void ROSInterface::PublishGPS(ros::Publisher& pub, GPS* gps)
     else
     {
         msg.status.status = msg.status.STATUS_FIX;
-        msg.latitude = s.getValue(0);
-        msg.longitude = s.getValue(1);
+        msg.latitude = s.GetValue(0);
+        msg.longitude = s.GetValue(1);
         msg.altitude = 0.0;
     }
 
-    msg.position_covariance[0] = msg.position_covariance[4] = gps->getNoise() * gps->getNoise();
+    msg.position_covariance[0] = msg.position_covariance[4] = gps->GetNoise() * gps->GetNoise();
     msg.position_covariance[8] = 1.0;
     msg.position_covariance_type = msg.COVARIANCE_TYPE_DIAGONAL_KNOWN;
     pub.publish(msg);
@@ -260,24 +260,24 @@ void ROSInterface::PublishGPS(ros::Publisher& pub, GPS* gps)
 
 void ROSInterface::PublishOdometry(ros::Publisher& pub, Odometry* odom)
 {
-    Sample s = odom->getLastSample();
+    Sample s = odom->GetLastSample();
     nav_msgs::Odometry msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
+    msg.header.stamp = ros::Time(s.GetTimestamp());
     msg.header.frame_id = "world_ned";
-    msg.child_frame_id = odom->getName();
-    msg.pose.pose.position.x = s.getValue(0);
-    msg.pose.pose.position.y = s.getValue(1);
-    msg.pose.pose.position.z = s.getValue(2);
-    msg.twist.twist.linear.x = s.getValue(3);
-    msg.twist.twist.linear.y = s.getValue(4);
-    msg.twist.twist.linear.z = s.getValue(5);
-    msg.pose.pose.orientation.x = s.getValue(6);
-    msg.pose.pose.orientation.y = s.getValue(7);
-    msg.pose.pose.orientation.z = s.getValue(8);
-    msg.pose.pose.orientation.w = s.getValue(9);
-    msg.twist.twist.angular.x = s.getValue(10);
-    msg.twist.twist.angular.y = s.getValue(11);
-    msg.twist.twist.angular.z = s.getValue(12);
+    msg.child_frame_id = odom->GetName();
+    msg.pose.pose.position.x = s.GetValue(0);
+    msg.pose.pose.position.y = s.GetValue(1);
+    msg.pose.pose.position.z = s.GetValue(2);
+    msg.twist.twist.linear.x = s.GetValue(3);
+    msg.twist.twist.linear.y = s.GetValue(4);
+    msg.twist.twist.linear.z = s.GetValue(5);
+    msg.pose.pose.orientation.x = s.GetValue(6);
+    msg.pose.pose.orientation.y = s.GetValue(7);
+    msg.pose.pose.orientation.z = s.GetValue(8);
+    msg.pose.pose.orientation.w = s.GetValue(9);
+    msg.twist.twist.angular.x = s.GetValue(10);
+    msg.twist.twist.angular.y = s.GetValue(11);
+    msg.twist.twist.angular.z = s.GetValue(12);
     pub.publish(msg);
 }
 
@@ -285,102 +285,102 @@ void ROSInterface::PublishOdometry(ros::Publisher& pub, Odometry* odom)
 void ROSInterface::PublishINS(ros::Publisher& pub, INS* ins)
 {
     Scalar lat, lon, h;
-    SimulationApp::getApp()->getSimulationManager()->getNED()->Ned2Geodetic(0.0, 0.0, 0.0, lat, lon, h);
+    SimulationApp::GetApp()->GetSimulationManager()->GetNed()->Ned2Geodetic(0.0, 0.0, 0.0, lat, lon, h);
 
-    Sample s = ins->getLastSample();
+    Sample s = ins->GetLastSample();
     stonefish_ros::INS msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = ins->getName();
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = ins->GetName();
     
-    msg.latitude = s.getValue(4);
-    msg.longitude = s.getValue(5);
+    msg.latitude = s.GetValue(4);
+    msg.longitude = s.GetValue(5);
     msg.origin_latitude = lat;
     msg.origin_longitude = lon;
 
-    msg.pose.north = s.getValue(0);
-    msg.pose.east = s.getValue(1);
-    msg.pose.down = s.getValue(2);
-    msg.pose.roll = s.getValue(9);
-    msg.pose.pitch = s.getValue(10);
-    msg.pose.yaw = s.getValue(11);
-    msg.altitude = s.getValue(3);
+    msg.pose.north = s.GetValue(0);
+    msg.pose.east = s.GetValue(1);
+    msg.pose.down = s.GetValue(2);
+    msg.pose.roll = s.GetValue(9);
+    msg.pose.pitch = s.GetValue(10);
+    msg.pose.yaw = s.GetValue(11);
+    msg.altitude = s.GetValue(3);
     
-    msg.body_velocity.x = s.getValue(6);
-    msg.body_velocity.y = s.getValue(7);
-    msg.body_velocity.z = s.getValue(8);
-    msg.rpy_rate.x = s.getValue(12);
-    msg.rpy_rate.y = s.getValue(13);
-    msg.rpy_rate.z = s.getValue(14);
+    msg.body_velocity.x = s.GetValue(6);
+    msg.body_velocity.y = s.GetValue(7);
+    msg.body_velocity.z = s.GetValue(8);
+    msg.rpy_rate.x = s.GetValue(12);
+    msg.rpy_rate.y = s.GetValue(13);
+    msg.rpy_rate.z = s.GetValue(14);
 
     pub.publish(msg);
 }
 
 void ROSInterface::PublishINSOdometry(ros::Publisher& pub, INS* ins)
 {
-    Sample s = ins->getLastSample();
+    Sample s = ins->GetLastSample();
     nav_msgs::Odometry msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
+    msg.header.stamp = ros::Time(s.GetTimestamp());
     msg.header.frame_id = "world_ned";
-    msg.child_frame_id = ins->getName();
-    msg.pose.pose.position.x = s.getValue(0);
-    msg.pose.pose.position.y = s.getValue(1);
-    msg.pose.pose.position.z = s.getValue(2);
-    msg.twist.twist.linear.x = s.getValue(6);
-    msg.twist.twist.linear.y = s.getValue(7);
-    msg.twist.twist.linear.z = s.getValue(8);
-    Quaternion q(s.getValue(11), s.getValue(10), s.getValue(9));
+    msg.child_frame_id = ins->GetName();
+    msg.pose.pose.position.x = s.GetValue(0);
+    msg.pose.pose.position.y = s.GetValue(1);
+    msg.pose.pose.position.z = s.GetValue(2);
+    msg.twist.twist.linear.x = s.GetValue(6);
+    msg.twist.twist.linear.y = s.GetValue(7);
+    msg.twist.twist.linear.z = s.GetValue(8);
+    Quaternion q(s.GetValue(11), s.GetValue(10), s.GetValue(9));
     msg.pose.pose.orientation.x = q.x();
     msg.pose.pose.orientation.y = q.y();
     msg.pose.pose.orientation.z = q.z();
     msg.pose.pose.orientation.w = q.w();
-    msg.twist.twist.angular.x = s.getValue(12);
-    msg.twist.twist.angular.y = s.getValue(13);
-    msg.twist.twist.angular.z = s.getValue(14);
+    msg.twist.twist.angular.x = s.GetValue(12);
+    msg.twist.twist.angular.y = s.GetValue(13);
+    msg.twist.twist.angular.z = s.GetValue(14);
     pub.publish(msg);
 }
 
 void ROSInterface::PublishForceTorque(ros::Publisher& pub, ForceTorque* ft)
 {
-    Sample s = ft->getLastSample();    
+    Sample s = ft->GetLastSample();    
     geometry_msgs::WrenchStamped msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = ft->getName();
-    msg.wrench.force.x = s.getValue(0);
-    msg.wrench.force.y = s.getValue(1);
-    msg.wrench.force.z = s.getValue(2);
-    msg.wrench.torque.x = s.getValue(3);
-    msg.wrench.torque.y = s.getValue(4);
-    msg.wrench.torque.z = s.getValue(5);
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = ft->GetName();
+    msg.wrench.force.x = s.GetValue(0);
+    msg.wrench.force.y = s.GetValue(1);
+    msg.wrench.force.z = s.GetValue(2);
+    msg.wrench.torque.x = s.GetValue(3);
+    msg.wrench.torque.y = s.GetValue(4);
+    msg.wrench.torque.z = s.GetValue(5);
     pub.publish(msg);
 }
 
 void ROSInterface::PublishEncoder(ros::Publisher& pub, RotaryEncoder* enc)
 {
-    Sample s = enc->getLastSample();
+    Sample s = enc->GetLastSample();
     sensor_msgs::JointState msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = enc->getName();
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = enc->GetName();
     msg.name.resize(1);
     msg.position.resize(1);
     msg.velocity.resize(1);
-    msg.name[0] = enc->getJointName();
-    msg.position[0] = s.getValue(0);
-    msg.velocity[0] = s.getValue(1);
+    msg.name[0] = enc->GetJointName();
+    msg.position[0] = s.GetValue(0);
+    msg.velocity[0] = s.GetValue(1);
     pub.publish(msg);
 }
 
 void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
 {
-    Sample s = mb->getLastSample();
-    SensorChannel channel = mb->getSensorChannelDescription(0);
-    std::vector<Scalar> distances = s.getData();
+    Sample s = mb->GetLastSample();
+    SensorChannel channel = mb->GetSensorChannelDescription(0);
+    std::vector<Scalar> distances = s.GetData();
 
-    Scalar angRange = mb->getAngleRange();
+    Scalar angRange = mb->GetAngleRange();
     size_t angSteps = distances.size();
 
     sensor_msgs::LaserScan msg;
-    msg.header.stamp = ros::Time(s.getTimestamp());
-    msg.header.frame_id = mb->getName();
+    msg.header.stamp = ros::Time(s.GetTimestamp());
+    msg.header.frame_id = mb->GetName();
     
     msg.angle_min = -angRange/Scalar(2); // start angle of the scan [rad]
     msg.angle_max = angRange/Scalar(2); // end angle of the scan [rad]
@@ -412,15 +412,15 @@ void ROSInterface::PublishMultibeam(ros::Publisher& pub, Multibeam* mb)
 
 void ROSInterface::PublishMultibeamPCL(ros::Publisher& pub, Multibeam* mb)
 {
-    Sample s = mb->getLastSample();
-    SensorChannel channel = mb->getSensorChannelDescription(0);
-    std::vector<Scalar> distances = s.getData();
-    Scalar angRange = mb->getAngleRange();
+    Sample s = mb->GetLastSample();
+    SensorChannel channel = mb->GetSensorChannelDescription(0);
+    std::vector<Scalar> distances = s.GetData();
+    Scalar angRange = mb->GetAngleRange();
     size_t angSteps = distances.size();
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr msg(new pcl::PointCloud<pcl::PointXYZ>);
-    msg->header.frame_id = mb->getName();
-    msg->header.seq = s.getId(); // In this message it does not increase automatically
+    msg->header.frame_id = mb->GetName();
+    msg->header.seq = s.GetId(); // In this message it does not increase automatically
     msg->height = msg->width = 1;
     Scalar angleMin = -angRange / Scalar(2);                  // start angle of the scan [rad]
     Scalar angleIncrement = angRange / Scalar(angSteps - 1);  // angular distance between measurements [rad]
@@ -436,7 +436,7 @@ void ROSInterface::PublishMultibeamPCL(ros::Publisher& pub, Multibeam* mb)
             msg->push_back(pt);
         }
 
-    pcl_conversions::toPCL(ros::Time(s.getTimestamp()), msg->header.stamp);
+    pcl_conversions::toPCL(ros::Time(s.GetTimestamp()), msg->header.stamp);
     try
     {
         pub.publish(msg);
@@ -453,26 +453,26 @@ void ROSInterface::PublishMultibeamPCL(ros::Publisher& pub, Multibeam* mb)
 
 void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
 {
-    const std::vector<Sample>* hist = prof->getHistory();
-    SensorChannel channel = prof->getSensorChannelDescription(1); // range channel
+    std::unique_ptr<std::vector<Sample>> hist = prof->GetHistory();
+    SensorChannel channel = prof->GetSensorChannelDescription(1); // range channel
 
     sensor_msgs::LaserScan msg;
-    msg.header.stamp = ros::Time(hist->back().getTimestamp());
-    msg.header.frame_id = prof->getName();
+    msg.header.stamp = ros::Time(hist->back().GetTimestamp());
+    msg.header.frame_id = prof->GetName();
     
-    msg.angle_min = hist->front().getValue(0);
-    msg.angle_max = hist->back().getValue(0);
+    msg.angle_min = hist->front().GetValue(0);
+    msg.angle_max = hist->back().GetValue(0);
     msg.range_min = channel.rangeMin; // minimum range value [m]
     msg.range_max = channel.rangeMax; // maximum range value [m]
-    msg.angle_increment = hist->size() == 1 ? 0.0 : hist->at(1).getValue(0) - hist->at(0).getValue(0);
-    msg.time_increment = hist->size() == 1 ? 0.0 : hist->at(1).getTimestamp() - hist->at(0).getTimestamp();
-    msg.scan_time = hist->back().getTimestamp() - hist->front().getTimestamp();
+    msg.angle_increment = hist->size() == 1 ? 0.0 : hist->at(1).GetValue(0) - hist->at(0).GetValue(0);
+    msg.time_increment = hist->size() == 1 ? 0.0 : hist->at(1).GetTimestamp() - hist->at(0).GetTimestamp();
+    msg.scan_time = hist->back().GetTimestamp() - hist->front().GetTimestamp();
     
     if(hist->size() == 1) // RVIZ does not display LaserScan with one range
     {
         msg.ranges.resize(2);
         msg.intensities.resize(2);
-        msg.ranges[0] = hist->front().getValue(1);
+        msg.ranges[0] = hist->front().GetValue(1);
         msg.intensities[0] = msg.ranges[0] == msg.range_max ? 0.1 : 1.0;
         msg.ranges[1] = msg.ranges[0];
         msg.intensities[1] = msg.intensities[0];
@@ -483,7 +483,7 @@ void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
         msg.intensities.resize(hist->size());
         for(size_t i=0; i<hist->size(); ++i)
         {
-            msg.ranges[i] = hist->at(i).getValue(1);
+            msg.ranges[i] = hist->at(i).GetValue(1);
             msg.intensities[i] = msg.ranges[i] == msg.range_max ? 0.1 : 1.0;
         }
     }
@@ -491,21 +491,21 @@ void ROSInterface::PublishProfiler(ros::Publisher& pub, Profiler* prof)
     pub.publish(msg);
 }
 
-void ROSInterface::PublishMultibeam2(ros::Publisher& pub, Multibeam2* mb)
+void ROSInterface::PublishLidar(ros::Publisher& pub, Lidar* lidar)
 {
     uint32_t hRes, vRes;
-    mb->getResolution(hRes, vRes);
-    glm::vec2 range = mb->getRangeLimits();
-    float hFovRad = mb->getHorizontalFOV()/180.f*M_PI;
-    float vFovRad = mb->getVerticalFOV()/180.f*M_PI; 
+    lidar->GetResolution(hRes, vRes);
+    glm::vec2 range = lidar->GetRangeLimits();
+    float hFovRad = lidar->GetHorizontalFov()/180.f*M_PI;
+    float vFovRad = lidar->GetVerticalFov()/180.f*M_PI; 
     float hStepAngleRad = hFovRad/(float)(hRes-1);
     float vStepAngleRad = vFovRad/(float)(vRes-1);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr msg(new pcl::PointCloud<pcl::PointXYZ>);
-    msg->header.frame_id = mb->getName();
+    msg->header.frame_id = lidar->GetName();
     msg->height = msg->width = 1;
 
-    float* data = (float*)mb->getRangeDataPointer();
+    float* data = (float*)lidar->GetRangeDataPointer();
 
     for(uint32_t v=0; v<vRes; ++v)
     {
@@ -518,11 +518,11 @@ void ROSInterface::PublishMultibeam2(ros::Publisher& pub, Multibeam2* mb)
             float depth = data[offset + h];
             if(depth > range.x && depth < range.y) // Only publish good points
             {
-                Eigen::Vector3f mbPoint = Eigen::Vector3f(tanf(hAngleRad), tanf(vAngleRad), 1.f).normalized() * depth;
+                Eigen::Vector3f lidarPoint = Eigen::Vector3f(tanf(hAngleRad), tanf(vAngleRad), 1.f).normalized() * depth;
                 pcl::PointXYZ pt;
-                pt.x = mbPoint.x();
-                pt.y = mbPoint.y();
-                pt.z = mbPoint.z();
+                pt.x = lidarPoint.x();
+                pt.y = lidarPoint.y();
+                pt.z = lidarPoint.z();
                 msg->push_back(pt);
             }
             hAngleRad += hStepAngleRad;
@@ -546,16 +546,16 @@ void ROSInterface::PublishMultibeam2(ros::Publisher& pub, Multibeam2* mb)
 
 void ROSInterface::PublishContact(ros::Publisher& pub, Contact* cnt)
 {
-    if(cnt->getHistory().size() == 0)
+    if(cnt->GetHistory().size() == 0)
         return;
 
-    ContactPoint cp = cnt->getHistory().back();
+    ContactPoint cp = cnt->GetHistory().back();
     
     //Publish marker message
     visualization_msgs::Marker msg;
     msg.header.frame_id = "world_ned";
     msg.header.stamp = ros::Time::now();
-    msg.ns = cnt->getName();
+    msg.ns = cnt->GetName();
     msg.id = 0;
     msg.type = visualization_msgs::Marker::ARROW;
     msg.action = visualization_msgs::Marker::ADD;
@@ -582,7 +582,7 @@ void ROSInterface::PublishContact(ros::Publisher& pub, Contact* cnt)
 
 void ROSInterface::PublishUSBL(ros::Publisher& pub, ros::Publisher& pub_info, USBL* usbl)
 {
-    std::map<uint64_t, BeaconInfo>& beacons = usbl->getBeaconInfo();
+    std::map<uint64_t, BeaconInfo>& beacons = usbl->GetBeaconInfo();
     if(beacons.size() == 0)
         return;   
 
@@ -590,12 +590,12 @@ void ROSInterface::PublishUSBL(ros::Publisher& pub, ros::Publisher& pub_info, US
     visualization_msgs::Marker marker;
     stonefish_ros::BeaconInfo info;
     
-    marker.header.frame_id = usbl->getName();
+    marker.header.frame_id = usbl->GetName();
     marker.header.stamp = ros::Time::now();
     info.header.frame_id = marker.header.frame_id;
     info.header.stamp = marker.header.stamp;
 
-    marker.ns = usbl->getName();
+    marker.ns = usbl->GetName();
     marker.type = visualization_msgs::Marker::SPHERE;
     marker.action = visualization_msgs::Marker::ADD;
     marker.scale.x = marker.scale.y = marker.scale.z = 0.1;
@@ -636,18 +636,18 @@ void ROSInterface::PublishUSBL(ros::Publisher& pub, ros::Publisher& pub_info, US
 
 void ROSInterface::PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& iter, AnimatedEntity* anim)
 {
-    Trajectory* tr = anim->getTrajectory();
-    Transform T = tr->getInterpolatedTransform();
+    Trajectory* tr = anim->GetTrajectory();
+    Transform T = tr->GetInterpolatedTransform();
     Vector3 p = T.getOrigin();
     Quaternion q = T.getRotation();
-    Vector3 v = tr->getInterpolatedLinearVelocity();
-    Vector3 omega = tr->getInterpolatedAngularVelocity();
+    Vector3 v = tr->GetInterpolatedLinearVelocity();
+    Vector3 omega = tr->GetInterpolatedAngularVelocity();
 
     //Odometry message
     nav_msgs::Odometry msg;
     msg.header.frame_id = "world_ned";
     msg.header.stamp = ros::Time::now();
-    msg.child_frame_id = anim->getName();
+    msg.child_frame_id = anim->GetName();
     msg.pose.pose.position.x = p.x();
     msg.pose.pose.position.y = p.y();
     msg.pose.pose.position.z = p.z();
@@ -666,21 +666,21 @@ void ROSInterface::PublishTrajectoryState(ros::Publisher& odom, ros::Publisher& 
     //Iteration message
     stonefish_ros::Int32Stamped msg2;
     msg2.header = msg.header;
-    msg2.data = (int32_t)tr->getPlaybackIteration();
+    msg2.data = (int32_t)tr->GetPlaybackIteration();
     iter.publish(msg2);
 }
 
 void ROSInterface::PublishEventBasedCamera(ros::Publisher& pub, EventBasedCamera* ebc)
 {
     //Get access to event texture
-    int32_t* data = (int32_t*)ebc->getImageDataPointer();
+    int32_t* data = (int32_t*)ebc->GetImageDataPointer();
 
     //Event array message
     stonefish_ros::EventArray msg;
-    msg.header.frame_id = ebc->getName();
+    msg.header.frame_id = ebc->GetName();
     msg.header.stamp = ros::Time::now();
-    ebc->getResolution(msg.width, msg.height);
-    msg.events.resize(ebc->getLastEventCount());
+    ebc->GetResolution(msg.width, msg.height);
+    msg.events.resize(ebc->GetLastEventCount());
     for(size_t i=0; i<msg.events.size(); ++i)
     {
         //First 4 bytes - pixel coords
@@ -697,8 +697,8 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> ROSInterface::Gener
 {
     //Image message
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
-    img->header.frame_id = cam->getName();
-	cam->getResolution(img->width, img->height);
+    img->header.frame_id = cam->GetName();
+	cam->GetResolution(img->width, img->height);
 	img->encoding = depth ? "32FC1" : "rgb8";
 	img->is_bigendian = 0;
     img->step = img->width * (depth ? sizeof(float) : 3);
@@ -706,7 +706,7 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> ROSInterface::Gener
 
 	//Camera info message
 	sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
-	info->header.frame_id = cam->getName();
+	info->header.frame_id = cam->GetName();
     info->width = img->width;
     info->height = img->height;
     info->binning_x = 0;
@@ -719,7 +719,7 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr> ROSInterface::Gener
     info->R[4] = 1.0;
     info->R[8] = 1.0;
     //Intrinsic
-    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanhfov2 = tan(cam->GetHorizontalFov()/180.0*M_PI/2.0);
     double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
     info->K[2] = (double)info->width/2.0; //cx
     info->K[5] = (double)info->height/2.0; //cy
@@ -748,8 +748,8 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 {
     //Image message
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
-    img->header.frame_id = cam->getName();
-	cam->getResolution(img->width, img->height);
+    img->header.frame_id = cam->GetName();
+	cam->GetResolution(img->width, img->height);
 	img->encoding = "32FC1";
 	img->is_bigendian = 0;
     img->step = img->width * sizeof(float);
@@ -757,7 +757,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 
 	//Camera info message
 	sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
-	info->header.frame_id = cam->getName();
+	info->header.frame_id = cam->GetName();
     info->width = img->width;
     info->height = img->height;
     info->binning_x = 0;
@@ -770,7 +770,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
     info->R[4] = 1.0;
     info->R[8] = 1.0;
     //Intrinsic
-    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanhfov2 = tan(cam->GetHorizontalFov()/180.0*M_PI/2.0);
     double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
     info->K[2] = (double)info->width/2.0; //cx
     info->K[5] = (double)info->height/2.0; //cy
@@ -794,7 +794,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 
     //Display message
     sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
-    disp->header.frame_id = cam->getName();
+    disp->header.frame_id = cam->GetName();
 	disp->width = img->width;
     disp->height = img->height;
 	disp->encoding = "rgb8";
@@ -809,8 +809,8 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 {
     //Image message
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
-    img->header.frame_id = cam->getName();
-	cam->getResolution(img->width, img->height);
+    img->header.frame_id = cam->GetName();
+	cam->GetResolution(img->width, img->height);
 	img->encoding = "32FC2";
 	img->is_bigendian = 0;
     img->step = img->width * 2 * sizeof(float);
@@ -818,7 +818,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 
 	//Camera info message
 	sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
-	info->header.frame_id = cam->getName();
+	info->header.frame_id = cam->GetName();
     info->width = img->width;
     info->height = img->height;
     info->binning_x = 0;
@@ -831,7 +831,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
     info->R[4] = 1.0;
     info->R[8] = 1.0;
     //Intrinsic
-    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanhfov2 = tan(cam->GetHorizontalFov()/180.0*M_PI/2.0);
     double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
     info->K[2] = (double)info->width/2.0; //cx
     info->K[5] = (double)info->height/2.0; //cy
@@ -855,7 +855,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 
     //Display message
     sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
-    disp->header.frame_id = cam->getName();
+    disp->header.frame_id = cam->GetName();
 	disp->width = img->width;
     disp->height = img->height;
 	disp->encoding = "rgb8";
@@ -870,8 +870,8 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 {
     //Image message
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
-    img->header.frame_id = cam->getName();
-	cam->getResolution(img->width, img->height);
+    img->header.frame_id = cam->GetName();
+	cam->GetResolution(img->width, img->height);
 	img->encoding = "16UC1";
 	img->is_bigendian = 0;
     img->step = img->width * sizeof(uint16_t);
@@ -879,7 +879,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 
 	//Camera info message
 	sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
-	info->header.frame_id = cam->getName();
+	info->header.frame_id = cam->GetName();
     info->width = img->width;
     info->height = img->height;
     info->binning_x = 0;
@@ -892,7 +892,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
     info->R[4] = 1.0;
     info->R[8] = 1.0;
     //Intrinsic
-    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanhfov2 = tan(cam->GetHorizontalFov()/180.0*M_PI/2.0);
     double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
     info->K[2] = (double)info->width/2.0; //cx
     info->K[5] = (double)info->height/2.0; //cy
@@ -916,7 +916,7 @@ std::tuple<sensor_msgs::ImagePtr, sensor_msgs::CameraInfoPtr, sensor_msgs::Image
 
     //Display message
     sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
-    disp->header.frame_id = cam->getName();
+    disp->header.frame_id = cam->GetName();
 	disp->width = img->width;
     disp->height = img->height;
 	disp->encoding = "rgb8";
@@ -945,12 +945,12 @@ std::pair<std::string, unsigned int> getSonarOutputFormatInfo(SonarOutputFormat 
 
 std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateFLSMsgPrototypes(FLS* fls)
 {
-    auto formatInfo = getSonarOutputFormatInfo(fls->getOutputFormat());
+    auto formatInfo = getSonarOutputFormatInfo(fls->GetOutputFormat());
     
     //Image message
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
-    img->header.frame_id = fls->getName();
-    fls->getResolution(img->width, img->height);
+    img->header.frame_id = fls->GetName();
+    fls->GetResolution(img->width, img->height);
     img->encoding = formatInfo.first;
     img->is_bigendian = 0;
     img->step = img->width * formatInfo.second;
@@ -958,8 +958,8 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateFL
 
     //Display message
     sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
-    disp->header.frame_id = fls->getName();
-	fls->getDisplayResolution(disp->width, disp->height);
+    disp->header.frame_id = fls->GetName();
+	fls->GetDisplayResolution(disp->width, disp->height);
 	disp->encoding = "rgb8";
 	disp->is_bigendian = 0;
     disp->step = disp->width * 3;
@@ -970,12 +970,12 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateFL
 
 std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateSSSMsgPrototypes(SSS* sss)
 {
-    auto formatInfo = getSonarOutputFormatInfo(sss->getOutputFormat());
+    auto formatInfo = getSonarOutputFormatInfo(sss->GetOutputFormat());
 
     //Image message
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
-    img->header.frame_id = sss->getName();
-    sss->getResolution(img->width, img->height);
+    img->header.frame_id = sss->GetName();
+    sss->GetResolution(img->width, img->height);
     img->encoding = formatInfo.first;
     img->is_bigendian = 0;
     img->step = img->width * formatInfo.second;
@@ -983,8 +983,8 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateSS
 
     //Display message
     sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
-    disp->header.frame_id = sss->getName();
-	sss->getDisplayResolution(disp->width, disp->height);
+    disp->header.frame_id = sss->GetName();
+	sss->GetDisplayResolution(disp->width, disp->height);
 	disp->encoding = "rgb8";
 	disp->is_bigendian = 0;
     disp->step = disp->width * 3;
@@ -995,12 +995,12 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateSS
 
 std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateMSISMsgPrototypes(MSIS* msis)
 {
-    auto formatInfo = getSonarOutputFormatInfo(msis->getOutputFormat());
+    auto formatInfo = getSonarOutputFormatInfo(msis->GetOutputFormat());
 
     //Image message
     sensor_msgs::ImagePtr img = boost::make_shared<sensor_msgs::Image>();
-    img->header.frame_id = msis->getName();
-    msis->getResolution(img->width, img->height);
+    img->header.frame_id = msis->GetName();
+    msis->GetResolution(img->width, img->height);
     img->encoding = formatInfo.first;
     img->is_bigendian = 0;
     img->step = img->width * formatInfo.second;
@@ -1008,8 +1008,8 @@ std::pair<sensor_msgs::ImagePtr, sensor_msgs::ImagePtr> ROSInterface::GenerateMS
 
     //Display message
     sensor_msgs::ImagePtr disp = boost::make_shared<sensor_msgs::Image>();
-    disp->header.frame_id = msis->getName();
-	msis->getDisplayResolution(disp->width, disp->height);
+    disp->header.frame_id = msis->GetName();
+	msis->GetDisplayResolution(disp->width, disp->height);
 	disp->encoding = "rgb8";
 	disp->is_bigendian = 0;
     disp->step = disp->width * 3;
