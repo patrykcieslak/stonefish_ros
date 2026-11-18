@@ -81,6 +81,7 @@
 #include <stonefish_ros/BeaconInfo.h>
 #include <stonefish_ros/Event.h>
 #include <stonefish_ros/EventArray.h>
+#include <stonefish_ros/DebugPhysics.h>
 
 #include <ros/package.h>
 
@@ -288,15 +289,12 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                 case LinkActuatorType::THRUSTER:
                     ++nThrusters;
                     break;
-
                 case LinkActuatorType::PROPELLER:
                     ++nPropellers;
                     break;
-
                 case LinkActuatorType::RUDDER:
                     ++nRudders;
                     break;
-
                 default:
                     break;
             }
@@ -309,11 +307,9 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                 case JointActuatorType::SERVO:
                     ++nServos;
                     break;
-
                 case JointActuatorType::MOTOR:
                     ++nMotors;
                     break;
-
                 default:
                     break;
             }
@@ -327,6 +323,14 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
     if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
         item->QueryBoolAttribute("publish", &rosRobot->publishBaseLinkTransform);
 
+    //Check if we should publish debug information
+    if((item = element->FirstChildElement("ros_debug")) != nullptr)
+    {
+        const char* topicPhysics = nullptr;
+        if(item->QueryStringAttribute("physics", &topicPhysics) == XML_SUCCESS)
+            pubs[robot->GetName() + "/debug/physics"] = nh.advertise<stonefish_ros::DebugPhysics>(std::string(topicPhysics), 10);
+    }
+
     //Generate subscribers
     if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
     {
@@ -336,17 +340,17 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
         const char* topicSrv = nullptr;
 
         if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThrust) == XML_SUCCESS)
-            subs[robot->GetName() + "/thrusters"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicThrust), 10, ThrustersCallback(sim, rosRobot.get()));
+            subs[robot->GetName() + "/thrusters"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicThrust), 10, ThrustersCallback(rosRobot.get()));
 
         if(nPropellers > 0 && item->QueryStringAttribute("propellers", &topicProp) == XML_SUCCESS)
-            subs[robot->GetName() + "/propellers"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicProp), 10, PropellersCallback(sim, rosRobot.get()));
+            subs[robot->GetName() + "/propellers"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicProp), 10, PropellersCallback(rosRobot.get()));
 
         if(nRudders > 0 && item->QueryStringAttribute("rudders", &topicRudder) == XML_SUCCESS)
-            subs[robot->GetName() + "/rudders"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicRudder), 10, RuddersCallback(sim, rosRobot.get()));
+            subs[robot->GetName() + "/rudders"] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(topicRudder), 10, RuddersCallback(rosRobot.get()));
 
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
         {
-            subs[robot->GetName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(sim, rosRobot.get()));
+            subs[robot->GetName() + "/servos"] = nh.subscribe<sensor_msgs::JointState>(std::string(topicSrv), 10, ServosCallback(rosRobot.get()));
             //Generate setpoint placeholders for the whole system
             aID = 0;
             while((act = robot->GetActuator(aID++)) != nullptr)
@@ -394,7 +398,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
             if(jointNames.size() > 0) // Any joints defined?
             {
                 ROS_INFO_STREAM("Creating joint group subscriber (" << std::string(jgMode) << ") " << std::string(jgTopic));
-                subs[robot->GetName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(sim, rosRobot.get(), mode, jointNames));
+                subs[robot->GetName() + "/joint_group" + std::to_string(jg)] = nh.subscribe<std_msgs::Float64MultiArray>(std::string(jgTopic), 10, JointGroupCallback(rosRobot.get(), mode, jointNames));
                 ++jg;
             }
         }
@@ -419,7 +423,7 @@ bool ROSScenarioParser::ParseRobot(XMLElement* element)
                     continue; //Skip joint group -> missing parameters
                 ROS_INFO_STREAM("Creating joint subscriber (" << modeStr << ") " << std::string(jgTopic));
                 subs[robot->GetName() + "/joint" + std::to_string(jg)] = 
-                    nh.subscribe<std_msgs::Float64>(std::string(jgTopic), 10, JointCallback(sim, rosRobot.get(), mode, robot->GetName() + "/" + std::string(jointName)));
+                    nh.subscribe<std_msgs::Float64>(std::string(jgTopic), 10, JointCallback(rosRobot.get(), mode, robot->GetName() + "/" + std::string(jointName)));
                 ++jg;
             }
         }
