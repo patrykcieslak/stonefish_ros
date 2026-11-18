@@ -16,8 +16,6 @@ The following dependencies have to be installed prior to building the package:
 
 * `Stonefish <https://github.com/patrykcieslak/stonefish>`_ (C++ library)
 
-* `cola2_msgs <https://bitbucket.org/iquarobotics/cola2_msgs>`_ (ROS package)
-
 Building
 ========
 
